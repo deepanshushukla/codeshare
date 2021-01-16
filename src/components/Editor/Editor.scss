@@ -1,0 +1,39 @@
+.editor-container{
+  flex-grow: 1;
+  flex-basis: 0;
+  flex-direction: column;
+  display: flex;
+  padding: .3rem;
+  background: #2f2e34;
+  &.collapsed{
+    flex-grow: 0;
+    & .CodeMirror-scroll{
+      position: absolute;
+    }
+  }
+}
+.editor-title{
+  display: flex;
+  justify-content: space-between;
+  background: black;
+  color:white;
+  padding: .3rem .3rem .3rem .8rem;
+  border-top-right-radius: .3rem;
+  border-top-left-radius: .3rem;
+}
+.code-mirror-container{
+  flex-grow: 1;
+  border-bottom-left-radius: .3rem;
+  border-bottom-right-radius: .3rem;
+  overflow: hidden;
+}
+.CodeMirror-wrap pre {
+  word-break: break-word;
+}
+.CodeMirror {
+  height: 100%;
+}
+.expand-compress-icon{
+  margin-left: .4rem;
+  cursor: pointer;
+}

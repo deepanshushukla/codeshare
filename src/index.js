@@ -1,12 +1,24 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import App from './App';
+import App from './components/App/App';
 import reportWebVitals from './reportWebVitals';
-
+import Firebase from 'firebase';
+import { firebaseConfig } from './firebase-config.js';
+import { BrowserRouter as Router, Route } from 'react-router-dom';
+const RouteContainer = () => {
+  return (
+    <div>
+      <Router>
+        <Route path="/:sessionId?" component={App} />
+      </Router>
+    </div>
+  );
+};
+Firebase.initializeApp(firebaseConfig);
 ReactDOM.render(
   <React.StrictMode>
-    <App />
+    <RouteContainer />
   </React.StrictMode>,
   document.getElementById('root')
 );
