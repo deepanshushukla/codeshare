@@ -16,6 +16,9 @@ const RouteContainer = () => {
   );
 };
 Firebase.initializeApp(firebaseConfig);
+if (process.env.REACT_APP_ENV === 'prod') {
+  Firebase.analytics();
+}
 ReactDOM.render(
   <React.StrictMode>
     <RouteContainer />

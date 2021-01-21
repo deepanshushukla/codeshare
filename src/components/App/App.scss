@@ -1,7 +1,45 @@
-.pane{
-  height:50vh;
+.pane {
+  height: 40vh;
   display: flex;
+  &.collapased {
+    height: 10vh;
+  }
 }
-.top-pane{
+.top-pane {
   background: #2f2e34;
+  height: 60vh;
+  &.expanded {
+    height: 90vh;
+  }
+}
+.actionBar {
+  position: fixed;
+  bottom: 40px;
+  right: 8px;
+  background: transparent;
+  padding: 7px;
+  opacity: 0.6;
+  width: 200px;
+  display: flex;
+  justify-content: flex-end;
+  &:hover {
+    opacity: 1;
+  }
+  &.collapased {
+    bottom: 0px;
+  }
+}
+.iframe-container{
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+}
+.iframe-header {
+  font-weight: 600;
+  padding: 6px;
+  display: flex;
+  justify-content: space-between;
+}
+.iframe-action{
+  cursor: pointer;
 }
