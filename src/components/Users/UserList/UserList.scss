@@ -1,0 +1,11 @@
+  li.ant-menu-item.users__menu::before {
+    content: '';
+    width: 5px;
+    height: 23px;
+    position: absolute;
+    background: green;
+    z-index: 1;
+    left: 5px;
+    top: 50%;
+    transform: translate(0, -50%);
+  }

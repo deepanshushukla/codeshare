@@ -2,31 +2,14 @@
   height: 40vh;
   display: flex;
   &.collapased {
-    height: 10vh;
+    height: 5vh;
   }
 }
 .top-pane {
   background: #2f2e34;
-  height: 60vh;
+  height: calc(60vh - 48px);
   &.expanded {
-    height: 90vh;
-  }
-}
-.actionBar {
-  position: fixed;
-  bottom: 40px;
-  right: 8px;
-  background: transparent;
-  padding: 7px;
-  opacity: 0.6;
-  width: 200px;
-  display: flex;
-  justify-content: flex-end;
-  &:hover {
-    opacity: 1;
-  }
-  &.collapased {
-    bottom: 0px;
+    height: calc(95vh - 48px);
   }
 }
 .iframe-container{
@@ -43,3 +26,4 @@
 .iframe-action{
   cursor: pointer;
 }
+

@@ -1,7 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import App from './components/App/App';
+import AppContainer from './components/App/Appcontainer';
+import Error from './components/Error';
 import reportWebVitals from './reportWebVitals';
 import Firebase from 'firebase';
 import { firebaseConfig } from './firebase-config.js';
@@ -10,7 +11,8 @@ const RouteContainer = () => {
   return (
     <div>
       <Router>
-        <Route path="/:sessionId?" component={App} />
+        <Route exact path="/error/page" component={Error} />
+        <Route exact path="/:sessionId?" component={AppContainer} />
       </Router>
     </div>
   );

@@ -6,8 +6,8 @@ import 'codemirror/mode/xml/xml';
 import 'codemirror/mode/css/css';
 import 'codemirror/mode/javascript/javascript';
 import { Controlled as ControlledEditor } from 'react-codemirror2';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCompressAlt, faExpandAlt } from '@fortawesome/free-solid-svg-icons';
+import { ShrinkOutlined, ArrowsAltOutlined } from '@ant-design/icons';
+
 import './Editor.scss';
 const Editor = ({ title, language, value, onChange }) => {
   const [editorOpen, setEditorOpen] = useState(true);
@@ -23,7 +23,7 @@ const Editor = ({ title, language, value, onChange }) => {
           className={'expand-compress-icon'}
           onClick={() => setEditorOpen((prev) => !prev)}
         >
-          <FontAwesomeIcon icon={editorOpen ? faCompressAlt : faExpandAlt} />
+          {editorOpen ? <ShrinkOutlined /> : <ArrowsAltOutlined />}
         </div>
       </div>
       <ControlledEditor

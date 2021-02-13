@@ -1,74 +1,125 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useHistory } from 'react-router-dom';
+import PropTypes from 'prop-types';
+
 import Firebase from 'firebase';
 import rand from 'random-key';
+import { ShrinkOutlined, ArrowsAltOutlined } from '@ant-design/icons';
+
 //component
 import Editor from '../Editor/Editor';
-import Button from '../common/button';
-import CheckButton from '../common/checkButton';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCompressAlt, faExpandAlt } from '@fortawesome/free-solid-svg-icons';
+import Header from '../Header';
+
 //utils
 import firebaseRealTime from '../../utils/firebaseRealtime';
+//cotext
+import { UserContextProvider } from '../../context/userContext';
+import { HtmlContextProvider } from '../../context/htmlContext';
 
 //css
 import './App.scss';
 
-const App = () => {
+const App = ({ sessionId, isNewSession }) => {
   const [html, setHtml] = useState('');
   const [autoRun, setAutoRun] = useState(true);
   const [css, setCss] = useState('');
   const [js, setJs] = useState('');
+  const [userId, setUserId] = useState(() => {
+    if (sessionStorage.getItem('user')) {
+      return JSON.parse(sessionStorage.getItem('user')).userId;
+    }
+    return;
+  });
+  const [users, setUsers] = useState([]);
   const [iframeSrc, setIframeSrc] = useState('');
   const [iframeOpen, setIframeOpen] = useState(true);
-  let { sessionId } = useParams();
   let fireBaseRef = `live-sessions/${sessionId}`;
-  const history = useHistory();
-  let fireBaseDatabaseRef;
-  if (!sessionId) {
-    sessionId = rand.generate(10);
-    fireBaseRef = `live-sessions/${sessionId}`;
-    history.push({ pathname: `/${sessionId}` });
-    firebaseRealTime(Firebase.database().ref(fireBaseRef)).set({
-      html,
-      css,
-      js,
-    });
-  }
+  const fireBaseDatabaseRef = Firebase.database().ref(fireBaseRef);
   const setValueFromSnapshot = (
     snapshot = { val: () => ({ html: '', css: '', js: '' }) }
   ) => {
-    const { html = '', css = '', js = '' } = snapshot.val() || {};
+    const { html = '', css = '', js = '', users = {} } = snapshot.val() || {};
     setHtml(html);
     setCss(css);
     setJs(js);
+    setUsers(Object.values(users).filter((item) => item.status === 'online'));
   };
-  fireBaseDatabaseRef = Firebase.database().ref(fireBaseRef);
-
   useEffect(() => {
     fireBaseDatabaseRef
       .once('value')
       .then((snapshot) => {
-        setValueFromSnapshot(snapshot);
+        if (snapshot.exists()) {
+          setValueFromSnapshot(snapshot);
+        }
       })
       .catch((e) => {
         console.log(e);
       });
     fireBaseDatabaseRef.on('value', (snapshot) => {
-      setValueFromSnapshot(snapshot);
+      if (snapshot.exists()) {
+        setValueFromSnapshot(snapshot);
+      }
     });
+  }, []);
+  const getNewUserInSession = () => {
+    const userId = rand.generate(3);
+    setUserId(userId);
+    let newUser = { name: `User_${userId}`, status: 'online', userId };
+    sessionStorage.setItem('user', JSON.stringify(newUser));
+    return { userId, newUser };
+  };
+  useEffect(() => {
+    if (isNewSession) {
+      const { userId, newUser } = getNewUserInSession();
+      firebaseRealTime(fireBaseDatabaseRef).set({
+        html,
+        css,
+        js,
+        users: { [userId]: newUser },
+      });
+    }
+    if (!isNewSession && !userId) {
+      const { userId, newUser } = getNewUserInSession();
+      firebaseRealTime(fireBaseDatabaseRef).update({
+        [`users/${userId}`]: newUser,
+      });
+    }
+    if (!isNewSession && userId) {
+      firebaseRealTime(fireBaseDatabaseRef).update({
+        [`users/${userId}/status`]: 'online',
+      });
+    }
   }, []);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (autoRun) {
-        refreshIframe();
+        if (html || css || js) {
+          refreshIframe();
+        }
       } else {
         timeout && clearTimeout(timeout);
       }
     }, 300);
     return () => timeout && clearTimeout(timeout);
   }, [html, css, js, autoRun]);
+
+  useEffect(() => {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        if (userId) {
+          firebaseRealTime(fireBaseDatabaseRef).update({
+            [`users/${userId}/status`]: 'online',
+          });
+        }
+      } else {
+        if (document.visibilityState === 'hidden' && userId) {
+          firebaseRealTime(fireBaseDatabaseRef).update({
+            [`users/${userId}/status`]: 'away',
+          });
+        }
+      }
+    });
+  });
   const refreshIframe = () => {
     setIframeSrc(`<html>
                         <body>${html}</body>
@@ -77,12 +128,28 @@ const App = () => {
                      </html>`);
   };
   const saveToFireBase = (key, value) => {
-    firebaseRealTime(fireBaseDatabaseRef).update({
+    firebaseRealTime(Firebase.database().ref(fireBaseRef)).update({
       [key]: value,
+    });
+  };
+  const onNameChange = (id, e) => {
+    firebaseRealTime(Firebase.database().ref(fireBaseRef)).update({
+      [`users/${id}/name`]: e.target.value,
     });
   };
   return (
     <>
+      <UserContextProvider value={userId}>
+        <HtmlContextProvider value={iframeSrc}>
+          <Header
+            users={users}
+            onNameChange={onNameChange}
+            autoRun={autoRun}
+            refreshIframe={refreshIframe}
+            setAutoRun={setAutoRun}
+          />
+        </HtmlContextProvider>
+      </UserContextProvider>
       <div className={`pane top-pane ${!iframeOpen ? 'expanded' : ''}`}>
         <Editor
           language={'xml'}
@@ -120,9 +187,7 @@ const App = () => {
               className={'iframe-action'}
               onClick={() => setIframeOpen((prev) => !prev)}
             >
-              <FontAwesomeIcon
-                icon={iframeOpen ? faCompressAlt : faExpandAlt}
-              />
+              {iframeOpen ? <ShrinkOutlined /> : <ArrowsAltOutlined />}
             </div>
           </header>
           <div>
@@ -137,15 +202,11 @@ const App = () => {
           </div>
         </div>
       </div>
-      <div className={`actionBar ${!iframeOpen ? 'collapased' : ''}`}>
-        {!autoRun && <Button title={'Run'} onClick={refreshIframe} />}
-        <CheckButton
-          checked={autoRun}
-          onChange={() => setAutoRun((prev) => !prev)}
-        />
-      </div>
     </>
   );
 };
-
-export default App;
+App.propTypes = {
+  sessionId: PropTypes.string,
+  isNewSession: PropTypes.bool,
+};
+export default React.memo(App);

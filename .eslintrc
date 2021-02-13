@@ -18,9 +18,9 @@
   },
   "rules": {
     "no-console": "warn",
-    "linebreak-style": ["error", "unix"],
-    "react-hooks/rules-of-hooks": "error",
+    "linebreak-style": ["warn", "unix"],
+    "react-hooks/rules-of-hooks": "warn",
     "react-hooks/exhaustive-deps": "warn",
-    "react/prop-types": "error"
+    "react/prop-types": "warn"
   }
 }
