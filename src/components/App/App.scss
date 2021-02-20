@@ -12,7 +12,7 @@
     height: calc(95vh - 48px);
   }
 }
-.iframe-container{
+.iframe-container {
   display: flex;
   width: 100%;
   flex-direction: column;
@@ -23,7 +23,11 @@
   display: flex;
   justify-content: space-between;
 }
-.iframe-action{
+.iframe-action {
   cursor: pointer;
 }
-
+@media screen and (max-width: 768px) {
+  .pane {
+    flex-direction: column;
+  }
+}

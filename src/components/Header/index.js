@@ -17,7 +17,7 @@ const Header = ({
   return (
     <PageHeader
       className="header"
-      title="Live Code Share"
+      title=""
       extra={[
         <Autorun
           key={1}

@@ -140,7 +140,7 @@ const App = ({ sessionId, isNewSession }) => {
   return (
     <>
       <UserContextProvider value={userId}>
-        <HtmlContextProvider value={iframeSrc}>
+        <HtmlContextProvider value={{ iframeSrc, html, css, js }}>
           <Header
             users={users}
             onNameChange={onNameChange}

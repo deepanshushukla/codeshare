@@ -2,20 +2,22 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { PlayCircleFilled } from '@ant-design/icons';
 
-import { Button, Checkbox } from 'antd';
+import { Button, Checkbox, Tooltip } from 'antd';
 import './Autorun.scss';
 const Autorun = ({ autoRun, setAutoRun, refreshIframe }) => {
   return (
     <div className={'autorun'}>
       {!autoRun && (
-        <Button
-          shape="circle"
-          icon={<PlayCircleFilled />}
-          onClick={refreshIframe}
-          type={'primary'}
-          size={'small'}
-          className={'autorun__btn'}
-        ></Button>
+        <Tooltip placement="bottom" title={'Run'} color={'grey'}>
+          <Button
+            shape="circle"
+            icon={<PlayCircleFilled />}
+            onClick={refreshIframe}
+            type={'primary'}
+            size={'small'}
+            className={'autorun__btn'}
+          ></Button>
+        </Tooltip>
       )}
       <Checkbox checked={autoRun} onChange={() => setAutoRun((prev) => !prev)}>
         AutoRun

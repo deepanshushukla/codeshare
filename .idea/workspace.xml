@@ -3,19 +3,19 @@
   <component name="ChangeListManager">
     <list default="true" id="ce5208a3-058b-4c4f-be18-43b56edd0f60" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.eslintcache" beforeDir="false" afterPath="$PROJECT_DIR$/.eslintcache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.eslintrc" beforeDir="false" afterPath="$PROJECT_DIR$/.eslintrc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.firebase/hosting.YnVpbGQ.cache" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.firebase/hosting.YnVpbGQ.cache" beforeDir="false" afterPath="$PROJECT_DIR$/.firebase/hosting.YnVpbGQ.cache" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/App/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/App/App.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/App/App.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/App/App.scss" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/Editor/Editor.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Editor/Editor.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/common/button/index.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/common/button/index.scss" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/common/checkButton/index.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/common/checkButton/index.scss" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/App/Appcontainer.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/App/Appcontainer.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/Autorun/Autorun.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Autorun/Autorun.scss" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/Autorun/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Autorun/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/FileSaver/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/FileSaver/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/Header/Header.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Header/Header.scss" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/Header/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Header/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/context/htmlContext.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/context/htmlContext.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/index.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/yarn.lock" beforeDir="false" afterPath="$PROJECT_DIR$/yarn.lock" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -82,7 +82,7 @@
       <workItem from="1610609903589" duration="35300000" />
       <workItem from="1611426429957" duration="4572000" />
       <workItem from="1612173396275" duration="57000" />
-      <workItem from="1612173477491" duration="37867000" />
+      <workItem from="1612173477491" duration="49871000" />
     </task>
     <servers />
   </component>
@@ -114,11 +114,11 @@
       <screen x="0" y="0" width="1440" height="900" />
     </state>
     <state x="374" y="84" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser/0.0.1440.900@0.0.1440.900" timestamp="1611114984202" />
-    <state x="380" y="228" width="680" height="472" key="find.popup" timestamp="1613119946264">
+    <state x="380" y="228" width="680" height="472" key="find.popup" timestamp="1613385696417">
       <screen x="0" y="25" width="1440" height="801" />
     </state>
     <state x="380" y="228" width="680" height="472" key="find.popup/0.0.1440.900@0.0.1440.900" timestamp="1611067622295" />
-    <state x="380" y="228" width="680" height="472" key="find.popup/0.25.1440.801@0.25.1440.801" timestamp="1613119946264" />
+    <state x="380" y="228" width="680" height="472" key="find.popup/0.25.1440.801@0.25.1440.801" timestamp="1613385696417" />
     <state x="385" y="196" key="search.everywhere.popup" timestamp="1611932827105">
       <screen x="0" y="0" width="1440" height="900" />
     </state>

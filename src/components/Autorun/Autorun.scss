@@ -1,6 +1,10 @@
 .autorun{
   display: inline-block;
+  vertical-align: middle;
   &__btn{
     margin-right: 8px;
+  }
+  .ant-checkbox-wrapper{
+    color:#ffffff
   }
 }

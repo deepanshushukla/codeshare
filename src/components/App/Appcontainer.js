@@ -22,6 +22,7 @@ const AppContainer = () => {
       Firebase.database()
         .ref(`live-sessions/${sessionId}`)
         .once('value', (snapshot) => {
+          console.log(snapshot);
           if (snapshot.exists()) {
             setSessionChecked(true);
             return true;
