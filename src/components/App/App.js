@@ -11,7 +11,7 @@ import Header from '../Header';
 
 //utils
 import firebaseRealTime from '../../utils/firebaseRealtime';
-//cotext
+//context
 import { UserContextProvider } from '../../context/userContext';
 import { HtmlContextProvider } from '../../context/htmlContext';
 
@@ -19,10 +19,12 @@ import { HtmlContextProvider } from '../../context/htmlContext';
 import './App.scss';
 
 const App = ({ sessionId, isNewSession }) => {
-  const [html, setHtml] = useState('');
+  const [html, setHtml] = useState(
+    '<div class="text">Welcome to JS code share</div>'
+  );
   const [autoRun, setAutoRun] = useState(true);
-  const [css, setCss] = useState('');
-  const [js, setJs] = useState('');
+  const [css, setCss] = useState('.text{\n' + '  color: blue\n' + '}');
+  const [js, setJs] = useState('console.log("Welcome to JSCodeShare")');
   const [userId, setUserId] = useState(() => {
     if (sessionStorage.getItem('user')) {
       return JSON.parse(sessionStorage.getItem('user')).userId;

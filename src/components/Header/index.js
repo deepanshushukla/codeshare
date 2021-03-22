@@ -6,6 +6,7 @@ import Users from '../Users';
 import FileSaver from '../FileSaver';
 import Autorun from '../Autorun';
 import './Header.scss';
+import Logo from '../../images/share.svg';
 
 const Header = ({
   users,
@@ -17,7 +18,7 @@ const Header = ({
   return (
     <PageHeader
       className="header"
-      title=""
+      title="JSCodeShare"
       extra={[
         <Autorun
           key={1}
@@ -29,7 +30,7 @@ const Header = ({
         <Users key={3} users={users} onNameChange={onNameChange} />,
       ]}
       avatar={{
-        src: 'https://avatars1.githubusercontent.com/u/8186664?s=460&v=4',
+        src: Logo,
       }}
     />
   );

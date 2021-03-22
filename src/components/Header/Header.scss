@@ -2,5 +2,9 @@
   &.ant-page-header {
     padding: 4px 24px;
     background: black;
+    .ant-page-header-heading-title {
+      color: #ffffff;
+      font-size: 16px;
+    }
   }
 }
