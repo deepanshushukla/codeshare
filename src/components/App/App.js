@@ -53,9 +53,7 @@ const App = ({ sessionId, isNewSession }) => {
           setValueFromSnapshot(snapshot);
         }
       })
-      .catch((e) => {
-        console.log(e);
-      });
+      .catch(() => {});
     fireBaseDatabaseRef.on('value', (snapshot) => {
       if (snapshot.exists()) {
         setValueFromSnapshot(snapshot);

@@ -13,6 +13,7 @@ const FILE_TYPE = {
   [HTML]: 'text/html;charset=utf-8',
   [ZIP]: 'application/pdf',
 };
+const Blob = window.Blob;
 const MENU_OPTIONS = [
   {
     title: 'Html File',
@@ -32,7 +33,6 @@ const MenuItems = ({ handleClick }) => (
 );
 const FileSaver = () => {
   const { iframeSrc, css, js, html } = useContext(HtmlContext);
-  console.log(iframeSrc);
   const htmlFile = `<!DOCTYPE html><html>
     <head><link href="./css/index.css" rel="stylesheet"></head>
     <body>

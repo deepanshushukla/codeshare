@@ -6,3 +6,4 @@ build.sh
 package-lock.json
 .history/
 .DS_Store
+.idea/
