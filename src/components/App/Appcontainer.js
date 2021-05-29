@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useHistory } from 'react-router-dom';
 import App from './App';
 import rand from 'random-key';
-import Firebase from 'firebase';
+import firebase from 'firebase';
 
 const AppContainer = () => {
   const [sessionId, setsessionId] = useState(useParams().sessionId);
@@ -19,7 +19,8 @@ const AppContainer = () => {
       setSessionChecked(true);
       setIsNewSession(true);
     } else {
-      Firebase.database()
+      firebase
+        .database()
         .ref(`live-sessions/${sessionId}`)
         .once('value', (snapshot) => {
           if (snapshot.exists()) {

@@ -3,13 +3,18 @@
   <component name="ChangeListManager">
     <list default="true" id="ce5208a3-058b-4c4f-be18-43b56edd0f60" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.eslintcache" beforeDir="false" afterPath="$PROJECT_DIR$/.eslintcache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.firebase/hosting.YnVpbGQ.cache" beforeDir="false" afterPath="$PROJECT_DIR$/.firebase/hosting.YnVpbGQ.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/public/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/public/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/App/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/App/App.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/App/App.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/App/App.scss" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/App/Appcontainer.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/App/Appcontainer.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/FileSaver/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/FileSaver/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/Autorun/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Autorun/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/Editor/Editor.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Editor/Editor.scss" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/Header/Header.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Header/Header.scss" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/Header/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Header/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/yarn-error.log" beforeDir="false" afterPath="$PROJECT_DIR$/yarn-error.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/yarn.lock" beforeDir="false" afterPath="$PROJECT_DIR$/yarn.lock" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -19,8 +24,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="SCSS File" />
         <option value="JavaScript File" />
+        <option value="SCSS File" />
       </list>
     </option>
   </component>
@@ -83,6 +88,10 @@
       <workItem from="1618124298358" duration="259000" />
       <workItem from="1620149330857" duration="736000" />
       <workItem from="1620622105243" duration="932000" />
+      <workItem from="1620993396861" duration="3201000" />
+      <workItem from="1621148964550" duration="1784000" />
+      <workItem from="1621784261874" duration="3670000" />
+      <workItem from="1621880845375" duration="15606000" />
     </task>
     <servers />
   </component>
@@ -90,14 +99,16 @@
     <option name="version" value="1" />
   </component>
   <component name="WindowStateProjectService">
-    <state width="500" height="445" key="SwitcherDM" timestamp="1612638859103">
-      <screen x="0" y="25" width="1440" height="801" />
+    <state x="100" y="100" width="1240" height="700" key="com.intellij.history.integration.ui.views.FileHistoryDialog" timestamp="1622208228240">
+      <screen x="0" y="25" width="1440" height="813" />
     </state>
-    <state width="500" height="445" key="SwitcherDM/0.25.1440.801@0.25.1440.801" timestamp="1612638859103" />
-    <state x="380" y="230" width="680" height="477" key="find.popup" timestamp="1620622210545">
-      <screen x="0" y="25" width="1440" height="809" />
+    <state x="100" y="100" width="1240" height="700" key="com.intellij.history.integration.ui.views.FileHistoryDialog/0.25.1440.813@0.25.1440.813" timestamp="1622208228240" />
+    <state x="380" y="228" width="680" height="531" key="find.popup" timestamp="1622301152736">
+      <screen x="0" y="0" width="1440" height="900" />
     </state>
+    <state x="380" y="228" width="680" height="531" key="find.popup/0.0.1440.900@0.0.1440.900" timestamp="1622301152736" />
     <state x="380" y="228" width="680" height="472" key="find.popup/0.25.1440.801@0.25.1440.801" timestamp="1613385696417" />
-    <state x="380" y="230" width="680" height="477" key="find.popup/0.25.1440.809@0.25.1440.809" timestamp="1620622210545" />
+    <state x="380" y="230" width="680" height="477" key="find.popup/0.25.1440.809@0.25.1440.809" timestamp="1621150009450" />
+    <state x="380" y="231" width="680" height="480" key="find.popup/0.25.1440.814@0.25.1440.814" timestamp="1620996622080" />
   </component>
 </project>

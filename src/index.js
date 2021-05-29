@@ -4,7 +4,9 @@ import './index.css';
 import AppContainer from './components/App/Appcontainer';
 import Error from './components/Error';
 import reportWebVitals from './reportWebVitals';
-import Firebase from 'firebase';
+import firebase from 'firebase/app';
+import 'firebase/database';
+import 'firebase/analytics';
 import { firebaseConfig } from './firebase-config.js';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 const RouteContainer = () => {
@@ -17,16 +19,11 @@ const RouteContainer = () => {
     </div>
   );
 };
-Firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(firebaseConfig);
 if (process.env.REACT_APP_ENV === 'prod') {
-  Firebase.analytics();
+  firebase.analytics();
 }
-ReactDOM.render(
-  <React.StrictMode>
-    <RouteContainer />
-  </React.StrictMode>,
-  document.getElementById('root')
-);
+ReactDOM.render(<RouteContainer />, document.getElementById('root'));
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))

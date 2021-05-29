@@ -8,13 +8,7 @@ import Autorun from '../Autorun';
 import './Header.scss';
 import Logo from '../../images/share.svg';
 
-const Header = ({
-  users,
-  onNameChange,
-  autoRun,
-  refreshIframe,
-  setAutoRun,
-}) => {
+const Header = ({ users, onNameChange, refreshIframe, setAutoRun }) => {
   return (
     <PageHeader
       className="header"
@@ -22,7 +16,7 @@ const Header = ({
       extra={[
         <Autorun
           key={1}
-          autoRun={autoRun}
+          autoRun={false}
           refreshIframe={refreshIframe}
           setAutoRun={setAutoRun}
         />,
@@ -38,7 +32,7 @@ const Header = ({
 Header.propTypes = {
   users: PropTypes.array,
   onNameChange: PropTypes.func,
-  autoRun: false,
+  autoRun: PropTypes.bool,
   refreshIframe: PropTypes.func,
   setAutoRun: PropTypes.func,
 };

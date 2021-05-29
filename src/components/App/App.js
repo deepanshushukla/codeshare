@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 
-import Firebase from 'firebase';
+import firebase from 'firebase';
 import rand from 'random-key';
-import { ShrinkOutlined, ArrowsAltOutlined } from '@ant-design/icons';
+import {
+  ShrinkOutlined,
+  ArrowsAltOutlined,
+  ArrowDownOutlined,
+  ArrowUpOutlined,
+  CloseOutlined,
+} from '@ant-design/icons';
 
 //component
 import Editor from '../Editor/Editor';
 import Header from '../Header';
-
+import LogsContainer from '../Logs';
 //utils
 import firebaseRealTime from '../../utils/firebaseRealtime';
 //context
@@ -33,9 +39,11 @@ const App = ({ sessionId, isNewSession }) => {
   });
   const [users, setUsers] = useState([]);
   const [iframeSrc, setIframeSrc] = useState('');
-  const [iframeOpen, setIframeOpen] = useState(true);
+  const [bottomPaneOpen, setBottomPaneOpen] = useState(true);
+  const [iframePaneOpen, setIframePaneOpen] = useState(true);
+  const [iframePaneClose, setIframePaneClose] = useState(false);
   let fireBaseRef = `live-sessions/${sessionId}`;
-  const fireBaseDatabaseRef = Firebase.database().ref(fireBaseRef);
+  const fireBaseDatabaseRef = firebase.database().ref(fireBaseRef);
   const setValueFromSnapshot = (
     snapshot = { val: () => ({ html: '', css: '', js: '' }) }
   ) => {
@@ -127,13 +135,21 @@ const App = ({ sessionId, isNewSession }) => {
                          <script>${js}</script>
                      </html>`);
   };
+  const runClick = () => {
+    try {
+      refreshIframe();
+      eval(js);
+    } catch (e) {
+      console.error(e);
+    }
+  };
   const saveToFireBase = (key, value) => {
-    firebaseRealTime(Firebase.database().ref(fireBaseRef)).update({
+    firebaseRealTime(firebase.database().ref(fireBaseRef)).update({
       [key]: value,
     });
   };
   const onNameChange = (id, e) => {
-    firebaseRealTime(Firebase.database().ref(fireBaseRef)).update({
+    firebaseRealTime(firebase.database().ref(fireBaseRef)).update({
       [`users/${id}/name`]: e.target.value,
     });
   };
@@ -145,12 +161,12 @@ const App = ({ sessionId, isNewSession }) => {
             users={users}
             onNameChange={onNameChange}
             autoRun={autoRun}
-            refreshIframe={refreshIframe}
+            refreshIframe={runClick}
             setAutoRun={setAutoRun}
           />
         </HtmlContextProvider>
       </UserContextProvider>
-      <div className={`pane top-pane ${!iframeOpen ? 'expanded' : ''}`}>
+      <div className={`top-pane ${!bottomPaneOpen ? 'expanded' : ''}`}>
         <Editor
           language={'xml'}
           title={'HTML'}
@@ -179,26 +195,68 @@ const App = ({ sessionId, isNewSession }) => {
           }}
         />
       </div>
-      <div className={`pane ${!iframeOpen ? 'collapased' : ''}`}>
-        <div className={'iframe-container'}>
-          <header className={'iframe-header'}>
-            <div>Output:-</div>
-            <div
-              className={'iframe-action'}
-              onClick={() => setIframeOpen((prev) => !prev)}
-            >
-              {iframeOpen ? <ShrinkOutlined /> : <ArrowsAltOutlined />}
-            </div>
-          </header>
+      <div className={`bottom-pane ${!bottomPaneOpen ? 'collapased' : ''}`}>
+        <div
+          className={'bottom-pane-action'}
+          onClick={() => setBottomPaneOpen((prev) => !prev)}
+        >
+          <div>Output & Console</div>
           <div>
-            <iframe
-              srcDoc={iframeSrc}
-              title={'output'}
-              sandbox={'allow-scripts'}
-              frameBorder={0}
-              width={'100%'}
-              height={'100%'}
-            ></iframe>
+            {bottomPaneOpen ? (
+              <span>
+                Hide <ArrowDownOutlined />
+              </span>
+            ) : (
+              <span>
+                Show <ArrowUpOutlined />
+              </span>
+            )}
+          </div>
+        </div>
+        <div style={{ display: 'flex' }}>
+          {!iframePaneClose && (
+            <div
+              className={`editor-container bottom iframe-pane ${
+                !iframePaneOpen ? 'collapased' : ''
+              }`}
+            >
+              <header className={'iframe-pane-header'}>
+                <div>Output:-</div>
+                <div className={'iframe-pane-action'}>
+                  <div
+                    style={{ color: 'black' }}
+                    onClick={() => setIframePaneOpen((prev) => !prev)}
+                  >
+                    {iframePaneOpen ? (
+                      <ShrinkOutlined />
+                    ) : (
+                      <ArrowsAltOutlined />
+                    )}
+                  </div>
+                  {!iframePaneClose && (
+                    <div
+                      style={{ color: 'black' }}
+                      onClick={() => setIframePaneClose((prev) => !prev)}
+                    >
+                      <CloseOutlined />
+                    </div>
+                  )}
+                </div>
+              </header>
+              <div>
+                <iframe
+                  srcDoc={iframeSrc}
+                  title={'output'}
+                  sandbox={'allow-scripts'}
+                  frameBorder={0}
+                  width={'100%'}
+                  height={'100%'}
+                ></iframe>
+              </div>
+            </div>
+          )}
+          <div className={'editor-container bottom'}>
+            <LogsContainer runClick={runClick} />
           </div>
         </div>
       </div>

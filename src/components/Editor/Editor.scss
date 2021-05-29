@@ -4,7 +4,9 @@
   flex-direction: column;
   display: flex;
   padding: .3rem;
-  background: #2f2e34;
+  &.bottom{
+    padding-top: .1rem;
+  }
   &.collapsed{
     flex-grow: 0;
     & .CodeMirror-scroll{

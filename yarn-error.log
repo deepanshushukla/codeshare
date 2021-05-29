@@ -1,8 +1,8 @@
 Arguments: 
-  /usr/local/bin/node /usr/local/Cellar/yarn/1.22.0/libexec/bin/yarn.js run --silent husky-run pre-commit
+  /usr/local/bin/node /usr/local/Cellar/yarn/1.22.0/libexec/bin/yarn.js start
 
 PATH: 
-  /usr/local/Cellar/git/2.30.1/libexec/git-core:/Users/observe.ai_36/opt/anaconda3/bin:/Users/observe.ai_36/opt/anaconda3/condabin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/observe.ai_36/Desktop/live-code-share/node_modules/.bin
+  /Users/observe.ai_36/opt/anaconda3/bin:/Users/observe.ai_36/opt/anaconda3/condabin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/observe.ai_36/Desktop/live-code-share/node_modules/.bin
 
 Yarn version: 
   1.22.0
@@ -14,7 +14,7 @@ Platform:
   darwin x64
 
 Trace: 
-  SyntaxError: /Users/observe.ai_36/Desktop/live-code-share/package.json: Unexpected token / in JSON at position 72
+  SyntaxError: /Users/observe.ai_36/Desktop/live-code-share/package.json: Unexpected token / in JSON at position 1699
       at JSON.parse (<anonymous>)
       at /usr/local/Cellar/yarn/1.22.0/libexec/lib/cli.js:1625:59
       at Generator.next (<anonymous>)
@@ -26,11 +26,6 @@ npm manifest:
     "name": "live-code-share",
     "version": "0.1.0",
     "private": true,
-  //  "husky": {
-  //    "hooks": {
-  //      "pre-commit": "lint-staged"
-  //    }
-  //  },
     "dependencies": {
       "@fortawesome/fontawesome-svg-core": "^1.2.34",
       "@fortawesome/free-solid-svg-icons": "^5.15.2",
@@ -40,7 +35,7 @@ npm manifest:
       "@testing-library/user-event": "^12.1.10",
       "antd": "^4.12.2",
       "codemirror": "^5.59.1",
-      "console-feed": "^3.2.1",
+      "console-feed": "^3.2.2",
       "cross-env": "^7.0.3",
       "eslint": "^7.17.0",
       "eslint-config-prettier": "^7.1.0",
@@ -63,7 +58,7 @@ npm manifest:
       "web-vitals": "^0.2.4"
     },
     "scripts": {
-      "start": "cross-env REACT_APP_ENV=dev react-scripts start",
+      "start": "cross-env REACT_APP_ENV=prod react-scripts start",
       "build": "cross-env REACT_APP_ENV=prod react-scripts build",
       "test": "react-scripts test",
       "eject": "react-scripts eject",
@@ -87,17 +82,17 @@ npm manifest:
         "last 1 firefox version",
         "last 1 safari version"
       ]
-    },
-    "lint-staged": {
-      "*.+(js|jsx|ts|tsx)": [
-        "eslint --fix",
-        "git add"
-      ],
-      "src/**/*.{js,jsx,ts,tsx,json,css,scss,md}": [
-        "prettier --write",
-        "git add"
-      ]
     }
+  //  "lint-staged": {
+  //    "*.+(js|jsx|ts|tsx)": [
+  //      "eslint --fix",
+  //      "git add"
+  //    ],
+  //    "src/**/*.{js,jsx,ts,tsx,json,css,scss,md}": [
+  //      "prettier --write",
+  //      "git add"
+  //    ]
+  //  }
   }
 
 yarn manifest: 
@@ -4543,10 +4538,10 @@ Lockfile:
     resolved "https://registry.yarnpkg.com/console-control-strings/-/console-control-strings-1.1.0.tgz#3d7cf4464db6446ea644bf4b39507f9851008e8e"
     integrity sha1-PXz0Rk22RG6mRL9LOVB/mFEAjo4=
   
-  console-feed@^3.2.1:
-    version "3.2.1"
-    resolved "https://registry.yarnpkg.com/console-feed/-/console-feed-3.2.1.tgz#36452b3847ffa79444b7c9755eb4a4669a8ecf7e"
-    integrity sha512-rny1PIgTEx/3ll/b7IBwT+7WfjaY9RnOMd97/8S8bipmMv9GQcLY9YR1AZ23KwkcteRP9hiJ804n5bDuCO5sDQ==
+  console-feed@^3.2.2:
+    version "3.2.2"
+    resolved "https://registry.yarnpkg.com/console-feed/-/console-feed-3.2.2.tgz#fc19a9ba5eedea2985b4add45f7be2a1d0536fe6"
+    integrity sha512-/DxoNG48E+eIMhD9/lBftpJoFQI1e5TOXCwmwG9VIMXAVJPDyGRoY844eClkZBC4b4Ae24ndua6ui/E0jfrH9Q==
     dependencies:
       "@emotion/core" "^10.0.10"
       "@emotion/styled" "^10.0.12"

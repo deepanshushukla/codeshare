@@ -1,0 +1,48 @@
+.console {
+  background-color: rgb(36, 36, 36);
+  height: 40vh;
+  position: relative;
+  &-header{
+    padding: 2px 10px;
+    background: #645858;
+    display: flex;
+    justify-content: space-between;
+    & .title{
+      color:white;
+    }
+    & .right{
+      column-gap: 10px;
+      display: flex;
+    }
+  }
+  a {
+    color:white;
+  }
+  &-list{
+    height: calc(40vh - 52px);
+    overflow-y: auto;
+  }
+  input.ant-input.ant-input-sm.ant-input-borderless {
+    color: white;
+  }
+
+  &-input{
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    min-height: 10px !important;
+    background: #dfc9c900;
+    height: 23px !important;
+    line-height: 23px;
+    vertical-align: middle;
+    color:white !important;
+    border-top: 1px solid #504242;
+    &.ant-input{
+      color:white !important;
+    }
+    &.ant-input-affix-wrapper-borderless, .ant-input-affix-wrapper-borderless:hover, .ant-input-affix-wrapper-borderless:focus, .ant-input-affix-wrapper-borderless-focused{
+      border-top: 1px solid #504242 !important;
+    }
+  }
+}

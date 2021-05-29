@@ -19,9 +19,14 @@ const Autorun = ({ autoRun, setAutoRun, refreshIframe }) => {
           ></Button>
         </Tooltip>
       )}
-      <Checkbox checked={autoRun} onChange={() => setAutoRun((prev) => !prev)}>
-        AutoRun
-      </Checkbox>
+      {false && (
+        <Checkbox
+          checked={autoRun}
+          onChange={() => setAutoRun((prev) => !prev)}
+        >
+          AutoRun
+        </Checkbox>
+      )}
     </div>
   );
 };
