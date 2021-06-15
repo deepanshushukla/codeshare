@@ -6,21 +6,9 @@
   },
   "plugins": ["react", "react-hooks"],
   "parser": "babel-eslint",
-  "extends": [
-    "eslint:recommended",
-    "plugin:react/recommended",
-    "plugin:prettier/recommended"
-  ],
 
   "parserOptions": {
     "sourceType": "module",
     "ecmaVersion": 2018
-  },
-  "rules": {
-    "no-console": "warn",
-    "linebreak-style": ["warn", "unix"],
-    "react-hooks/rules-of-hooks": "warn",
-    "react-hooks/exhaustive-deps": "warn",
-    "react/prop-types": "warn"
   }
 }

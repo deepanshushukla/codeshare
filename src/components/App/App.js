@@ -1,68 +1,76 @@
-import React, { useState, useEffect } from 'react';
-import PropTypes from 'prop-types';
+import React, { useState, useEffect } from "react";
+import { useHistory, useParams } from "react-router-dom";
 
-import firebase from 'firebase';
-import rand from 'random-key';
-import {
-  ShrinkOutlined,
-  ArrowsAltOutlined,
-  ArrowDownOutlined,
-  ArrowUpOutlined,
-  CloseOutlined,
-} from '@ant-design/icons';
+import PropTypes from "prop-types";
+import { ReflexContainer, ReflexElement, ReflexSplitter } from "react-reflex";
+import firebase from "firebase";
+import rand from "random-key";
+import {Empty} from 'antd'
 
 //component
-import Editor from '../Editor/Editor';
-import Header from '../Header';
-import LogsContainer from '../Logs';
+import Editor from "../Editor/Editor";
+import Header from "../Header";
+import LogsContainer from "../Logs";
 //utils
-import firebaseRealTime from '../../utils/firebaseRealtime';
+import firebaseRealTime from "../../utils/firebaseRealtime";
 //context
-import { UserContextProvider } from '../../context/userContext';
-import { HtmlContextProvider } from '../../context/htmlContext';
+import { UserContextProvider } from "../../context/userContext";
+import { HtmlContextProvider } from "../../context/htmlContext";
 
 //css
-import './App.scss';
+import "react-reflex/styles.css";
 
+import "./App.scss";
+
+const Initial_Tabs = {
+  html: true,
+  css: true,
+  js: true,
+  console: true,
+  output: true,
+};
 const App = ({ sessionId, isNewSession }) => {
+  const { selectedTabs } = useParams();
   const [html, setHtml] = useState(
     '<div class="text">Welcome to JS code share</div>'
   );
-  const [autoRun, setAutoRun] = useState(true);
-  const [css, setCss] = useState('.text{\n' + '  color: blue\n' + '}');
+  const [autoRun, setAutoRun] = useState(false);
+  const [tabs, setTabs] = useState({ ...Initial_Tabs });
+  const [css, setCss] = useState(".text{\n" + "  color: blue\n" + "}");
   const [js, setJs] = useState('console.log("Welcome to JSCodeShare")');
   const [userId, setUserId] = useState(() => {
-    if (sessionStorage.getItem('user')) {
-      return JSON.parse(sessionStorage.getItem('user')).userId;
+    if (sessionStorage.getItem("user")) {
+      return JSON.parse(sessionStorage.getItem("user")).userId;
     }
     return;
   });
   const [users, setUsers] = useState([]);
-  const [iframeSrc, setIframeSrc] = useState('');
-  const [bottomPaneOpen, setBottomPaneOpen] = useState(true);
-  const [iframePaneOpen, setIframePaneOpen] = useState(true);
-  const [iframePaneClose, setIframePaneClose] = useState(false);
+  const [iframeSrc, setIframeSrc] = useState("");
   let fireBaseRef = `live-sessions/${sessionId}`;
   const fireBaseDatabaseRef = firebase.database().ref(fireBaseRef);
   const setValueFromSnapshot = (
-    snapshot = { val: () => ({ html: '', css: '', js: '' }) }
+    snapshot = { val: () => ({ html: "", css: "", js: "" }) }
   ) => {
-    const { html = '', css = '', js = '', users = {} } = snapshot.val() || {};
+    const { html = "", css = "", js = "", users = {} } = snapshot.val() || {};
     setHtml(html);
     setCss(css);
     setJs(js);
-    setUsers(Object.values(users).filter((item) => item.status === 'online'));
+    setUsers(Object.values(users).filter((item) => item.status === "online"));
   };
+  useEffect(()=>{
+    console.log('selectedTabs',selectedTabs)
+  },[]);
+
   useEffect(() => {
     fireBaseDatabaseRef
-      .once('value')
+      .once("value")
       .then((snapshot) => {
         if (snapshot.exists()) {
           setValueFromSnapshot(snapshot);
         }
       })
       .catch(() => {});
-    fireBaseDatabaseRef.on('value', (snapshot) => {
+    fireBaseDatabaseRef.on("value", (snapshot) => {
       if (snapshot.exists()) {
         setValueFromSnapshot(snapshot);
       }
@@ -71,8 +79,8 @@ const App = ({ sessionId, isNewSession }) => {
   const getNewUserInSession = () => {
     const userId = rand.generate(3);
     setUserId(userId);
-    let newUser = { name: `User_${userId}`, status: 'online', userId };
-    sessionStorage.setItem('user', JSON.stringify(newUser));
+    let newUser = { name: `User_${userId}`, status: "online", userId };
+    sessionStorage.setItem("user", JSON.stringify(newUser));
     return { userId, newUser };
   };
   useEffect(() => {
@@ -93,7 +101,7 @@ const App = ({ sessionId, isNewSession }) => {
     }
     if (!isNewSession && userId) {
       firebaseRealTime(fireBaseDatabaseRef).update({
-        [`users/${userId}/status`]: 'online',
+        [`users/${userId}/status`]: "online",
       });
     }
   }, []);
@@ -112,17 +120,17 @@ const App = ({ sessionId, isNewSession }) => {
   }, [html, css, js, autoRun]);
 
   useEffect(() => {
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') {
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
         if (userId) {
           firebaseRealTime(fireBaseDatabaseRef).update({
-            [`users/${userId}/status`]: 'online',
+            [`users/${userId}/status`]: "online",
           });
         }
       } else {
-        if (document.visibilityState === 'hidden' && userId) {
+        if (document.visibilityState === "hidden" && userId) {
           firebaseRealTime(fireBaseDatabaseRef).update({
-            [`users/${userId}/status`]: 'away',
+            [`users/${userId}/status`]: "away",
           });
         }
       }
@@ -153,6 +161,9 @@ const App = ({ sessionId, isNewSession }) => {
       [`users/${id}/name`]: e.target.value,
     });
   };
+  const showEmpty = () =>{
+    return  !tabs.console && !tabs.output && !tabs.html && !tabs.js && !tabs.css
+  };
   return (
     <>
       <UserContextProvider value={userId}>
@@ -163,103 +174,79 @@ const App = ({ sessionId, isNewSession }) => {
             autoRun={autoRun}
             refreshIframe={runClick}
             setAutoRun={setAutoRun}
+            setTabs={setTabs}
+            tabs={tabs}
           />
         </HtmlContextProvider>
       </UserContextProvider>
-      <div className={`top-pane ${!bottomPaneOpen ? 'expanded' : ''}`}>
-        <Editor
-          language={'xml'}
-          title={'HTML'}
-          value={html}
-          onChange={(value) => {
-            saveToFireBase('html', value);
-            setHtml(value);
-          }}
-        />
-        <Editor
-          language={'css'}
-          title={'CSS'}
-          value={css}
-          onChange={(value) => {
-            saveToFireBase('css', value);
-            setCss(value);
-          }}
-        />
-        <Editor
-          language={'javascript'}
-          title={'JS'}
-          value={js}
-          onChange={(value) => {
-            saveToFireBase('js', value);
-            setJs(value);
-          }}
-        />
-      </div>
-      <div className={`bottom-pane ${!bottomPaneOpen ? 'collapased' : ''}`}>
-        <div
-          className={'bottom-pane-action'}
-          onClick={() => setBottomPaneOpen((prev) => !prev)}
-        >
-          <div>Output & Console</div>
-          <div>
-            {bottomPaneOpen ? (
-              <span>
-                Hide <ArrowDownOutlined />
-              </span>
-            ) : (
-              <span>
-                Show <ArrowUpOutlined />
-              </span>
-            )}
-          </div>
-        </div>
-        <div style={{ display: 'flex' }}>
-          {!iframePaneClose && (
-            <div
-              className={`editor-container bottom iframe-pane ${
-                !iframePaneOpen ? 'collapased' : ''
-              }`}
-            >
-              <header className={'iframe-pane-header'}>
-                <div>Output:-</div>
-                <div className={'iframe-pane-action'}>
-                  <div
-                    style={{ color: 'black' }}
-                    onClick={() => setIframePaneOpen((prev) => !prev)}
-                  >
-                    {iframePaneOpen ? (
-                      <ShrinkOutlined />
-                    ) : (
-                      <ArrowsAltOutlined />
-                    )}
-                  </div>
-                  {!iframePaneClose && (
-                    <div
-                      style={{ color: 'black' }}
-                      onClick={() => setIframePaneClose((prev) => !prev)}
-                    >
-                      <CloseOutlined />
-                    </div>
-                  )}
-                </div>
-              </header>
-              <div>
-                <iframe
-                  srcDoc={iframeSrc}
-                  title={'output'}
-                  sandbox={'allow-scripts'}
-                  frameBorder={0}
-                  width={'100%'}
-                  height={'100%'}
-                ></iframe>
-              </div>
-            </div>
-          )}
-          <div className={'editor-container bottom'}>
+      {showEmpty() && <div className='emptyContainer'><Empty description={'No Tab is selected'}/></div>}
+      <ReflexContainer orientation="vertical" className="tabsConatiner">
+        {tabs.html && (
+          <ReflexElement>
+            <Editor
+              language={"xml"}
+              title={"HTML"}
+              value={html}
+              onChange={(value) => {
+                saveToFireBase("html", value);
+                setHtml(value);
+              }}
+            />
+          </ReflexElement>
+        )}
+        {tabs.html && <ReflexSplitter />}
+        {tabs.css && (
+          <ReflexElement className="tab">
+            <Editor
+              language={"css"}
+              title={"CSS"}
+              value={css}
+              onChange={(value) => {
+                saveToFireBase("css", value);
+                setCss(value);
+              }}
+            />
+          </ReflexElement>
+        )}
+        {tabs.css && <ReflexSplitter />}
+
+        {tabs.js && (
+          <ReflexElement className="tab">
+            <Editor
+              language={"javascript"}
+              title={"JS"}
+              value={js}
+              onChange={(value) => {
+                saveToFireBase("js", value);
+                setJs(value);
+              }}
+            />
+          </ReflexElement>
+        )}
+        {tabs.js && <ReflexSplitter />}
+
+        {tabs.console && (
+          <ReflexElement className="tab">
             <LogsContainer runClick={runClick} />
-          </div>
-        </div>
-      </div>
+          </ReflexElement>
+        )}
+        {tabs.console && <ReflexSplitter />}
+        {tabs.output && (
+          <ReflexElement className="tab">
+            <div className={'iframeContainer'}>
+              <div className="iframetitle">Output</div>
+              <iframe
+                srcDoc={iframeSrc}
+                title={"output"}
+                sandbox={"allow-scripts"}
+                frameBorder={0}
+                width={"100%"}
+                height={"100%"}
+              ></iframe>
+            </div>
+          </ReflexElement>
+        )}
+      </ReflexContainer>
     </>
   );
 };

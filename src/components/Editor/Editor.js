@@ -5,8 +5,9 @@ import 'codemirror/theme/material.css';
 import 'codemirror/mode/xml/xml';
 import 'codemirror/mode/css/css';
 import 'codemirror/mode/javascript/javascript';
+import 'codemirror/addon/edit/closebrackets';
+import 'codemirror/addon/edit/matchbrackets';
 import { Controlled as ControlledEditor } from 'react-codemirror2';
-import { ShrinkOutlined, ArrowsAltOutlined } from '@ant-design/icons';
 
 import './Editor.scss';
 const Editor = ({ title, language, value, onChange }) => {
@@ -19,12 +20,6 @@ const Editor = ({ title, language, value, onChange }) => {
     <div className={`editor-container ${editorOpen ? '' : 'collapsed'}`}>
       <div className="editor-title">
         {title}
-        <div
-          className={'expand-compress-icon'}
-          onClick={() => setEditorOpen((prev) => !prev)}
-        >
-          {editorOpen ? <ShrinkOutlined /> : <ArrowsAltOutlined />}
-        </div>
       </div>
       <ControlledEditor
         value={value}
@@ -35,6 +30,7 @@ const Editor = ({ title, language, value, onChange }) => {
           mode: language,
           lineNumbers: true,
           theme: 'material',
+          autoCloseBrackets: true,
         }}
         className={'code-mirror-container'}
       />

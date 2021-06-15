@@ -1,6 +1,69 @@
 .header {
+  /* Style the tab */
+  height: 62px;
+  display: flex;
+  background: #282727;
+  justify-content: space-between;
+  align-items: center;
+  color:#ffffff;
+  padding: 0 20px;
+  & img{
+    width: 30px
+  }
+  & .title{
+    font-size: 16px;
+  }
+  & .right{
+    display: flex;
+    gap: 14px;
+  }
+  & .left{
+    display: flex;
+    gap: 20px;
+  }
+  .tab {
+    display: inline-block;
+    height: 34px;
+    border-radius: 2px;
+    & .tablinks {
+      background-color: #747171;
+      outline: none;
+      cursor: pointer;
+      transition: 0.3s;
+      padding: 0px 10px;
+      height: 100%;
+      font-size: 15px;
+      width: 80px;
+      color: white;
+      border: none;
+      vertical-align: top;
+      &:first-child{
+        border-top-left-radius: 2px;
+        border-bottom-left-radius: 2px;
+      }
+      &:last-child{
+        border-top-right-radius: 2px;
+        border-bottom-right-radius: 2px;
+      }
+      &:not(:first-child){
+        border-left: 1px solid #828282;
+      }
+
+      &.active{
+       background: #4e4e4e;
+        font-weight: 600;
+      }
+      &:hover,&.active:hover{
+        background: #5b5b5b;
+      }
+    }
+  }
+
+  /* Style the buttons inside the tab */
+
+
   &.ant-page-header {
-    padding: 4px 24px;
+    padding: 10px 24px;
     background: black;
     vertical-align: middle;
     line-height: 31px;

@@ -2,18 +2,22 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="ce5208a3-058b-4c4f-be18-43b56edd0f60" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.eslintcache" beforeDir="false" afterPath="$PROJECT_DIR$/.eslintcache" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.eslintcache" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.eslintrc" beforeDir="false" afterPath="$PROJECT_DIR$/.eslintrc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.firebase/hosting.YnVpbGQ.cache" beforeDir="false" afterPath="$PROJECT_DIR$/.firebase/hosting.YnVpbGQ.cache" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.prettierrc" beforeDir="false" afterPath="$PROJECT_DIR$/.prettierrc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/App/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/App/App.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/App/App.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/App/App.scss" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/App/Appcontainer.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/App/Appcontainer.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/Autorun/Autorun.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Autorun/Autorun.scss" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/Autorun/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Autorun/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/Editor/Editor.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Editor/Editor.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/Editor/Editor.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Editor/Editor.scss" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/Header/Header.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Header/Header.scss" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/Header/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Header/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/yarn-error.log" beforeDir="false" afterPath="$PROJECT_DIR$/yarn-error.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/Logs/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Logs/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/Logs/logs.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Logs/logs.scss" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/yarn.lock" beforeDir="false" afterPath="$PROJECT_DIR$/yarn.lock" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -46,11 +50,14 @@
     <property name="last_opened_file_path" value="$PROJECT_DIR$/public" />
     <property name="list.type.of.created.stylesheet" value="SCSS" />
     <property name="node.js.detected.package.eslint" value="true" />
+    <property name="node.js.detected.package.standard" value="true" />
     <property name="node.js.path.for.package.eslint" value="project" />
+    <property name="node.js.path.for.package.standard" value="project" />
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
+    <property name="node.js.selected.package.standard" value="" />
     <property name="nodejs_package_manager_path" value="yarn" />
     <property name="prettierjs.PrettierConfiguration.Package" value="$PROJECT_DIR$/node_modules/prettier" />
-    <property name="settings.editor.selected.configurable" value="editing.templates" />
+    <property name="settings.editor.selected.configurable" value="settings.javascript.prettier" />
     <property name="ts.external.directory.path" value="$APPLICATION_HOME_DIR$/plugins/JavaScriptLanguage/jsLanguageServicesImpl/external" />
   </component>
   <component name="RecentsManager">
@@ -91,7 +98,8 @@
       <workItem from="1620993396861" duration="3201000" />
       <workItem from="1621148964550" duration="1784000" />
       <workItem from="1621784261874" duration="3670000" />
-      <workItem from="1621880845375" duration="15606000" />
+      <workItem from="1621880845375" duration="21257000" />
+      <workItem from="1623734561013" duration="15695000" />
     </task>
     <servers />
   </component>
@@ -99,15 +107,22 @@
     <option name="version" value="1" />
   </component>
   <component name="WindowStateProjectService">
+    <state x="100" y="100" width="1240" height="700" key="DiffContextDialog" timestamp="1623771931335">
+      <screen x="0" y="25" width="1440" height="813" />
+    </state>
+    <state x="100" y="100" width="1240" height="700" key="DiffContextDialog/0.25.1440.813@0.25.1440.813" timestamp="1623771931335" />
+    <state x="229" y="86" key="SettingsEditor" timestamp="1623735459615">
+      <screen x="0" y="0" width="1440" height="900" />
+    </state>
+    <state x="229" y="86" key="SettingsEditor/0.0.1440.900@0.0.1440.900" timestamp="1623735459615" />
     <state x="100" y="100" width="1240" height="700" key="com.intellij.history.integration.ui.views.FileHistoryDialog" timestamp="1622208228240">
       <screen x="0" y="25" width="1440" height="813" />
     </state>
     <state x="100" y="100" width="1240" height="700" key="com.intellij.history.integration.ui.views.FileHistoryDialog/0.25.1440.813@0.25.1440.813" timestamp="1622208228240" />
-    <state x="380" y="228" width="680" height="531" key="find.popup" timestamp="1622301152736">
+    <state x="380" y="228" width="680" height="531" key="find.popup" timestamp="1622313384849">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state x="380" y="228" width="680" height="531" key="find.popup/0.0.1440.900@0.0.1440.900" timestamp="1622301152736" />
-    <state x="380" y="228" width="680" height="472" key="find.popup/0.25.1440.801@0.25.1440.801" timestamp="1613385696417" />
+    <state x="380" y="228" width="680" height="531" key="find.popup/0.0.1440.900@0.0.1440.900" timestamp="1622313384849" />
     <state x="380" y="230" width="680" height="477" key="find.popup/0.25.1440.809@0.25.1440.809" timestamp="1621150009450" />
     <state x="380" y="231" width="680" height="480" key="find.popup/0.25.1440.814@0.25.1440.814" timestamp="1620996622080" />
   </component>

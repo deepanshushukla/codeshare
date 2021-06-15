@@ -9,14 +9,14 @@ const Autorun = ({ autoRun, setAutoRun, refreshIframe }) => {
     <div className={'autorun'}>
       {!autoRun && (
         <Tooltip placement="bottom" title={'Run'} color={'grey'}>
+
           <Button
-            shape="circle"
-            icon={<PlayCircleFilled />}
             onClick={refreshIframe}
+            icon={<PlayCircleFilled />}
+            size='small'
             type={'primary'}
-            size={'small'}
             className={'autorun__btn'}
-          ></Button>
+          > Run</Button>
         </Tooltip>
       )}
       {false && (
