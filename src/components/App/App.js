@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useHistory, useParams } from "react-router-dom";
+import { useHistory, useParams, useLocation } from "react-router-dom";
 
 import PropTypes from "prop-types";
 import { ReflexContainer, ReflexElement, ReflexSplitter } from "react-reflex";
@@ -30,7 +30,9 @@ const Initial_Tabs = {
   output: true,
 };
 const App = ({ sessionId, isNewSession }) => {
-  const { selectedTabs } = useParams();
+  const {search} = useLocation();
+  const history = useHistory();
+
   const [html, setHtml] = useState(
     '<div class="text">Welcome to JS code share</div>'
   );
@@ -58,7 +60,20 @@ const App = ({ sessionId, isNewSession }) => {
     setUsers(Object.values(users).filter((item) => item.status === "online"));
   };
   useEffect(()=>{
-    console.log('selectedTabs',selectedTabs)
+    if(search){
+      const selectedTabs = new URLSearchParams(search).get('selectedTabs');
+      if(selectedTabs){
+        let inpArr = selectedTabs.split(',');
+        for (let key in Initial_Tabs){
+          Initial_Tabs[key] = false
+        }
+        inpArr.forEach((item)=>{
+          Initial_Tabs[item] = true
+        });
+        setTabs({ ...Initial_Tabs})
+      }
+    }
+
   },[]);
 
   useEffect(() => {
@@ -136,6 +151,20 @@ const App = ({ sessionId, isNewSession }) => {
       }
     });
   });
+  const tabsChange = (tabs) =>{
+    let str = '';
+    for (let key in tabs){
+      if(tabs[key]){
+        str = str + key +','
+      }
+    }
+    let urlParams = {pathname: `/${sessionId}`};
+    if(str) {
+      urlParams.search = `?selectedTabs=${str.substring(0,str.length-1)}`
+    }
+    history.push(urlParams);
+    setTabs(tabs);
+  };
   const refreshIframe = () => {
     setIframeSrc(`<html>
                         <body>${html}</body>
@@ -174,7 +203,7 @@ const App = ({ sessionId, isNewSession }) => {
             autoRun={autoRun}
             refreshIframe={runClick}
             setAutoRun={setAutoRun}
-            setTabs={setTabs}
+            setTabs={tabsChange}
             tabs={tabs}
           />
         </HtmlContextProvider>
