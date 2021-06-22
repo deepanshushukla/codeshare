@@ -52,6 +52,17 @@
       &.active{
        background: #4e4e4e;
         font-weight: 600;
+        position: relative;
+        &::after{
+          position: absolute;
+          content:'';
+          right: 6px;
+          top:4px;
+          width: 4px;
+          height: 4px;
+          background: lightgreen;
+          border-radius: 50%;
+        }
       }
       &:hover,&.active:hover{
         background: #5b5b5b;

@@ -23,11 +23,11 @@ import "react-reflex/styles.css";
 import "./App.scss";
 
 const Initial_Tabs = {
-  html: true,
-  css: true,
+  html: false,
+  css: false,
   js: true,
   console: true,
-  output: true,
+  output: false,
 };
 const App = ({ sessionId, isNewSession }) => {
   const {search} = useLocation();
@@ -59,6 +59,20 @@ const App = ({ sessionId, isNewSession }) => {
     setJs(js);
     setUsers(Object.values(users).filter((item) => item.status === "online"));
   };
+  const tabsChange = (tabs) =>{
+    let str = '';
+    for (let key in tabs){
+      if(tabs[key]){
+        str = str + key +','
+      }
+    }
+    let urlParams = {pathname: `/${sessionId}`};
+    if(str) {
+      urlParams.search = `?selectedTabs=${str.substring(0,str.length-1)}`
+    }
+    history.push(urlParams);
+    setTabs(tabs);
+  };
   useEffect(()=>{
     if(search){
       const selectedTabs = new URLSearchParams(search).get('selectedTabs');
@@ -72,6 +86,8 @@ const App = ({ sessionId, isNewSession }) => {
         });
         setTabs({ ...Initial_Tabs})
       }
+    }else{
+      tabsChange(tabs)
     }
 
   },[]);
@@ -151,20 +167,7 @@ const App = ({ sessionId, isNewSession }) => {
       }
     });
   });
-  const tabsChange = (tabs) =>{
-    let str = '';
-    for (let key in tabs){
-      if(tabs[key]){
-        str = str + key +','
-      }
-    }
-    let urlParams = {pathname: `/${sessionId}`};
-    if(str) {
-      urlParams.search = `?selectedTabs=${str.substring(0,str.length-1)}`
-    }
-    history.push(urlParams);
-    setTabs(tabs);
-  };
+
   const refreshIframe = () => {
     setIframeSrc(`<html>
                         <body>${html}</body>
@@ -284,3 +287,4 @@ App.propTypes = {
   isNewSession: PropTypes.bool,
 };
 export default React.memo(App);
+
