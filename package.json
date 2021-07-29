@@ -10,7 +10,7 @@
     "@testing-library/react": "^11.1.0",
     "@testing-library/user-event": "^12.1.10",
     "antd": "^4.12.2",
-    "codemirror": "^5.59.1",
+    "codemirror": "^5.53.2",
     "console-feed": "^3.2.2",
     "cross-env": "^7.0.3",
     "eslint": "^7.17.0",

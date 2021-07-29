@@ -5,9 +5,12 @@
       <change beforePath="$PROJECT_DIR$/.eslintcache" beforeDir="false" afterPath="$PROJECT_DIR$/.eslintcache" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.firebase/hosting.YnVpbGQ.cache" beforeDir="false" afterPath="$PROJECT_DIR$/.firebase/hosting.YnVpbGQ.cache" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/App/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/App/App.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/Autorun/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Autorun/index.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/Editor/Editor.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Editor/Editor.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/Header/Header.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Header/Header.scss" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/Logs/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Logs/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/Logs/logs.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Logs/logs.scss" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/yarn.lock" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -17,8 +20,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="JavaScript File" />
         <option value="SCSS File" />
+        <option value="JavaScript File" />
       </list>
     </option>
   </component>
@@ -89,7 +92,10 @@
       <workItem from="1621784261874" duration="3670000" />
       <workItem from="1621880845375" duration="21257000" />
       <workItem from="1623734561013" duration="19352000" />
-      <workItem from="1624218575900" duration="4714000" />
+      <workItem from="1624218575900" duration="8456000" />
+      <workItem from="1624519279785" duration="643000" />
+      <workItem from="1624546920379" duration="432000" />
+      <workItem from="1624779050326" duration="6351000" />
     </task>
     <servers />
   </component>
@@ -97,9 +103,11 @@
     <option name="version" value="1" />
   </component>
   <component name="WindowStateProjectService">
-    <state x="100" y="100" width="1240" height="700" key="DiffContextDialog" timestamp="1623771931335">
-      <screen x="0" y="25" width="1440" height="813" />
+    <state x="100" y="83" width="1240" height="775" key="DiffContextDialog" timestamp="1624779850504">
+      <screen x="0" y="25" width="1440" height="806" />
     </state>
+    <state x="100" y="83" width="1240" height="775" key="DiffContextDialog/0.0.1440.900@0.0.1440.900" timestamp="1624779838008" />
+    <state x="100" y="83" width="1240" height="775" key="DiffContextDialog/0.25.1440.806@0.25.1440.806" timestamp="1624779850504" />
     <state x="100" y="100" width="1240" height="700" key="DiffContextDialog/0.25.1440.813@0.25.1440.813" timestamp="1623771931335" />
     <state x="229" y="86" key="SettingsEditor" timestamp="1623735459615">
       <screen x="0" y="0" width="1440" height="900" />

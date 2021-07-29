@@ -1,10 +1,22 @@
-import React from 'react';
+import React , { useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { PlayCircleFilled } from '@ant-design/icons';
 
 import { Button, Checkbox, Tooltip } from 'antd';
 import './Autorun.scss';
 const Autorun = ({ autoRun, setAutoRun, refreshIframe }) => {
+  useEffect(() => {
+    const runEvent = (e)=>{
+      e.stopPropagation();
+      if(e.keyCode===13 && (e.ctrlKey || e.metaKey)){
+        refreshIframe();
+      }
+    };
+    window.addEventListener('keydown', runEvent);
+    return () => {
+      window.removeEventListener('keydown', runEvent);
+    }
+  })
   return (
     <div className={'autorun'}>
       {!autoRun && (
@@ -16,7 +28,7 @@ const Autorun = ({ autoRun, setAutoRun, refreshIframe }) => {
             size='small'
             type={'primary'}
             className={'autorun__btn'}
-          > Run</Button>
+          > Run (Ctrl+ ⏎)</Button>
         </Tooltip>
       )}
       {false && (

@@ -18,6 +18,7 @@ const styles = {
   OBJECT_VALUE_BOOLEAN_COLOR: '#ffffff',
   OBJECT_VALUE_FUNCTION_KEYWORD_COLOR: '#ffffff',
   LOG_ERROR_ICON: null,
+  BASE_BACKGROUND_COLOR : 'transparent',
 };
 const LogsContainer = ({ runClick }) => {
   const [logs, setLogs] = useState([]);
