@@ -24,7 +24,11 @@ const LogsContainer = ({ runClick }) => {
   const [logs, setLogs] = useState([]);
   const [textAreaInput, setTextAreaInput] = useState('');
   const consoleDivRef = useRef(null);
+  const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const scrollToBottom = () => {
+    messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+  };
   const focusOnInput = () => {
     inputRef.current.focus({
       cursor: 'end',
@@ -35,7 +39,7 @@ const LogsContainer = ({ runClick }) => {
       window.console,
       (log) =>
         setLogs((currLogs) => {
-          return [log, ...currLogs];
+          return [...currLogs, log];
         }),
       false
     );
@@ -47,6 +51,7 @@ const LogsContainer = ({ runClick }) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       try {
         console.log(eval(e.target.value.toString()));
+        setTimeout(scrollToBottom,300)
       } catch (e) {
         console.error(e);
       }
@@ -92,6 +97,7 @@ const LogsContainer = ({ runClick }) => {
           logs={logs}
           variant="dark"
         />
+        <div ref={messagesEndRef} />
       </div>
     </div>
   );

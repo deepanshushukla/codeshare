@@ -3,14 +3,8 @@
   <component name="ChangeListManager">
     <list default="true" id="ce5208a3-058b-4c4f-be18-43b56edd0f60" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.eslintcache" beforeDir="false" afterPath="$PROJECT_DIR$/.eslintcache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.firebase/hosting.YnVpbGQ.cache" beforeDir="false" afterPath="$PROJECT_DIR$/.firebase/hosting.YnVpbGQ.cache" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/Autorun/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Autorun/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/Editor/Editor.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Editor/Editor.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/Logs/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Logs/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/Logs/logs.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Logs/logs.scss" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/yarn.lock" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -96,6 +90,8 @@
       <workItem from="1624519279785" duration="643000" />
       <workItem from="1624546920379" duration="432000" />
       <workItem from="1624779050326" duration="6351000" />
+      <workItem from="1627537746134" duration="275000" />
+      <workItem from="1632250160844" duration="540000" />
     </task>
     <servers />
   </component>
