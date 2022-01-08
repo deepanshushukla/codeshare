@@ -8,7 +8,7 @@
 }
 .title{
   height: 32px;
-  color: white;
+  color: #ffffff;
   padding: 2px 10px;
 }
 .iframetitle{
@@ -24,6 +24,44 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+
+.get-wrapper{
+  background: #f45b69;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.login {
+  padding: 40px 30px 30px 30px;
+  border-radius: 10px;
+  width: 450px;
+  background: #fff;
+  text-align: center;
+}
+.login .started-button{
+  padding: 8px;
+  background: #f45b69;
+  border: 5px solid transparent;
+  color: #fff;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 0.4s ease-in-out;
+  font-weight: 600;
+}
+.login .started-button a{
+  color: #fff;
+}
+.login .started-button:hover{
+  background: #000;
+  border: 5px solid #f45b69;
+  font-size: 20px;
+  }
+.login .app-name{
+    color: #f45b69;
 }
 
 @media screen and (max-width: 768px) {

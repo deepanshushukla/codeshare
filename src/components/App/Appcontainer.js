@@ -14,7 +14,7 @@ const AppContainer = () => {
   useEffect(() => {
     if (!sessionId) {
       const randomSessionId = rand.generate(10);
-      history.push({ pathname: `/${randomSessionId}` });
+      history.push({ pathname: `/code/${randomSessionId}` });
       setsessionId(randomSessionId);
       setSessionChecked(true);
       setIsNewSession(true);

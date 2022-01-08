@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import './index.css';
 import AppContainer from './components/App/Appcontainer';
 import Error from './components/Error';
+import AppMainPage from './components/App/AppMainPage';
 import reportWebVitals from './reportWebVitals';
 import firebase from 'firebase/app';
 import 'firebase/database';
@@ -13,8 +14,9 @@ const RouteContainer = () => {
   return (
     <div>
       <Router>
-        <Route exact path="/error/page" component={Error} />
-        <Route exact path="/:sessionId?" component={AppContainer} />
+        <Route exact path="/" component={AppMainPage} />
+        <Route exact path="/code/:sessionId?" component={AppContainer} />
+        <Route  path="/error/page" component={Error} />
       </Router>
     </div>
   );
