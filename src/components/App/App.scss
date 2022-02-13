@@ -28,22 +28,23 @@
 
 
 .get-wrapper{
-  background: #f45b69;
   width: 100%;
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 .login {
-  padding: 40px 30px 30px 30px;
+  padding: 0px 30px 30px 30px;
   border-radius: 10px;
-  width: 450px;
-  background: #fff;
   text-align: center;
+  h1{
+    color: #fff;
+    font-size: 40px;
+  }
+  p{
+    color: #fff;
+    font-size: 24px;
+  }
 }
 .login .started-button{
-  padding: 8px;
+  padding: 8px 15px;
   background: #f45b69;
   border: 5px solid transparent;
   color: #fff;
@@ -51,6 +52,7 @@
   cursor: pointer;
   transition: 0.4s ease-in-out;
   font-weight: 600;
+  font-size: 20px;
 }
 .login .started-button a{
   color: #fff;
@@ -58,12 +60,57 @@
 .login .started-button:hover{
   background: #000;
   border: 5px solid #f45b69;
-  font-size: 20px;
   }
 .login .app-name{
     color: #f45b69;
 }
 
+.header-wrapper {
+  padding: 30px 0;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+    img{
+      height: 40px;
+      width: 40px;
+      animation:spin 4s linear infinite;
+    }
+    span{
+      a{
+        color: #f45b69;
+        &:hover{
+          color: #fff;
+        }
+      }
+      
+    }
+    @keyframes spin { 
+        100% { transform: rotate(360deg); } 
+    }
+}
+.page-terms-container{
+  h1 ,h2,.last-modified{
+    color: #fff;
+  }
+  p{
+    color:#c8c8c8;
+    font-size: 18px;
+  }
+  h1 ,h2{
+   text-align: center;
+  }
+  .hightlighted-text{
+    color: #f45b69;
+  }
+  .helpful-points{
+    max-width: 600px;
+    margin: 0 auto;
+    li{
+      color: #c8c8c8;
+      font-size: 20px;
+    }
+  }
+}
 @media screen and (max-width: 768px) {
   .pane {
     flex-direction: column;
