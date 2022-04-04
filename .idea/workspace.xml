@@ -4,7 +4,10 @@
     <list default="true" id="ce5208a3-058b-4c4f-be18-43b56edd0f60" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.eslintcache" beforeDir="false" afterPath="$PROJECT_DIR$/.eslintcache" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/Logs/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Logs/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/public/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/public/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/App/AppMainPage.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/App/AppMainPage.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/Footer/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Footer/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/images/code-share.png" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -22,18 +25,21 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
   <component name="ProjectId" id="1n3DUlPzPnapR5HKHrnhmNzrh2Z" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
-    <option name="showExcludedFiles" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/public" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/src/images" />
     <property name="list.type.of.created.stylesheet" value="SCSS" />
     <property name="node.js.detected.package.eslint" value="true" />
     <property name="node.js.detected.package.standard" value="true" />
@@ -45,11 +51,12 @@
     <property name="prettierjs.PrettierConfiguration.Package" value="$PROJECT_DIR$/node_modules/prettier" />
     <property name="settings.editor.selected.configurable" value="settings.javascript.prettier" />
     <property name="ts.external.directory.path" value="$APPLICATION_HOME_DIR$/plugins/JavaScriptLanguage/jsLanguageServicesImpl/external" />
+    <property name="vue.rearranger.settings.migration" value="true" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/public" />
       <recent name="$PROJECT_DIR$/src/images" />
+      <recent name="$PROJECT_DIR$/public" />
       <recent name="$PROJECT_DIR$/src/components/common/radioButton" />
       <recent name="$PROJECT_DIR$" />
     </key>
@@ -61,6 +68,7 @@
       <recent name="$PROJECT_DIR$/src/components/Editor" />
     </key>
   </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="SvnConfiguration">
     <configuration />
   </component>
@@ -92,32 +100,22 @@
       <workItem from="1624779050326" duration="6351000" />
       <workItem from="1627537746134" duration="275000" />
       <workItem from="1632250160844" duration="540000" />
+      <workItem from="1649096574596" duration="2343000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
-    <option name="version" value="1" />
+    <option name="version" value="3" />
   </component>
-  <component name="WindowStateProjectService">
-    <state x="100" y="83" width="1240" height="775" key="DiffContextDialog" timestamp="1624779850504">
-      <screen x="0" y="25" width="1440" height="806" />
-    </state>
-    <state x="100" y="83" width="1240" height="775" key="DiffContextDialog/0.0.1440.900@0.0.1440.900" timestamp="1624779838008" />
-    <state x="100" y="83" width="1240" height="775" key="DiffContextDialog/0.25.1440.806@0.25.1440.806" timestamp="1624779850504" />
-    <state x="100" y="100" width="1240" height="700" key="DiffContextDialog/0.25.1440.813@0.25.1440.813" timestamp="1623771931335" />
-    <state x="229" y="86" key="SettingsEditor" timestamp="1623735459615">
-      <screen x="0" y="0" width="1440" height="900" />
-    </state>
-    <state x="229" y="86" key="SettingsEditor/0.0.1440.900@0.0.1440.900" timestamp="1623735459615" />
-    <state x="100" y="100" width="1240" height="700" key="com.intellij.history.integration.ui.views.FileHistoryDialog" timestamp="1622208228240">
-      <screen x="0" y="25" width="1440" height="813" />
-    </state>
-    <state x="100" y="100" width="1240" height="700" key="com.intellij.history.integration.ui.views.FileHistoryDialog/0.25.1440.813@0.25.1440.813" timestamp="1622208228240" />
-    <state x="380" y="228" width="680" height="531" key="find.popup" timestamp="1622313384849">
-      <screen x="0" y="0" width="1440" height="900" />
-    </state>
-    <state x="380" y="228" width="680" height="531" key="find.popup/0.0.1440.900@0.0.1440.900" timestamp="1622313384849" />
-    <state x="380" y="230" width="680" height="477" key="find.popup/0.25.1440.809@0.25.1440.809" timestamp="1621150009450" />
-    <state x="380" y="231" width="680" height="480" key="find.popup/0.25.1440.814@0.25.1440.814" timestamp="1620996622080" />
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
 </project>
