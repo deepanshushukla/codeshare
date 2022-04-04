@@ -7,6 +7,7 @@ import FileSaver from "../FileSaver";
 import Autorun from "../Autorun";
 import "./Header.scss";
 import Logo from "../../images/share.svg";
+import { Link } from "react-router-dom";
 const itemmap= {
     html:'HTML',
     css:'CSS',
@@ -45,8 +46,8 @@ const Header = ({
 
 
       <div className='header'>
-          <div  className='left'>
-              <div><img src={Logo}/><span className='title'>JSCodeShare</span></div>
+          <div className='left'>
+              <div><img src={Logo}/><Link to="/"><span className='title'>JSCodeShare</span></Link></div>
           </div>
           <div className='center'>
               <Tabs setTabs={setTabs} tabs={tabs} />

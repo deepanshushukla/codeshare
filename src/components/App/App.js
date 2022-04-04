@@ -66,7 +66,7 @@ const App = ({ sessionId, isNewSession }) => {
         str = str + key +','
       }
     }
-    let urlParams = {pathname: `/${sessionId}`};
+    let urlParams = {pathname: `/code/${sessionId}`};
     if(str) {
       urlParams.search = `?selectedTabs=${str.substring(0,str.length-1)}`
     }
