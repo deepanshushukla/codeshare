@@ -1,44 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 
-import { useParams, useHistory } from 'react-router-dom';
-import App from './App';
-import rand from 'random-key';
-import firebase from 'firebase';
+import { useParams, useHistory } from "react-router-dom";
+import App from "./App";
+import firebase from "firebase";
 
 const AppContainer = () => {
-  const [sessionId, setsessionId] = useState(useParams().sessionId);
   const [isNewSession, setIsNewSession] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
   const history = useHistory();
-
+  const sessionId = useParams().sessionId;
   useEffect(() => {
-    if (!sessionId) {
-      const randomSessionId = rand.generate(10);
-      history.push({ pathname: `/code/${randomSessionId}` });
-      setsessionId(randomSessionId);
-      setSessionChecked(true);
-      setIsNewSession(true);
-    } else {
-      firebase
-        .database()
-        .ref(`live-sessions/${sessionId}`)
-        .once('value', (snapshot) => {
-          if (snapshot.exists()) {
-            setSessionChecked(true);
-            return true;
-          } else {
-            history.push('/error/page');
-            return false;
-          }
-        });
-    }
+    firebase
+      .database()
+      .ref(`live-sessions/${sessionId}`)
+      .once("value", (snapshot) => {
+        console.log(snapshot.exists(),'snapshot.exists()')
+        if (!snapshot.exists()) {
+          setIsNewSession(true);
+        }
+        setSessionChecked(true);
+      });
   }, []);
+
+  if (!sessionId) {
+    history.push("/error/page");
+    return null;
+  }
+  console.log('sessionChecked',sessionId, sessionChecked, isNewSession)
+
+  if (!sessionChecked) {
+    return null;
+  }
 
   return (
     <>
-      {sessionId && sessionChecked && (
-        <App sessionId={sessionId} isNewSession={isNewSession} />
-      )}
+      <App sessionId={sessionId} isNewSession={isNewSession} />
     </>
   );
 };

@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 // components
 import Logo from "../../images/share.svg";
 import SocialAppFooter from "../Footer";
+import rand from "random-key";
 
 const helpfulPointsListItems = [
   "Remote pair programming",
@@ -23,6 +24,8 @@ const gifCss = {
   width: "56%",
   margin: "0 auto",
 };
+const randomSessionId = rand.generate(10);
+
 const AppMainPage = () => {
   return (
     <div className="main-page-wrapper">
@@ -33,7 +36,7 @@ const AppMainPage = () => {
             <span className="title">{appName}</span>
           </Link>
           <span>
-            <Link to="/code">+ Create New Room</Link>
+            <Link to={`/code/${randomSessionId}`}>+ Create New Room</Link>
           </span>
         </header>
         <div className="get-wrapper">
@@ -44,7 +47,7 @@ const AppMainPage = () => {
               collaborate on code in real-time.
             </p>
             <button className="started-button">
-              <Link to="/code">Create New Room</Link>
+              <Link to={`/code/${randomSessionId}`}>Create New Room</Link>
             </button>
           </section>
         </div>

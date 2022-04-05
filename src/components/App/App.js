@@ -44,7 +44,6 @@ const App = ({ sessionId, isNewSession }) => {
     if (sessionStorage.getItem("user")) {
       return JSON.parse(sessionStorage.getItem("user")).userId;
     }
-    return;
   });
   const [users, setUsers] = useState([]);
   const [iframeSrc, setIframeSrc] = useState("");
