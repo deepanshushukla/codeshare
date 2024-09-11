@@ -32,7 +32,7 @@ const Initial_Tabs = {
 const App = ({ sessionId, isNewSession }) => {
   const {search} = useLocation();
   const history = useHistory();
-
+  console.log('-- test --')
   const [html, setHtml] = useState(
     '<div class="text">Welcome to JS code share</div>'
   );
