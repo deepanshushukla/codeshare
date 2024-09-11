@@ -33,6 +33,7 @@ const App = ({ sessionId, isNewSession }) => {
   const {search} = useLocation();
   const history = useHistory();
   console.log('-- test --')
+  console.log('-- test 2 --')
   const [html, setHtml] = useState(
     '<div class="text">Welcome to JS code share</div>'
   );
