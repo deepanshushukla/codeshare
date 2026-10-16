@@ -9,6 +9,7 @@ import UsersMenu from './UsersMenu';
 import OutputFrame from './OutputFrame';
 import ConsolePanel from './ConsolePanel';
 import RunControls from './RunControls';
+import ExportMenu from './ExportMenu';
 
 // react-resizable-panels v4 renamed the old PanelGroup/Panel/PanelResizeHandle
 // trio to Group/Panel/Separator, with `orientation` replacing `direction`.
@@ -43,6 +44,7 @@ export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
     <>
       <UsersMenu users={users} currentUserId={userId} name={name} onNameChange={setName} />
       <RunControls onRun={handleRun} />
+      <ExportMenu html={html} css={css} js={js} />
       <Group orientation="horizontal" style={{ height: '100%' }}>
         {tabs.html && (
           <Panel>
