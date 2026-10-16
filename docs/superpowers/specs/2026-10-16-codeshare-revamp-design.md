@@ -16,9 +16,9 @@ v8 (namespaced SDK), CodeMirror 5, and antd. The production site
 
 - **Hosting is broken**: codeshare.in resolves to Firebase/Fastly
   infrastructure but returns Firebase's own "Site Not Found" page — the
-  custom-domain mapping no longer points at a live Hosting site. This needs
-  to be fixed in the Firebase console/CLI as part of redeploy (requires the
-  owner's authenticated Firebase session).
+  custom-domain mapping no longer points at a live Hosting site. The
+  revamp sidesteps diagnosing this by moving hosting to Vercel and
+  repointing DNS fresh (see Decisions below).
 - **Realtime Database is almost certainly rejecting all reads/writes**:
   `database.rules.json` requires `auth != null`, but the app never calls
   Firebase Auth anywhere (no `signInAnonymously`, no sign-in flow at all).
@@ -58,9 +58,14 @@ v8 (namespaced SDK), CodeMirror 5, and antd. The production site
 | Stack depth | Full modern rewrite (not a patch, not a moderate upgrade) |
 | Visual redesign | Full redesign, not just a style refresh |
 | Editor engine | CodeMirror 6 |
-| Hosting | Stay on Firebase Hosting; fix the broken custom-domain mapping |
+| Hosting | **Vercel** (not Firebase Hosting) |
+| Backend | **Supabase** — Postgres + Realtime (not Firebase RTDB) |
 | Styling | Sass Modules (not Tailwind) |
 | Collaboration model | Debounced last-write-wins, fixed properly (not CRDT/Yjs) |
+
+Firebase is retired entirely (hosting, Realtime Database, and the planned
+anonymous auth) — no production data migration, since sessions are
+ephemeral rooms and the site is already down.
 
 ## Target Architecture
 
@@ -68,25 +73,35 @@ v8 (namespaced SDK), CodeMirror 5, and antd. The production site
 Vite + React 19 + TypeScript, replacing CRA/`react-scripts` entirely.
 
 ### Backend
-Firebase, modular SDK (v11+) instead of v8 namespaced imports.
+**Supabase** — Postgres + Realtime + Auth — replacing Firebase entirely.
 
-- **Realtime Database** stays the sync transport — schema stays close to
-  today's shape: `sessions/{sessionId}: { html, css, js, users: { [uid]:
-  { name, status, lastSeen } }, createdAt, updatedAt }`.
-- **Firebase Anonymous Auth** is added and is the fix for the
-  `auth != null` rules bug: on load, the app silently calls
-  `signInAnonymously()`, and the resulting `uid` becomes the stable
-  per-participant identity for that browser — replacing the global
-  `sessionStorage.user` key that currently leaks across sessions.
-- **Security rules** are tightened beyond bare `auth != null`: basic shape
-  validation per session node (expected keys, reasonable string size caps)
-  so a bad client can't write arbitrary garbage into the database.
+- **Postgres** holds the session row as source of truth:
+  `sessions(id, html, css, js, created_at, updated_at)` and
+  `session_users(session_id, user_id, name, status, last_seen_at)`. Debounced
+  edits upsert into `sessions`; this is also what a newly-joining client
+  reads on load to get current content.
+- **Supabase Realtime** carries live updates between already-connected
+  clients: a per-session **Broadcast** channel for html/css/js edits (low
+  latency, not round-tripped through Postgres on every keystroke), and the
+  channel's built-in **Presence** feature for who's online — Presence
+  tracks joins/leaves automatically and fires a leave event when a client
+  disconnects, which is the actual fix for the "presence never clears" bug
+  (no hand-rolled disconnect handling needed).
+- **Supabase Auth anonymous sign-in** replaces the originally-planned
+  Firebase anonymous auth: on load, the app signs in anonymously, and the
+  resulting user id is the stable per-participant identity for that
+  browser — replacing the global `sessionStorage.user` key that currently
+  leaks across sessions.
+- **Row Level Security (RLS)** policies on both tables replace Firebase's
+  JSON-shaped rules: real column types/constraints (e.g. length caps on
+  `html`/`css`/`js`) instead of hand-rolled shape validation.
 
 ### Local development
-Firebase Local Emulator Suite (Realtime Database + Auth) wired into the dev
-script, so local development never touches the live production database or
-needs production credentials. This is required for "check it locally
-first" to mean anything — today there is no isolation at all.
+Supabase CLI local dev stack (local Postgres + Realtime + Auth, via
+`supabase start`) wired into the dev workflow, so local development never
+touches the live hosted Supabase project or needs production credentials.
+This is required for "check it locally first" to mean anything — today
+there is no isolation at all.
 
 ### Execution engine (security fix)
 Replace the dual-path "refresh iframe + eval in main thread" with a single
@@ -103,11 +118,13 @@ that bridge. Net effects:
   into the iframe to be evaluated there too, instead of `eval`-ing locally.
 
 ### Presence
-- `onDisconnect()` registered right after a user is written into
-  `users/{uid}`, flipping `status` to `offline` (or removing the node) if
-  the connection drops without a clean unmount.
-- Identity keyed by the anonymous-auth `uid`, not a hand-rolled random key
-  in global `sessionStorage`.
+- Each client calls `channel.track({...})` on the session's Realtime
+  channel on join; Supabase Presence fires sync/join/leave events to every
+  other connected client automatically, including on ungraceful
+  disconnect (closed tab, crash, lost network) — no manual disconnect
+  handler to get wrong.
+- Identity keyed by the Supabase anonymous-auth user id, not a hand-rolled
+  random key in global `sessionStorage`.
 
 ### UI layer
 - Drop antd and Font Awesome. Replace with **Radix UI primitives**
@@ -125,14 +142,14 @@ that bridge. Net effects:
 ### Code layout
 ```
 src/
-  app/            routing, providers, firebase bootstrap
+  app/            routing, providers, supabase bootstrap
   features/
     landing/      marketing home page (today's AppMainPage)
     session/      Header, TabBar, EditorPane, OutputFrame, ConsolePanel,
                    UsersMenu, ExportMenu, RunControls
     errors/       404 page
   lib/
-    firebase.ts   initializeApp / getDatabase / getAuth, signInAnonymously
+    supabase.ts   createClient, anonymous sign-in, channel helpers
     sandbox.ts    iframe runner + postMessage bridge + injected console shim
     export.ts     html/zip generation (file-saver + jszip, unchanged libs)
   styles/         tokens.scss, globals.scss, theme (light/dark)
@@ -149,8 +166,8 @@ output as `.html` or `.zip` (index.html + css/js folder), 404 page for
 missing/invalid session routes.
 
 ### Error handling
-- Firebase `.info/connected` drives a small "reconnecting…" banner instead
-  of silently failing writes.
+- The Realtime channel's own connection state drives a small
+  "reconnecting…" banner instead of silently failing writes.
 - Errors thrown by code running in the sandboxed iframe surface as
   error-level entries in the Console panel (via the `postMessage` bridge),
   instead of vanishing into the iframe's own invisible console.
@@ -167,26 +184,30 @@ testing rather than blanket coverage:
 - the postMessage sandbox bridge (message in → console entry out)
 
 Manual verification pass before calling this done: two browser tabs on the
-same room against the local emulator — live sync, presence join/leave,
-export, Run, and Console all behave correctly.
+same room against the local Supabase stack — live sync, presence
+join/leave, export, Run, and Console all behave correctly.
 
 ### Repo hygiene
 - Untrack `.idea/`, `.eslintcache`, `yarn-error.log`.
-- Move `firebaseConfig` out of a committed source file into environment
-  variables (defense in depth; client Firebase keys are meant to be
-  public, but this keeps config out of source control regardless).
+- Supabase URL/anon key live in environment variables (`.env`, gitignored),
+  never committed to source — a straight improvement over the committed
+  `firebaseConfig` the current code has.
 
 ## Explicitly out of scope
 - CRDT/Yjs-based character-level merge — staying with debounced
   last-write-wins per the collaboration-model decision above.
 - Tailwind — staying with Sass Modules per the styling decision above.
-- Moving hosting off Firebase.
+- Migrating any existing Firebase production data — Firebase is retired
+  with no migration (see Decisions).
 - Any new features beyond what the current app already does (this is a
   modernization + redesign + bugfix pass, not a feature expansion).
 
 ## Deployment note
 
-Fixing the broken codeshare.in custom-domain mapping and actually running
-`firebase deploy` happens as its own confirmed step once the rewrite is
-verified locally against the emulator — it touches live, shared
-infrastructure and needs the owner's authenticated Firebase CLI session.
+Standing up the new Supabase project, creating the Vercel project, and
+pointing codeshare.in's DNS at Vercel all happen as their own confirmed
+step once the rewrite is verified locally against the local Supabase
+stack — this touches live, shared infrastructure (DNS, a new hosting
+provider) and needs the owner's authenticated Vercel and Supabase
+sessions. The old Firebase project (hosting, database, auth) is
+decommissioned at that point.
