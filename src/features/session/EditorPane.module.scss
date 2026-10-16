@@ -1,0 +1,12 @@
+.pane { display: flex; flex-direction: column; height: 100%; }
+.title { padding: 0.25rem 0.5rem; font-size: 0.75rem; opacity: 0.7; }
+.codeMirrorHost { flex: 1; overflow: auto; }
+// The accessible textarea mirrors CodeMirror's content for tests and screen
+// readers; it is visually hidden but not display:none (so focus/typing work).
+.accessibleMirror {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
