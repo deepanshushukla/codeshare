@@ -1,16 +1,18 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Landing from './routes/Landing';
+import NotFound from './routes/NotFound';
 
-function Placeholder({ label }: { label: string }) {
-  return <div>{label}</div>;
+function SessionPlaceholder() {
+  return <div>session</div>;
 }
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Placeholder label="landing" />} />
-        <Route path="/code/:sessionId" element={<Placeholder label="session" />} />
-        <Route path="*" element={<Placeholder label="not-found" />} />
+        <Route path="/" element={<Landing />} />
+        <Route path="/code/:sessionId" element={<SessionPlaceholder />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );
