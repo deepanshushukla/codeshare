@@ -1,0 +1,17 @@
+.console {
+  font-family: monospace;
+  font-size: 0.8rem;
+  overflow: auto;
+  height: 100%;
+  padding: 0.5rem;
+}
+.log,
+.info {
+  opacity: 0.9;
+}
+.warn {
+  color: #caa23a;
+}
+.error {
+  color: #e05252;
+}

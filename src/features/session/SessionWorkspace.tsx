@@ -6,6 +6,8 @@ import { usePresence } from './usePresence';
 import { ensureAnonymousSession } from '../../lib/supabase';
 import EditorPane from './EditorPane';
 import UsersMenu from './UsersMenu';
+import OutputFrame from './OutputFrame';
+import ConsolePanel from './ConsolePanel';
 
 // react-resizable-panels v4 renamed the old PanelGroup/Panel/PanelResizeHandle
 // trio to Group/Panel/Separator, with `orientation` replacing `direction`.
@@ -28,16 +30,28 @@ export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
             <EditorPane title="HTML" language="html" value={html} onChange={(v) => updateField('html', v)} />
           </Panel>
         )}
-        {tabs.html && (tabs.css || tabs.js) && <Separator />}
+        {tabs.html && (tabs.css || tabs.js || tabs.console || tabs.output) && <Separator />}
         {tabs.css && (
           <Panel>
             <EditorPane title="CSS" language="css" value={css} onChange={(v) => updateField('css', v)} />
           </Panel>
         )}
-        {tabs.css && tabs.js && <Separator />}
+        {tabs.css && (tabs.js || tabs.console || tabs.output) && <Separator />}
         {tabs.js && (
           <Panel>
             <EditorPane title="JS" language="javascript" value={js} onChange={(v) => updateField('js', v)} />
+          </Panel>
+        )}
+        {tabs.js && (tabs.console || tabs.output) && <Separator />}
+        {tabs.console && (
+          <Panel>
+            <ConsolePanel />
+          </Panel>
+        )}
+        {tabs.console && tabs.output && <Separator />}
+        {tabs.output && (
+          <Panel>
+            <OutputFrame html={html} css={css} js={js} />
           </Panel>
         )}
       </Group>
