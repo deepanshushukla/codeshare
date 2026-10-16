@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 import { useSession } from './useSession';
 import { useTabsQueryParam } from './useTabsQueryParam';
@@ -8,6 +8,7 @@ import EditorPane from './EditorPane';
 import UsersMenu from './UsersMenu';
 import OutputFrame from './OutputFrame';
 import ConsolePanel from './ConsolePanel';
+import RunControls from './RunControls';
 
 // react-resizable-panels v4 renamed the old PanelGroup/Panel/PanelResizeHandle
 // trio to Group/Panel/Separator, with `orientation` replacing `direction`.
@@ -21,9 +22,27 @@ export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
   const { html, css, js, updateField } = useSession(sessionId, userId);
   const { users, name, setName } = usePresence(sessionId, userId);
 
+  // `runToken` only changes when the user explicitly hits Run (button or
+  // Ctrl/Cmd+Enter) -- it is what OutputFrame keys its <iframe> on, so
+  // typing in the editors (which updates html/css/js on every keystroke via
+  // autosave) does not re-run the sandboxed code. `iframeWindowRef` is set
+  // once the sandboxed iframe fires `onLoad`; the Console REPL input posts
+  // messages at that window, which are only ever `eval`'d inside the
+  // sandbox's own bridge script (sandbox.ts), never in this main window.
+  const [runToken, setRunToken] = useState(0);
+  const iframeWindowRef = useRef<Window | null>(null);
+
+  function handleRun() {
+    setRunToken((t) => t + 1);
+  }
+  function handleRepl(code: string) {
+    iframeWindowRef.current?.postMessage({ type: 'repl', code }, '*');
+  }
+
   return (
     <>
       <UsersMenu users={users} currentUserId={userId} name={name} onNameChange={setName} />
+      <RunControls onRun={handleRun} />
       <Group orientation="horizontal" style={{ height: '100%' }}>
         {tabs.html && (
           <Panel>
@@ -45,13 +64,21 @@ export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
         {tabs.js && (tabs.console || tabs.output) && <Separator />}
         {tabs.console && (
           <Panel>
-            <ConsolePanel />
+            <ConsolePanel onRepl={handleRepl} />
           </Panel>
         )}
         {tabs.console && tabs.output && <Separator />}
         {tabs.output && (
           <Panel>
-            <OutputFrame html={html} css={css} js={js} />
+            <OutputFrame
+              html={html}
+              css={css}
+              js={js}
+              runToken={runToken}
+              onWindowReady={(win) => {
+                iframeWindowRef.current = win;
+              }}
+            />
           </Panel>
         )}
       </Group>

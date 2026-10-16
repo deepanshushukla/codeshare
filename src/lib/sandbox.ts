@@ -21,7 +21,14 @@ export type SandboxMessage =
 // only in that isolated context -- never in the main window. It wraps
 // console methods and window.onerror so output/errors are relayed to the
 // parent via postMessage instead of being silently dropped inside the
-// sandboxed frame (which has no visible devtools console of its own).
+// sandboxed frame (which has no visible devtools console of its own). It
+// also listens for `{ type: 'repl', code }` messages from the parent
+// (Console panel REPL input, see ConsolePanel.tsx / SessionWorkspace.tsx)
+// and `eval`s them -- but that eval runs inside this sandboxed document's
+// own opaque `about:srcdoc` origin (no `allow-same-origin`), so it cannot
+// reach the parent window's Supabase client, storage, or anything else
+// outside the iframe. There is still no eval() anywhere in the main app's
+// React tree.
 const BRIDGE_SCRIPT = `
 (function () {
   function wrap(level, original) {
@@ -39,6 +46,15 @@ const BRIDGE_SCRIPT = `
     parent.postMessage({ type: 'runtime-error', message: String(message) }, '*');
     return true;
   };
+  window.addEventListener('message', function (event) {
+    if (event.data && event.data.type === 'repl') {
+      try {
+        console.log(eval(event.data.code));
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  });
 })();
 `;
 
