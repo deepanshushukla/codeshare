@@ -13,6 +13,15 @@ export function usePresence(sessionId: string, userId: string | null) {
   const [users, setUsers] = useState<PresenceUser[]>([]);
   const [name, setNameState] = useState('');
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  // Kept in sync so the visibilitychange handler and the initial `subscribe`
+  // callback below -- both set up once per [sessionId, userId] and otherwise
+  // closing over `name` as it was at that render -- always track the user's
+  // *current* display name instead of silently reverting a custom name (set
+  // via `setName`) back to the default on every tab blur/focus.
+  const nameRef = useRef(name);
+  useEffect(() => {
+    nameRef.current = name;
+  }, [name]);
 
   useEffect(() => {
     if (!userId) return;
@@ -34,14 +43,14 @@ export function usePresence(sessionId: string, userId: string | null) {
     });
     channel.subscribe(async (status: string) => {
       if (status === 'SUBSCRIBED') {
-        await channel.track({ name: name || defaultName(userId), status: 'online' });
+        await channel.track({ name: nameRef.current || defaultName(userId), status: 'online' });
       }
     });
     channelRef.current = channel;
 
     const handleVisibility = () => {
       channel.track({
-        name: name || defaultName(userId),
+        name: nameRef.current || defaultName(userId),
         status: document.visibilityState === 'visible' ? 'online' : 'away',
       });
     };

@@ -24,6 +24,13 @@ export default function UsersMenu({ users, currentUserId, name, onNameChange }: 
               value={user.userId === currentUserId ? name : user.name}
               disabled={user.userId !== currentUserId}
               onChange={(e) => onNameChange(e.target.value)}
+              // Radix's Menu primitive does roving-tabindex focus management and
+              // typeahead search at the Content/Item level, which otherwise
+              // intercepts arrow keys, letters, and Escape before they reach this
+              // input. Stop propagation so normal text editing works.
+              onKeyDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
               aria-label={`Display name${user.userId === currentUserId ? ' (yours)' : ''}`}
             />
           </DropdownMenu.Item>

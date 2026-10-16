@@ -44,4 +44,20 @@ describe('usePresence', () => {
     act(() => syncHandler?.());
     await waitFor(() => expect(result.current.users.map((u) => u.userId)).not.toContain('user-2'));
   });
+
+  test('a visibilitychange after setName re-tracks the custom name, not the default', async () => {
+    const { usePresence } = await import('./usePresence');
+    const { result } = renderHook(() => usePresence('room', 'user-1'));
+    await waitFor(() => expect(track).toHaveBeenCalledWith(expect.objectContaining({ status: 'online' })));
+
+    act(() => result.current.setName('Alice'));
+    track.mockClear();
+
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+
+    expect(track).toHaveBeenCalledWith({ name: 'Alice', status: 'away' });
+
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+  });
 });
