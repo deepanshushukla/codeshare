@@ -45,11 +45,14 @@ export function useSession(sessionId: string, userId: string | null): UseSession
     setContent(BLANK_CONTENT);
 
     async function loadOrCreate() {
-      const { data } = await supabase.from('sessions').select('*').eq('id', sessionId).maybeSingle();
+      const { data, error } = await supabase.from('sessions').select('*').eq('id', sessionId).maybeSingle();
       if (!active) return;
       if (data) {
         setContent({ html: data.html, css: data.css, js: data.js });
-      } else {
+      } else if (!error) {
+        // Only create a blank row when we positively know none exists. On a
+        // transient read error, `data` is also falsy — don't treat that as
+        // "no row yet" and upsert blanks over an existing session's content.
         await supabase.from('sessions').upsert({ id: sessionId, html: '', css: '', js: '' });
       }
       if (active) setLoading(false);

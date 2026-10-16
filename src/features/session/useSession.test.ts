@@ -48,6 +48,16 @@ describe('useSession', () => {
     expect(upsert).not.toHaveBeenCalled();
   });
 
+  test('does not blank an existing row when the initial read errors transiently', async () => {
+    singleSelect.mockResolvedValue({ data: null, error: new Error('network blip') });
+    const { useSession } = await import('./useSession');
+    const { result } = renderHook(() => useSession('flaky-room', 'user-1'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    // A failed read must never be treated as "no row yet" -- that would upsert
+    // blanks over a session that may well already have content in Postgres.
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
   test('updating one field does not change the in-memory value of another field', async () => {
     singleSelect.mockResolvedValue({
       data: { id: 'room', html: '<p>a</p>', css: 'body{}', js: '1' },
