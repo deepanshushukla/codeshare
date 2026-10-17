@@ -4,6 +4,19 @@ import styles from './ConsolePanel.module.scss';
 
 let nextId = 0;
 
+// The iframe this panel listens to runs code any participant can edit, so the
+// message volume is adversary-controlled: `setInterval(() => console.log(x))`
+// in a collaborator's JS would otherwise grow this array (and the rendered
+// DOM) without bound until the host tab locks up. Keep a bounded tail --
+// enough scrollback to be useful, small enough that a runaway loop costs a
+// constant amount of memory and render work.
+export const MAX_CONSOLE_ENTRIES = 500;
+
+function appendCapped(entries: ConsoleEntry[], entry: ConsoleEntry): ConsoleEntry[] {
+  const next = entries.length < MAX_CONSOLE_ENTRIES ? entries : entries.slice(entries.length - MAX_CONSOLE_ENTRIES + 1);
+  return [...next, entry];
+}
+
 // Listens for postMessage traffic from the sandboxed output iframe (see
 // sandbox.ts / OutputFrame.tsx) and renders it. There is no eval() or other
 // dynamic code execution here -- this component only reads plain data
@@ -23,9 +36,9 @@ export default function ConsolePanel({ onRepl }: { onRepl: (code: string) => voi
       const data = event.data as SandboxMessage | null | undefined;
       if (!data || typeof data !== 'object') return;
       if (data.type === 'console') {
-        setEntries((prev) => [...prev, { id: String(nextId++), level: data.level, args: data.args }]);
+        setEntries((prev) => appendCapped(prev, { id: String(nextId++), level: data.level, args: data.args }));
       } else if (data.type === 'runtime-error') {
-        setEntries((prev) => [...prev, { id: String(nextId++), level: 'error', args: [data.message] }]);
+        setEntries((prev) => appendCapped(prev, { id: String(nextId++), level: 'error', args: [data.message] }));
       }
     }
     window.addEventListener('message', handleMessage);
