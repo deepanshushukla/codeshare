@@ -2,6 +2,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { saveAs } from 'file-saver';
 import { Download } from 'lucide-react';
 import { buildHtmlFile, buildZipBlob, type ExportContent } from '../../lib/export';
+import styles from './ExportMenu.module.scss';
 
 function timestampedName(extension: string): string {
   return `CodeShare_${new Date().toISOString().replace(/[:.]/g, '-')}.${extension}`;
@@ -17,12 +18,19 @@ export default function ExportMenu(content: ExportContent) {
 
   return (
     <DropdownMenu.Root>
-      <DropdownMenu.Trigger aria-label="Export">
+      <DropdownMenu.Trigger className={styles.trigger} aria-label="Export">
         <Download size={16} />
+        Export
       </DropdownMenu.Trigger>
-      <DropdownMenu.Content>
-        <DropdownMenu.Item onSelect={exportHtml}>HTML file</DropdownMenu.Item>
-        <DropdownMenu.Item onSelect={exportZip}>Zip file</DropdownMenu.Item>
+      {/* Radix renders Content into a portal with no styling of its own, so
+          without these classes the menu is transparent text over the page. */}
+      <DropdownMenu.Content className={styles.content} sideOffset={6} align="end">
+        <DropdownMenu.Item className={styles.item} onSelect={exportHtml}>
+          HTML file
+        </DropdownMenu.Item>
+        <DropdownMenu.Item className={styles.item} onSelect={exportZip}>
+          Zip file
+        </DropdownMenu.Item>
       </DropdownMenu.Content>
     </DropdownMenu.Root>
   );

@@ -1,0 +1,11 @@
+@use '../../styles/controls' as controls;
+
+// Run is the primary action in the header, so it gets the accent variant of
+// the shared button; everything else in the header uses the plain one.
+.button {
+  @include controls.control-button-accent;
+}
+.shortcut {
+  opacity: 0.8;
+  font-size: 0.7rem;
+}

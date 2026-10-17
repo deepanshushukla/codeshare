@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Play } from 'lucide-react';
+import styles from './RunControls.module.scss';
 
 // The Run button and its Ctrl/Cmd+Enter shortcut. Both paths just call
 // `onRun`, which the parent (SessionWorkspace) turns into bumping
@@ -19,8 +20,8 @@ export default function RunControls({ onRun }: { onRun: () => void }) {
   }, [onRun]);
 
   return (
-    <button onClick={onRun} aria-label="Run">
-      <Play size={14} /> Run (Ctrl+&crarr;)
+    <button type="button" className={styles.button} onClick={onRun} aria-label="Run">
+      <Play size={14} /> Run <span className={styles.shortcut}>(Ctrl+&crarr;)</span>
     </button>
   );
 }

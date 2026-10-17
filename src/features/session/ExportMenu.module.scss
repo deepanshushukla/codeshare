@@ -1,0 +1,13 @@
+@use '../../styles/controls' as controls;
+
+.trigger {
+  @include controls.control-button;
+}
+.content {
+  @include controls.overlay-surface;
+
+  min-width: 9rem;
+}
+.item {
+  @include controls.overlay-item;
+}

@@ -4,9 +4,14 @@
 :root {
   --color-bg: #ffffff;
   --color-bg-raised: #f5f5f7;
+  --color-bg-hover: #eaeaef;
   --color-text: #1a1a1a;
   --color-border: #e0e0e0;
   --color-accent: #3b82f6;
+  // Lifts floating panels (Radix dropdown Content) off the page -- without a
+  // shadow/border/background they are indistinguishable from the content
+  // underneath them.
+  --shadow-overlay: 0 10px 30px rgb(0 0 0 / 12%), 0 2px 6px rgb(0 0 0 / 8%);
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 1rem;
@@ -19,8 +24,10 @@
   :root {
     --color-bg: #15161a;
     --color-bg-raised: #1e1f24;
+    --color-bg-hover: #2a2b33;
     --color-text: #e8e8ea;
     --color-border: #2c2d33;
     --color-accent: #60a5fa;
+    --shadow-overlay: 0 10px 30px rgb(0 0 0 / 55%), 0 2px 6px rgb(0 0 0 / 40%);
   }
 }

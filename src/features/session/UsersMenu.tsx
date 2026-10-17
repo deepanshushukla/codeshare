@@ -17,7 +17,10 @@ export default function UsersMenu({ users, currentUserId, name, onNameChange }: 
         <Users size={16} />
         <span className={styles.count}>{users.length}</span>
       </DropdownMenu.Trigger>
-      <DropdownMenu.Content className={styles.content}>
+      {/* Radix renders Content into a portal with no styling of its own, so
+          without a real surface here the menu is transparent text over the
+          page -- see UsersMenu.module.scss / styles/_controls.scss. */}
+      <DropdownMenu.Content className={styles.content} sideOffset={6} align="end">
         {users.map((user) => (
           <DropdownMenu.Item key={user.userId} className={styles.item} onSelect={(e) => e.preventDefault()}>
             <input
