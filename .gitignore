@@ -31,3 +31,7 @@ supabase/.temp
 # Claude Code worktrees (e.g. .claude/worktrees/<name>/) -- a full nested
 # checkout, never something to track or let a recursive glob pick up
 .claude/
+
+# Subagent-driven-development scratch workspace (ledgers, briefs, review
+# packages) -- per-plan working state, not something to track
+.superpowers/
