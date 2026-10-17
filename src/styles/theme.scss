@@ -1,0 +1,13 @@
+// Explicit light/dark override classes, for a future manual theme toggle.
+// No toggle UI exists yet -- these classes are inert until something sets
+// `data-theme="light"` / `data-theme="dark"` on an ancestor element -- but
+// the CSS variables they override already match tokens.scss, so adding a
+// toggle later needs no further rework here.
+[data-theme='light'] {
+  --color-bg: #ffffff;
+  --color-text: #1a1a1a;
+}
+[data-theme='dark'] {
+  --color-bg: #15161a;
+  --color-text: #e8e8ea;
+}

@@ -1,6 +1,38 @@
-.page { display: flex; flex-direction: column; min-height: 100vh; }
-.header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; }
-.title { font-weight: 600; }
-.hero { padding: 2rem 1.5rem; text-align: center; }
-.ctaLink, .ctaButton { text-decoration: none; }
-.points ul { list-style: disc; padding-left: 1.5rem; }
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-raised);
+}
+.title {
+  font-weight: 600;
+}
+.hero {
+  padding: 3rem var(--space-3);
+  text-align: center;
+}
+.ctaLink,
+.ctaButton {
+  display: inline-block;
+  text-decoration: none;
+  color: #fff;
+  background: var(--color-accent);
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-2);
+}
+.points {
+  padding: var(--space-3);
+}
+.points ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+}

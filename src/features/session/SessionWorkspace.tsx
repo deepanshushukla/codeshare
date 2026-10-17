@@ -5,11 +5,10 @@ import { useTabsQueryParam } from './useTabsQueryParam';
 import { usePresence } from './usePresence';
 import { ensureAnonymousSession } from '../../lib/supabase';
 import EditorPane from './EditorPane';
-import UsersMenu from './UsersMenu';
 import OutputFrame from './OutputFrame';
 import ConsolePanel from './ConsolePanel';
-import RunControls from './RunControls';
-import ExportMenu from './ExportMenu';
+import Header from './Header';
+import ConnectionBanner from './ConnectionBanner';
 
 // react-resizable-panels v4 renamed the old PanelGroup/Panel/PanelResizeHandle
 // trio to Group/Panel/Separator, with `orientation` replacing `direction`.
@@ -19,8 +18,8 @@ export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
     ensureAnonymousSession().then(setUserId);
   }, []);
 
-  const { tabs } = useTabsQueryParam();
-  const { html, css, js, updateField } = useSession(sessionId, userId);
+  const { tabs, setTabs } = useTabsQueryParam();
+  const { html, css, js, connectionStatus, updateField } = useSession(sessionId, userId);
   const { users, name, setName } = usePresence(sessionId, userId);
 
   // `runToken` only changes when the user explicitly hits Run (button or
@@ -42,9 +41,19 @@ export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
 
   return (
     <>
-      <UsersMenu users={users} currentUserId={userId} name={name} onNameChange={setName} />
-      <RunControls onRun={handleRun} />
-      <ExportMenu html={html} css={css} js={js} />
+      <Header
+        tabs={tabs}
+        setTabs={setTabs}
+        users={users}
+        currentUserId={userId}
+        name={name}
+        onNameChange={setName}
+        onRun={handleRun}
+        html={html}
+        css={css}
+        js={js}
+      />
+      <ConnectionBanner status={connectionStatus} />
       <Group orientation="horizontal" style={{ height: '100%' }}>
         {tabs.html && (
           <Panel>

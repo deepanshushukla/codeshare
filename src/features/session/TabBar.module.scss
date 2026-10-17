@@ -1,0 +1,18 @@
+.bar {
+  display: flex;
+  gap: var(--space-1);
+}
+.tab,
+.active {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  cursor: pointer;
+}
+.active {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+}
