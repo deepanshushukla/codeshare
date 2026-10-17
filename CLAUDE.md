@@ -53,7 +53,8 @@ npx supabase db reset   # Re-apply migrations from supabase/migrations/
 - `*` → `NotFound` (404)
 
 ### Data flow
-- **Postgres** (`sessions` and `session_users` tables) is the source of truth for session content and user history
+- **Postgres** (the `sessions` table) is the source of truth for session content (html/css/js)
+- The `session_users` table exists in the migration but is **reserved and currently unused** — no code reads or writes it. It is there for a planned future enhancement (persisting display names across reloads / empty rooms); display names today live only in ephemeral Presence state, so a custom name is lost on reload
 - **Realtime Broadcast** carries live edits between connected clients (low latency, debounced updates)
 - **Realtime Presence** tracks who's online (automatic join/leave, fixes the old "user stays online forever" bug)
 - **Auth** — anonymous sign-in per browser session, used in RLS policies and Presence tracking
@@ -66,8 +67,9 @@ npx supabase db reset   # Re-apply migrations from supabase/migrations/
   - `UsersMenu` — presence list with per-user editable names
   - `ExportMenu` — export current output as HTML or ZIP
   - `RunControls` — Run button + keyboard shortcuts
-  - `useSession` — React hook for session data sync
-  - `usePresence` — React hook for presence state
+  - `useSessionChannel` — owns the session's **single** Realtime channel (both the broadcast and the presence binding, registered before one `subscribe()`); `supabase.channel()` dedupes by topic, so creating it in more than one hook is broken by construction — see `docs/supabase-setup.md`
+  - `useSession` — React hook for session data sync (takes the channel from `useSessionChannel`)
+  - `usePresence` — React hook for presence state (takes the channel from `useSessionChannel`)
 
 - **`src/lib/`** — Framework-agnostic utilities
   - `supabase.ts` — Supabase client setup, anonymous auth bootstrap

@@ -41,13 +41,20 @@ create table session_users (
 );
 ```
 
-`session_users` persists a *last known* name/status per user for anyone
-joining a room when no one else is currently connected to pull live
-Presence state from — Presence itself is ephemeral (in-memory on
-Supabase's Realtime servers), so this table is what makes "who was in
-this room" survive an empty room. A `last_seen_at` column lets us ignore
-rows older than, say, a few hours when rendering the user list, without a
-cron job.
+`session_users` is **reserved for a planned future enhancement and is not
+used by the app today** — nothing in `src/` reads or writes it. It is
+created by the migration (with RLS) so the table and its policies are
+already in place when that enhancement lands.
+
+The intended future use: persist a *last known* name/status per user, so a
+custom display name survives a reload and so someone joining a room with
+nobody else connected still sees who was here. Presence is ephemeral
+(in-memory on Supabase's Realtime servers), which is why a durable table
+would be needed for that. Until it is implemented, display names live only
+in Presence state plus React state, and a renamed user who reloads goes
+back to the default `User_xxxx` name. The `last_seen_at` column is there so
+that implementation can ignore rows older than, say, a few hours when
+rendering the user list, without a cron job.
 
 `html`/`css`/`js` get a `check` constraint on length (e.g.
 `char_length(html) < 200000`) — this is the RLS-era replacement for the
@@ -100,12 +107,31 @@ if (!data.session) {
 }
 ```
 
-The resulting `auth.uid()` is the stable per-browser identity used in
-`session_users.user_id` and in Presence `track()` payloads.
+The resulting `auth.uid()` is the stable per-browser identity used as the
+Presence key and in Presence `track()` payloads (and would be
+`session_users.user_id` if/when that reserved table is put to use).
 
 ## Realtime (Broadcast + Presence)
 
-One channel per session, named by session id, carrying both concerns:
+One channel per session, named by session id, carrying both concerns —
+and "one" is a hard requirement, not a stylistic preference:
+
+- `supabase.channel(topic)` **dedupes by topic**. Calling it twice with the
+  same topic returns the *same* channel object and silently ignores the
+  second call's `params`, so a second "creation" loses its
+  `config.presence.key`.
+- `channel.on('presence' | 'postgres_changes', ...)` **throws** once the
+  channel is joining/joined (`cannot add 'presence' callbacks for <topic>
+  after subscribe()`), so the hook that runs second cannot add its binding
+  at all — uncaught, inside a `useEffect`, which blanks the page.
+
+In this app `useSessionChannel` therefore owns the channel: it creates it
+once per session (after anonymous sign-in, because the presence key is a
+construction param), registers *both* bindings, calls `subscribe()` once,
+and tears down with `supabase.removeChannel(channel)` — `unsubscribe()`
+alone leaves the dead channel in the client's registry, where the topic
+dedupe keeps handing it back out. `useSession` and `usePresence` receive
+that channel and only attach listeners to it.
 
 ```ts
 const channel = supabase.channel(`session:${sessionId}`, {
@@ -125,7 +151,7 @@ channel
 channel.send({ type: 'broadcast', event: 'edit', payload: { field, value, userId } });
 ```
 
-No `unsubscribe`/disconnect handler is needed for presence cleanup —
+No `unsubscribe`/disconnect handler is needed for presence *cleanup* —
 Presence's `sync`/`join`/`leave` events fire automatically for every
 client on the channel when someone's connection drops, which is exactly
 the bug fix called out in the design spec.
