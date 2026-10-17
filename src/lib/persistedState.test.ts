@@ -33,4 +33,11 @@ describe('persistedState', () => {
     vi.advanceTimersByTime(400);
     expect(readPersisted()).toEqual({ theme: 'paper', hue: 'jade' });
   });
+
+  it('does not reflect an in-flight patch until the debounce commits it', () => {
+    writePersisted({ theme: 'paper' });
+    expect(readPersisted()).toEqual({}); // not yet flushed to localStorage
+    vi.advanceTimersByTime(400);
+    expect(readPersisted()).toEqual({ theme: 'paper' });
+  });
 });
