@@ -27,3 +27,7 @@ dist-ssr
 .env*.local
 supabase/.branches
 supabase/.temp
+
+# Claude Code worktrees (e.g. .claude/worktrees/<name>/) -- a full nested
+# checkout, never something to track or let a recursive glob pick up
+.claude/
