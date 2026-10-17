@@ -1,3 +1,5 @@
+@use '../styles/controls' as controls;
+
 .page {
   display: flex;
   flex-direction: column;
@@ -5,34 +7,226 @@
   background: var(--color-bg);
   color: var(--color-text);
 }
+
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-3) var(--space-3);
+  padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--color-border);
   background: var(--color-bg-raised);
 }
-.title {
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.logoMark {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--color-accent);
+}
+
+.headerCta {
+  @include controls.control-button;
+  gap: var(--space-1);
   font-weight: 600;
 }
+
+// --- Hero -----------------------------------------------------------------
+
 .hero {
-  padding: 3rem var(--space-3);
-  text-align: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-5);
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-4);
+  width: 100%;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
 }
-.ctaLink,
+
+.heroCopy {
+  h1 {
+    margin: var(--space-2) 0 var(--space-3);
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+  }
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--color-accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.heroSubtitle {
+  margin: 0 0 var(--space-4);
+  max-width: 34rem;
+  color: var(--color-text);
+  opacity: 0.75;
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.heroActions {
+  display: flex;
+  gap: var(--space-2);
+}
+
 .ctaButton {
-  display: inline-block;
-  text-decoration: none;
-  color: #fff;
-  background: var(--color-accent);
-  border-radius: var(--radius);
-  padding: var(--space-1) var(--space-2);
+  @include controls.control-button-accent;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-lg);
+  font-size: 0.95rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.12s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
 }
-.points {
+
+// --- Hero visual: a CSS-only "editor" mockup, no image asset needed -------
+
+.heroVisual {
+  display: flex;
+  justify-content: center;
+}
+
+.mockWindow {
+  width: 100%;
+  max-width: 26rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-raised);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  transform: rotate(-1deg);
+}
+
+.mockTitleBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.mockDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-border);
+
+  &[data-variant='red'] { background: #ef4444; }
+  &[data-variant='yellow'] { background: #f59e0b; }
+  &[data-variant='green'] { background: #22c55e; }
+}
+
+.mockTabs {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: var(--space-2);
+  font-size: 0.7rem;
+  opacity: 0.6;
+}
+
+.mockTabActive {
+  opacity: 1;
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.mockBody {
   padding: var(--space-3);
+  background: var(--color-bg);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.7;
 }
-.points ul {
-  list-style: disc;
-  padding-left: 1.5rem;
+
+.mockLine {
+  white-space: pre;
+  opacity: 0.85;
+}
+
+// --- Feature grid -----------------------------------------------------------
+
+.features {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-4) var(--space-5);
+  width: 100%;
+
+  h2 {
+    margin: 0 0 var(--space-4);
+    font-size: 1.4rem;
+  }
+}
+
+.featureGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--space-3);
+}
+
+.featureCard {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-raised);
+  box-shadow: var(--shadow-card);
+
+  h3 {
+    margin: var(--space-3) 0 var(--space-1);
+    font-size: 1rem;
+  }
+
+  p {
+    margin: 0;
+    color: var(--color-text);
+    opacity: 0.7;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+}
+
+.featureIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+// --- Footer -----------------------------------------------------------------
+
+.footer {
+  margin-top: auto;
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+  color: var(--color-text);
+  opacity: 0.5;
+  font-size: 0.8rem;
 }

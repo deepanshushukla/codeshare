@@ -12,10 +12,17 @@
   // shadow/border/background they are indistinguishable from the content
   // underneath them.
   --shadow-overlay: 0 10px 30px rgb(0 0 0 / 12%), 0 2px 6px rgb(0 0 0 / 8%);
+  // Subtler than --shadow-overlay -- for content that sits in the page flow
+  // (cards) rather than floating above it (dropdown menus).
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 4%), 0 1px 8px rgb(0 0 0 / 6%);
+  --color-accent-soft: #eef4ff;
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2.5rem;
   --radius: 6px;
+  --radius-lg: 12px;
   --font-sans: system-ui, -apple-system, sans-serif;
   --font-mono: 'SFMono-Regular', ui-monospace, monospace;
 }
@@ -29,5 +36,7 @@
     --color-border: #2c2d33;
     --color-accent: #60a5fa;
     --shadow-overlay: 0 10px 30px rgb(0 0 0 / 55%), 0 2px 6px rgb(0 0 0 / 40%);
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 20%), 0 1px 10px rgb(0 0 0 / 30%);
+    --color-accent-soft: #1b2a41;
   }
 }

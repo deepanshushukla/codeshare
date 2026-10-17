@@ -22,6 +22,10 @@
   font-size: 0.8rem;
   line-height: 1.4;
   cursor: pointer;
+  // Every current consumer is a real <button>, where this is a no-op -- but
+  // an <a> styled with this mixin (e.g. Landing's CTAs) gets a browser-default
+  // underline otherwise, since nothing else in "looks like a button" resets it.
+  text-decoration: none;
 
   &:hover {
     background: var(--color-bg-hover);
