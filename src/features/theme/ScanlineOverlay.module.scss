@@ -1,0 +1,16 @@
+// `scanmove` is defined globally in `src/styles/motion.scss` (loaded via
+// `globals.scss`), alongside `--play`, so it isn't redeclared here.
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+  opacity: var(--scan);
+  background: repeating-linear-gradient(
+    0deg,
+    oklch(0 0 0 / 0.22) 0 1px,
+    transparent 1px 3px
+  );
+  animation: scanmove 0.4s linear infinite;
+  animation-play-state: var(--play);
+}
