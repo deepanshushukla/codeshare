@@ -145,12 +145,23 @@ supabase db reset      # (re)apply migrations in supabase/migrations/
 at the hosted project. Never commit either `.env` file — only
 `.env.example` with placeholder values.
 
-## Hosted project setup (when we get to deploying)
+## Hosted project setup (NEXT MANUAL STEP — not done yet)
+
+Everything else in this plan (schema, RLS, app code, local-stack testing)
+is complete. This section is the one remaining step, and it is
+deliberately **not automated**: it creates live infrastructure
+(a billable hosted Supabase project, a Vercel project, a DNS change on
+codeshare.in) and needs the owner's authenticated sessions present to do
+it. Do this as its own explicitly-confirmed step, not as part of a
+scripted task:
 
 1. Create the project at supabase.com (or `supabase projects create`).
 2. Apply the same migration (`supabase link` + `supabase db push`).
 3. Enable Anonymous sign-ins (dashboard setting, not in a migration).
 4. Copy the project URL + anon key into Vercel's environment variables.
+5. Create the Vercel project (it will pick up `vercel.json` at the repo
+   root automatically for the SPA rewrite) and point codeshare.in's DNS
+   at it.
 
 This step is part of the deployment phase, not local build-out — see the
 "Deployment note" in the design spec.
