@@ -54,17 +54,22 @@ export default function ConsolePanel({ onRepl }: { onRepl: (code: string) => voi
 
   return (
     <div className={styles.console}>
+      <div className={styles.title}>Console</div>
       <input
         aria-label="Console input"
+        className={styles.input}
+        placeholder="Type JS and press Enter to run it here…"
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyUp={handleKeyUp}
       />
-      {entries.map((entry) => (
-        <div key={entry.id} className={styles[entry.level]}>
-          {entry.args.map((arg) => (typeof arg === 'string' ? arg : JSON.stringify(arg))).join(' ')}
-        </div>
-      ))}
+      <div className={styles.entries}>
+        {entries.map((entry) => (
+          <div key={entry.id} className={styles[entry.level]}>
+            {entry.args.map((arg) => (typeof arg === 'string' ? arg : JSON.stringify(arg))).join(' ')}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

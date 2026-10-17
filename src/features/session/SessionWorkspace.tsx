@@ -104,25 +104,25 @@ export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
             <EditorPane title="HTML" language="html" value={html} onChange={(v) => updateField('html', v)} />
           </Panel>
         )}
-        {tabs.html && (tabs.css || tabs.js || tabs.console || tabs.output) && <Separator />}
+        {tabs.html && (tabs.css || tabs.js || tabs.console || tabs.output) && <Separator className={styles.separator} />}
         {tabs.css && (
           <Panel>
             <EditorPane title="CSS" language="css" value={css} onChange={(v) => updateField('css', v)} />
           </Panel>
         )}
-        {tabs.css && (tabs.js || tabs.console || tabs.output) && <Separator />}
+        {tabs.css && (tabs.js || tabs.console || tabs.output) && <Separator className={styles.separator} />}
         {tabs.js && (
           <Panel>
             <EditorPane title="JS" language="javascript" value={js} onChange={(v) => updateField('js', v)} />
           </Panel>
         )}
-        {tabs.js && (tabs.console || tabs.output) && <Separator />}
+        {tabs.js && (tabs.console || tabs.output) && <Separator className={styles.separator} />}
         {tabs.console && (
           <Panel>
             <ConsolePanel onRepl={handleRepl} />
           </Panel>
         )}
-        {tabs.console && tabs.output && <Separator />}
+        {tabs.console && tabs.output && <Separator className={styles.separator} />}
         {tabs.output && <Panel>{outputFrame}</Panel>}
       </Group>
       {!tabs.output && outputFrame && (

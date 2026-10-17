@@ -16,6 +16,29 @@
   min-height: 0;
 }
 
+// react-resizable-panels' Separator ships with no visual styling of its own
+// (only layout/drag behavior) -- without this, adjacent panes have no visible
+// boundary between them at all, just an invisible draggable hit area.
+.separator {
+  position: relative;
+  width: 1px;
+  background: var(--color-border);
+  cursor: col-resize;
+
+  // Widen only the hit/hover area, not the visible line -- a 1px line is
+  // enough to read as a boundary; a 1px *target* is not enough to grab.
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0 -3px;
+  }
+
+  &:hover,
+  &:active {
+    background: var(--color-accent);
+  }
+}
+
 // Keeps the sandboxed output iframe mounted (and therefore loaded, running,
 // and reachable by postMessage) while the Output tab is hidden, so Run and the
 // Console REPL work from the default js+console layout. `position: fixed`

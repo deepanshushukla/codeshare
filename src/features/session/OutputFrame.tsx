@@ -23,7 +23,27 @@ type Props = {
 // re-running on every keystroke the way reassigning `srcDoc` alone would
 // not reliably do across browsers.
 export default function OutputFrame({ html, css, js, runToken, onWindowReady }: Props) {
-  const srcDoc = useMemo(() => buildSandboxDocument(html, css, js), [html, css, js, runToken]);
+  // Read only at the moment of a Run, never as a reactive dependency: this
+  // iframe stays mounted continuously (see SessionWorkspace's off-screen
+  // wrapper) so Run/REPL work before the user ever opens the Output tab, but
+  // that means `html`/`css`/`js` change on every keystroke. If `srcDoc` were
+  // recomputed from those directly, the browser reloads the iframe's
+  // document on every change -- rerunning the user's JS, mid-keystroke,
+  // against invalid/incomplete syntax, flooding the Console with transient
+  // errors nobody asked for. The ref decouples "latest content" from "when
+  // we actually (re)run": only a runToken change rebuilds srcDoc, and it
+  // reads whatever content was current at that instant.
+  const latestContentRef = useRef({ html, css, js });
+  latestContentRef.current = { html, css, js };
+
+  const srcDoc = useMemo(() => {
+    // Before the first Run, show an empty (but still bridge-scripted, so
+    // Run/REPL work immediately) document rather than auto-running on load.
+    if (runToken === 0) return buildSandboxDocument('', '', '');
+    const { html, css, js } = latestContentRef.current;
+    return buildSandboxDocument(html, css, js);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runToken]);
 
   const onWindowReadyRef = useRef(onWindowReady);
   useEffect(() => {
