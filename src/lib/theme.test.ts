@@ -1,4 +1,4 @@
-import { palette, applyTheme, THEMES, HUES } from './theme';
+import { palette, applyTheme } from './theme';
 
 it('computes abyss/teal exactly per the design spec', () => {
   const v = palette('abyss', 'teal');

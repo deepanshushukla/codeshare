@@ -19,23 +19,24 @@ if (typeof globalThis.matchMedia === 'undefined') {
   class MediaQueryListStub implements MediaQueryList {
     matches = false;
     media = '';
-    private listeners: MediaQueryListListener[] = [];
+    onchange: ((this: MediaQueryList, ev: MediaQueryListEvent) => any) | null = null;
+    private listeners: ((this: MediaQueryList, ev: MediaQueryListEvent) => any)[] = [];
 
     constructor(query: string) {
       this.media = query;
     }
 
-    addListener(listener: MediaQueryListListener) {
+    addListener(listener: (this: MediaQueryList, ev: MediaQueryListEvent) => any) {
       this.addEventListener('change', listener as EventListener);
     }
 
-    removeListener(listener: MediaQueryListListener) {
+    removeListener(listener: (this: MediaQueryList, ev: MediaQueryListEvent) => any) {
       this.removeEventListener('change', listener as EventListener);
     }
 
     addEventListener(type: string, listener: EventListener) {
       if (type === 'change') {
-        this.listeners.push(listener as MediaQueryListListener);
+        this.listeners.push(listener as (this: MediaQueryList, ev: MediaQueryListEvent) => any);
       }
     }
 
@@ -45,7 +46,7 @@ if (typeof globalThis.matchMedia === 'undefined') {
       }
     }
 
-    dispatchEvent(event: Event): boolean {
+    dispatchEvent(_event: Event): boolean {
       return true;
     }
   }
