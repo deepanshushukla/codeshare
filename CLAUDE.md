@@ -49,7 +49,7 @@ npx supabase db reset   # Re-apply migrations from supabase/migrations/
 ### Routing
 `src/routes/` — React Router v7:
 - `/` → `Landing` (create new session)
-- `/session/:sessionId` → `SessionRoute` (editor workspace)
+- `/code/:sessionId` → `SessionRoute` (editor workspace)
 - `*` → `NotFound` (404)
 
 ### Data flow
