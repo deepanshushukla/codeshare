@@ -69,5 +69,5 @@ Actually creating the hosted Supabase project, enabling anonymous auth on
 it, pushing the schema, creating the Vercel project with its environment
 variables, and repointing codeshare.in's DNS are live-infrastructure
 steps, not something to script blindly. See the **"Hosted project
-setup"** section of [`docs/supabase-setup.md`](./docs/supabase-setup.md#hosted-project-setup-when-we-get-to-deploying)
+setup"** section of [`docs/supabase-setup.md`](./docs/supabase-setup.md#hosted-project-setup-next-manual-step--not-done-yet)
 for exactly what those steps are when it's time to do them.
