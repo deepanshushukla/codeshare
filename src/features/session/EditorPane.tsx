@@ -40,6 +40,15 @@ export default function EditorPane({ title, language, value, onChange }: Props) 
         extensions: [
           keymap.of(defaultKeymap),
           LANGUAGE_EXTENSIONS[language],
+          // CodeMirror 6 sizes itself to its content by default (like an
+          // auto-growing textarea), not to its container -- without this
+          // theme, `.cm-editor` collapses to a single line's height
+          // regardless of how much space `.codeMirrorHost` (flex: 1) gives
+          // it, leaving the pane looking empty/unstyled.
+          EditorView.theme({
+            '&': { height: '100%' },
+            '.cm-scroller': { overflow: 'auto' },
+          }),
           EditorView.updateListener.of((update) => {
             if (!update.docChanged) return;
             if (applyingExternalValueRef.current) return;
