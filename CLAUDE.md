@@ -9,66 +9,81 @@ A "session" (room) has HTML/CSS/JS editor tabs, a Console tab, and an
 Output preview; content and user presence sync live across everyone
 viewing the same session URL.
 
-## Repo is mid-rewrite — read this first
+## Stack
 
-The repo currently contains the **original 2020-era implementation**
-(Create React App + React 17 + Firebase v8 + CodeMirror 5 + antd). It is
-being fully rewritten to a modern stack (Vite + React 19 + TypeScript +
-Supabase + CodeMirror 6), per the approved design spec at
-**`docs/superpowers/specs/2026-10-16-codeshare-revamp-design.md`**.
+**Vite + React 19 + TypeScript + Supabase + CodeMirror 6 + Radix UI + Sass Modules**
 
-Read that spec before making architectural decisions — it documents the
-target architecture, the bugs being fixed (and why), and what's explicitly
-out of scope. Once the rewrite lands, update this file to describe the new
-stack/commands and remove the legacy section below.
+This is a complete rewrite of the original 2020-era CRA/Firebase app.
+For design rationale and architecture details, see:
+- `docs/superpowers/specs/2026-10-16-codeshare-revamp-design.md` — architectural decisions and feature overview
+- `docs/supabase-setup.md` — Supabase setup, schema, auth, Realtime Broadcast/Presence
 
-## Legacy app (current code on disk, until the rewrite replaces it)
+## Commands
 
-### Commands
 ```
-yarn start      # dev server (react-scripts start, REACT_APP_ENV=prod)
-yarn build      # production build to build/
-yarn lint       # eslint --fix src/**/*.js src/**/*.jsx
-yarn prettier   # prettier --write "src/**/*.{js,jsx}"
-yarn test       # react-scripts test (no test files currently exist)
-```
-There is no CI config and no test suite populated — `yarn test` runs
-CRA's Jest watcher against zero test files.
+npm run dev              # Start Vite dev server (requires supabase start + .env.local)
+npm run build            # TypeScript check + Vite production build
+npm run preview          # Preview the production build locally
+npm test                 # Run the Vitest suite once
+npm run test:watch      # Vitest in watch mode
 
-### Architecture (legacy)
-- **Routing** (`src/index.js`): `/` → landing page (`AppMainPage`);
-  `/code/:sessionId` → the editor workspace (`AppContainer` → `App`);
-  bare `/:sessionId` redirects to `/code/:sessionId`; `/error/page` → 404.
-- **Sync model**: one Firebase Realtime Database node per session at
-  `live-sessions/{sessionId}`, holding `{ html, css, js, users }`. `App.js`
-  subscribes with `.on("value", ...)` and writes per-field updates via
-  `src/utils/firebaseRealtime.js` (debounced through
-  `src/utils/debounce.js`). There is no operational-transform/CRDT merge —
-  it's last-write-wins per field.
-- **Identity/presence**: a random 3-char id is generated client-side and
-  cached in `sessionStorage` (global key `"user"`, not scoped per
-  session), written into `users/{userId}` with an online/away `status`
-  toggled on `visibilitychange`. **Known bug**: no `onDisconnect()`, so a
-  closed tab never clears presence.
-- **Tab state**: `App.js` holds `tabs` (html/css/js/console/output
-  booleans) and mirrors it into the `?selectedTabs=` query param so a
-  session URL can be shared with a specific tab layout already open.
-  **Known bug**: the default-tabs object (`Initial_Tabs`) is a
-  module-level object mutated in place rather than copied.
-- **Execution**: the Output tab renders user HTML/CSS/JS into a sandboxed
-  `<iframe sandbox="allow-scripts">` via `srcDoc`. Separately, the Run
-  button (`runClick`) also calls `eval(js)` **directly in the main app
-  window** so the Console tab (which hooks the parent `window.console` via
-  `console-feed`) shows output — this is a real security bug (synced,
-  attacker-controlled JS executes unsandboxed), fixed in the rewrite by
-  routing all execution through the sandboxed iframe with a `postMessage`
-  console bridge instead.
-- **Firebase config**: `src/firebase-config.js` has the project's client
-  config hardcoded (not env-based). `database.rules.json` requires
-  `auth != null` for all reads/writes, but the app never calls Firebase
-  Auth anywhere — reads/writes are expected to be failing in production.
-- Deployed via Firebase Hosting (`firebase.json`, `.firebaserc`, project
-  `live-code-share`); the custom domain mapping for codeshare.in is
-  currently broken (see the spec's audit findings). The rewrite moves
-  hosting to Vercel and the backend to Supabase, retiring Firebase
-  entirely.
+npx supabase start      # Start local Postgres + Realtime + Auth (printed URL + anon key go in .env.local)
+npx supabase db reset   # Re-apply migrations from supabase/migrations/
+```
+
+**Before first `npm run dev`**: 
+1. Copy `.env.example` to `.env.local`
+2. Run `npx supabase start` and copy the output URL + anon key into `.env.local`
+
+## Architecture
+
+### Tech stack
+- **Build**: Vite (dev/build) + TypeScript + React 19
+- **Backend**: Supabase (Postgres + Realtime Broadcast/Presence + Auth)
+- **Editor**: CodeMirror 6 with HTML/CSS/JS language support
+- **UI**: Radix UI primitives + lucide-react icons + Sass Modules
+- **Execution**: Sandboxed iframe with `postMessage` console bridge (no eval in main thread)
+- **Resizable panes**: react-resizable-panels
+- **Testing**: Vitest + React Testing Library
+
+### Routing
+`src/routes/` — React Router v7:
+- `/` → `Landing` (create new session)
+- `/session/:sessionId` → `SessionRoute` (editor workspace)
+- `*` → `NotFound` (404)
+
+### Data flow
+- **Postgres** (`sessions` and `session_users` tables) is the source of truth for session content and user history
+- **Realtime Broadcast** carries live edits between connected clients (low latency, debounced updates)
+- **Realtime Presence** tracks who's online (automatic join/leave, fixes the old "user stays online forever" bug)
+- **Auth** — anonymous sign-in per browser session, used in RLS policies and Presence tracking
+
+### Feature organization
+- **`src/features/session/`** — Session workspace components
+  - `EditorPane` — tabs, CodeMirror instances, editor state
+  - `OutputFrame` — sandboxed iframe runner
+  - `ConsolePanel` — rendered console logs (via postMessage bridge)
+  - `UsersMenu` — presence list with per-user editable names
+  - `ExportMenu` — export current output as HTML or ZIP
+  - `RunControls` — Run button + keyboard shortcuts
+  - `useSession` — React hook for session data sync
+  - `usePresence` — React hook for presence state
+
+- **`src/lib/`** — Framework-agnostic utilities
+  - `supabase.ts` — Supabase client setup, anonymous auth bootstrap
+  - `sandbox.ts` — iframe execution engine + console.log postMessage bridge
+  - `export.ts` — HTML/ZIP file generation (file-saver + jszip)
+  - `debounce.ts` — debounced write helper
+  - `randomId.ts` — session ID generation
+
+- **`src/styles/`** — Sass setup
+  - `tokens.scss` — design tokens (colors, spacing, type scale)
+  - `globals.scss` — CSS reset + theme setup (light/dark mode via CSS custom properties)
+
+### Security & correctness
+- **Execution sandboxing**: Code runs only in iframe with `sandbox="allow-scripts"` (no `allow-same-origin`). Console output forwarded via postMessage, never eval in main thread.
+- **Identity scoping**: Auth user ID (not hand-rolled sessionStorage) drives per-session identity and RLS policies.
+- **Presence cleanup**: Supabase Presence automatically fires leave events on client disconnect, no manual handler needed.
+- **Debounced writes**: Local edits are debounced before upserting to Postgres; Broadcast carries immediate copies to connected clients.
+
+For full architecture details, see the design spec above.
