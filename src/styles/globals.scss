@@ -1,5 +1,6 @@
 @use './tokens.scss';
 @use './theme.scss';
+@use './motion.scss';
 
 * {
   box-sizing: border-box;
@@ -32,4 +33,13 @@ body {
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--acc);
+  color: var(--acc-ink);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--line2);
 }
