@@ -14,6 +14,18 @@ body,
   height: 100%;
 }
 
+// #root is the single mount point for every route, and the session route is a
+// vertical stack (header + banner + panes). Making #root a flex column lets
+// that stack's pane area claim "whatever height is left" via `flex: 1`
+// instead of a `height: 100%` that resolves against the whole viewport and
+// overflows it by the height of the header and banner. `min-height: 0` keeps
+// nested scroll containers (editors, console) able to shrink.
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 body {
   font-family: var(--font-sans);
   background: var(--color-bg);

@@ -1,0 +1,32 @@
+// The session page is a vertical stack: header, optional banner, then the
+// editor panes taking whatever height is left. `.panes` must NOT use
+// `height: 100%` -- that resolves against the full-height #root and gets
+// *added* to the header/banner's height, overflowing the viewport and cutting
+// the bottom off every pane. `flex: 1` + `min-height: 0` (the latter so flex
+// children with their own scrollers can actually shrink) fills the remainder.
+.workspace {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.panes {
+  flex: 1;
+  min-height: 0;
+}
+
+// Keeps the sandboxed output iframe mounted (and therefore loaded, running,
+// and reachable by postMessage) while the Output tab is hidden, so Run and the
+// Console REPL work from the default js+console layout. `position: fixed`
+// off-screen rather than `display: none`/`visibility: hidden`: those stop the
+// iframe from laying out and can get its timers throttled, and it must not add
+// to the page's scrollable area either.
+.offscreenOutput {
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  width: 1024px;
+  height: 768px;
+  pointer-events: none;
+}

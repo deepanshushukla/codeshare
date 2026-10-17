@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { buildSandboxDocument } from '../../lib/sandbox';
 
 type Props = {
@@ -24,6 +24,22 @@ type Props = {
 // not reliably do across browsers.
 export default function OutputFrame({ html, css, js, runToken, onWindowReady }: Props) {
   const srcDoc = useMemo(() => buildSandboxDocument(html, css, js), [html, css, js, runToken]);
+
+  const onWindowReadyRef = useRef(onWindowReady);
+  useEffect(() => {
+    onWindowReadyRef.current = onWindowReady;
+  }, [onWindowReady]);
+  // Hand back a null window whenever the <iframe> this component owns goes
+  // away -- both on unmount and when a Run bumps `runToken` and so replaces
+  // the element. The parent otherwise keeps a handle on a destroyed window and
+  // posts REPL input into the void.
+  useEffect(
+    () => () => {
+      onWindowReadyRef.current(null);
+    },
+    [runToken],
+  );
+
   return (
     <iframe
       key={runToken}

@@ -1,45 +1,37 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
+import { useSession } from './useSession';
+import { useSessionChannel } from './useSessionChannel';
+import { mockConfig, resetSupabaseMock, soleChannel, upsert } from '../../test/supabaseMock';
 
-const upsert = vi.fn().mockResolvedValue({ error: null });
-const singleSelect = vi.fn();
-const channelOn = vi.fn().mockReturnThis();
-const channelSubscribe = vi.fn().mockReturnThis();
-const channelSend = vi.fn();
-
-vi.mock('../../lib/supabase', () => ({
-  supabase: {
-    from: () => ({
-      select: () => ({ eq: () => ({ maybeSingle: singleSelect }) }),
-      upsert,
-    }),
-    channel: () => ({ on: channelOn, subscribe: channelSubscribe, send: channelSend }),
-  },
-}));
+vi.mock('../../lib/supabase', () => import('../../test/supabaseMock'));
 
 beforeEach(() => {
-  upsert.mockClear();
-  singleSelect.mockReset();
-  channelSend.mockClear();
+  resetSupabaseMock();
 });
+
+// Renders useSession on top of the real useSessionChannel, the way
+// SessionWorkspace does, against the shared Supabase mock -- so these tests
+// exercise the actual channel wiring instead of a bespoke channel stub.
+function renderSession(sessionId: string, userId: string | null = 'user-1') {
+  return renderHook(() => {
+    const { channel, status } = useSessionChannel(sessionId, userId);
+    return useSession(sessionId, userId, channel, status);
+  });
+}
 
 describe('useSession', () => {
   test('creates a blank row when the session does not exist yet', async () => {
-    singleSelect.mockResolvedValue({ data: null, error: null });
-    const { useSession } = await import('./useSession');
-    const { result } = renderHook(() => useSession('new-room', 'user-1'));
+    mockConfig.sessionRow = null;
+    const { result } = renderSession('new-room');
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.html).toBe('');
     expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ id: 'new-room' }));
   });
 
   test('loads existing content instead of resetting it when the session already exists', async () => {
-    singleSelect.mockResolvedValue({
-      data: { id: 'existing-room', html: '<p>hi</p>', css: 'p{}', js: 'console.log(1)' },
-      error: null,
-    });
-    const { useSession } = await import('./useSession');
-    const { result } = renderHook(() => useSession('existing-room', 'user-1'));
+    mockConfig.sessionRow = { id: 'existing-room', html: '<p>hi</p>', css: 'p{}', js: 'console.log(1)' };
+    const { result } = renderSession('existing-room');
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.html).toBe('<p>hi</p>');
     expect(result.current.css).toBe('p{}');
@@ -49,9 +41,9 @@ describe('useSession', () => {
   });
 
   test('does not blank an existing row when the initial read errors transiently', async () => {
-    singleSelect.mockResolvedValue({ data: null, error: new Error('network blip') });
-    const { useSession } = await import('./useSession');
-    const { result } = renderHook(() => useSession('flaky-room', 'user-1'));
+    mockConfig.sessionRow = null;
+    mockConfig.selectError = { message: 'network blip' };
+    const { result } = renderSession('flaky-room');
     await waitFor(() => expect(result.current.loading).toBe(false));
     // A failed read must never be treated as "no row yet" -- that would upsert
     // blanks over a session that may well already have content in Postgres.
@@ -59,12 +51,8 @@ describe('useSession', () => {
   });
 
   test('updating one field does not change the in-memory value of another field', async () => {
-    singleSelect.mockResolvedValue({
-      data: { id: 'room', html: '<p>a</p>', css: 'body{}', js: '1' },
-      error: null,
-    });
-    const { useSession } = await import('./useSession');
-    const { result } = renderHook(() => useSession('room', 'user-1'));
+    mockConfig.sessionRow = { id: 'room', html: '<p>a</p>', css: 'body{}', js: '1' };
+    const { result } = renderSession('room');
     await waitFor(() => expect(result.current.loading).toBe(false));
     act(() => result.current.updateField('css', 'body{color:red}'));
     expect(result.current.html).toBe('<p>a</p>');
@@ -73,12 +61,8 @@ describe('useSession', () => {
   });
 
   test('rapid edits to different fields are both persisted, not clobbered by a shared debounce timer', async () => {
-    singleSelect.mockResolvedValue({
-      data: { id: 'room2', html: '<p>a</p>', css: 'body{}', js: '1' },
-      error: null,
-    });
-    const { useSession } = await import('./useSession');
-    const { result } = renderHook(() => useSession('room2', 'user-1'));
+    mockConfig.sessionRow = { id: 'room2', html: '<p>a</p>', css: 'body{}', js: '1' };
+    const { result } = renderSession('room2');
     await waitFor(() => expect(result.current.loading).toBe(false));
     upsert.mockClear();
 
@@ -103,17 +87,13 @@ describe('useSession', () => {
   });
 
   test('broadcasts an edit to the realtime channel so other clients can apply it', async () => {
-    singleSelect.mockResolvedValue({
-      data: { id: 'room3', html: '', css: '', js: '' },
-      error: null,
-    });
-    const { useSession } = await import('./useSession');
-    const { result } = renderHook(() => useSession('room3', 'user-1'));
+    mockConfig.sessionRow = { id: 'room3', html: '', css: '', js: '' };
+    const { result } = renderSession('room3');
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     act(() => result.current.updateField('js', 'console.log(2)'));
 
-    expect(channelSend).toHaveBeenCalledWith(
+    expect(soleChannel().send).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'broadcast',
         event: 'edit',
@@ -123,24 +103,62 @@ describe('useSession', () => {
   });
 
   test('ignores a broadcast edit that echoes back its own userId', async () => {
-    singleSelect.mockResolvedValue({
-      data: { id: 'room4', html: '<p>a</p>', css: '', js: '' },
-      error: null,
-    });
-    let broadcastHandler: ((msg: { payload: { field: string; value: string; userId: string } }) => void) | undefined;
-    channelOn.mockImplementation((_type: string, _filter: unknown, handler: typeof broadcastHandler) => {
-      broadcastHandler = handler;
-      return { on: channelOn, subscribe: channelSubscribe, send: channelSend };
-    });
-
-    const { useSession } = await import('./useSession');
-    const { result } = renderHook(() => useSession('room4', 'user-1'));
+    mockConfig.sessionRow = { id: 'room4', html: '<p>a</p>', css: '', js: '' };
+    const { result } = renderSession('room4');
     await waitFor(() => expect(result.current.loading).toBe(false));
+    const channel = soleChannel();
 
-    act(() => broadcastHandler?.({ payload: { field: 'html', value: '<p>own echo</p>', userId: 'user-1' } }));
+    act(() => channel.emitBroadcast('edit', { field: 'html', value: '<p>own echo</p>', userId: 'user-1' }));
     expect(result.current.html).toBe('<p>a</p>');
 
-    act(() => broadcastHandler?.({ payload: { field: 'html', value: '<p>from-other</p>', userId: 'user-2' } }));
+    act(() => channel.emitBroadcast('edit', { field: 'html', value: '<p>from-other</p>', userId: 'user-2' }));
     expect(result.current.html).toBe('<p>from-other</p>');
+  });
+
+  test('reports connected once the shared channel is subscribed and writes succeed', async () => {
+    mockConfig.sessionRow = { id: 'room5', html: '', css: '', js: '' };
+    const { result } = renderSession('room5');
+    await waitFor(() => expect(result.current.connectionStatus).toBe('connected'));
+  });
+
+  test('surfaces a rejected debounced write instead of swallowing it', async () => {
+    mockConfig.sessionRow = { id: 'room6', html: '', css: '', js: '' };
+    const { result } = renderSession('room6');
+    await waitFor(() => expect(result.current.connectionStatus).toBe('connected'));
+
+    // e.g. an RLS denial or the html/css/js char_length(...) < 200000 check.
+    mockConfig.upsertResult = { error: { message: 'new row violates check constraint' } };
+    vi.useFakeTimers();
+    try {
+      act(() => result.current.updateField('html', 'x'.repeat(10)));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect(result.current.connectionStatus).toBe('write-failed');
+
+    // ...and a later successful write clears it again.
+    mockConfig.upsertResult = { error: null };
+    vi.useFakeTimers();
+    try {
+      act(() => result.current.updateField('html', 'y'));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(result.current.connectionStatus).toBe('connected');
+  });
+
+  test('surfaces a rejected create-the-row write on first load', async () => {
+    mockConfig.sessionRow = null;
+    mockConfig.upsertResult = { error: { message: 'permission denied for table sessions' } };
+    const { result } = renderSession('denied-room');
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.connectionStatus).toBe('write-failed');
   });
 });

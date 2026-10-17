@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { debounce } from '../../lib/debounce';
+import type { ChannelStatus, EditField, SessionChannel } from './useSessionChannel';
 
-export type EditField = 'html' | 'css' | 'js';
-export type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting';
+export type { EditField };
+export type ConnectionStatus = ChannelStatus | 'write-failed' | 'auth-failed';
 
 type SessionContent = { html: string; css: string; js: string };
-
-type BroadcastEditPayload = { field: EditField; value: string; userId: string | null };
 
 type UseSessionResult = SessionContent & {
   loading: boolean;
@@ -18,17 +17,28 @@ type UseSessionResult = SessionContent & {
 const UPSERT_DEBOUNCE_MS = 400;
 const BLANK_CONTENT: SessionContent = { html: '', css: '', js: '' };
 
-function mapChannelStatus(status: string): ConnectionStatus {
-  if (status === 'SUBSCRIBED') return 'connected';
-  if (status === 'CLOSED' || status === 'TIMED_OUT' || status === 'CHANNEL_ERROR') return 'reconnecting';
-  return 'connecting';
-}
-
-export function useSession(sessionId: string, userId: string | null): UseSessionResult {
+/**
+ * Session content: loads the row from Postgres, applies remote edits arriving
+ * over the shared Realtime channel, and persists local edits back (debounced
+ * per field).
+ *
+ * The channel is NOT created here -- `useSessionChannel` owns it and both this
+ * hook and `usePresence` bind onto that single instance (see the comments in
+ * useSessionChannel.ts for why creating it in two places is actively broken).
+ */
+export function useSession(
+  sessionId: string,
+  userId: string | null,
+  channel: SessionChannel | null,
+  channelStatus: ChannelStatus,
+): UseSessionResult {
   const [content, setContent] = useState<SessionContent>(BLANK_CONTENT);
   const [loading, setLoading] = useState(true);
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  // Set when Postgres rejects a write (RLS, the char_length constraint, a
+  // dropped connection). Without this the user sees their edit applied locally
+  // and broadcast to everyone else while it silently never lands in the row --
+  // i.e. it is gone on reload, with no indication anything went wrong.
+  const [writeFailed, setWriteFailed] = useState(false);
 
   // Kept in sync so the (stable) debounced persist closures below always
   // write to the session row that is actually mounted, even if sessionId
@@ -53,29 +63,34 @@ export function useSession(sessionId: string, userId: string | null): UseSession
         // Only create a blank row when we positively know none exists. On a
         // transient read error, `data` is also falsy — don't treat that as
         // "no row yet" and upsert blanks over an existing session's content.
-        await supabase.from('sessions').upsert({ id: sessionId, html: '', css: '', js: '' });
+        const { error: writeError } = await supabase
+          .from('sessions')
+          .upsert({ id: sessionId, html: '', css: '', js: '' });
+        if (!active) return;
+        if (writeError) {
+          console.error('codeshare: creating the session row failed', writeError);
+          setWriteFailed(true);
+        }
       }
       if (active) setLoading(false);
     }
     loadOrCreate();
 
-    const channel = supabase
-      .channel(`session:${sessionId}`)
-      .on('broadcast', { event: 'edit' }, ({ payload }: { payload: BroadcastEditPayload }) => {
-        if (payload.userId === userId) return;
-        setContent((prev) => ({ ...prev, [payload.field]: payload.value }));
-      })
-      .subscribe((status: string) => setConnectionStatus(mapChannelStatus(status)));
-    channelRef.current = channel;
-
     return () => {
       active = false;
-      channelRef.current = null;
-      // The real RealtimeChannel exposes unsubscribe(); defensively optional-call
-      // it so this also degrades gracefully against any lighter-weight channel stub.
-      channel.unsubscribe?.();
     };
-  }, [sessionId, userId]);
+  }, [sessionId]);
+
+  // Apply edits from other clients. The channel-level binding itself is
+  // registered once in useSessionChannel; this only adds/removes a listener,
+  // so it is safe to (re)run whenever the channel or local identity changes.
+  useEffect(() => {
+    if (!channel) return;
+    return channel.onEdit((payload) => {
+      if (payload.userId === userId) return;
+      setContent((prev) => ({ ...prev, [payload.field]: payload.value }));
+    });
+  }, [channel, userId]);
 
   // One independent debounced writer per field, created exactly once (lazy
   // useState initializer, so render stays pure). Using a single shared
@@ -87,11 +102,20 @@ export function useSession(sessionId: string, userId: string | null): UseSession
   const [persisters] = useState<Record<EditField, (value: string) => void>>(() => {
     const makePersister = (field: EditField) =>
       debounce((value: string) => {
-        supabase.from('sessions').upsert({
-          id: sessionIdRef.current,
-          [field]: value,
-          updated_at: new Date().toISOString(),
-        });
+        void (async () => {
+          const { error } = await supabase.from('sessions').upsert({
+            id: sessionIdRef.current,
+            [field]: value,
+            updated_at: new Date().toISOString(),
+          });
+          if (error) {
+            console.error(`codeshare: persisting ${field} failed`, error);
+          }
+          // `setWriteFailed` is a stable useState setter, so capturing it in
+          // this once-created closure is safe. Clearing it on a successful
+          // write means a recovered connection also clears the banner.
+          setWriteFailed(Boolean(error));
+        })();
       }, UPSERT_DEBOUNCE_MS);
     return {
       html: makePersister('html'),
@@ -104,14 +128,14 @@ export function useSession(sessionId: string, userId: string | null): UseSession
     (field: EditField, value: string) => {
       setContent((prev) => ({ ...prev, [field]: value }));
       persisters[field](value);
-      channelRef.current?.send({
-        type: 'broadcast',
-        event: 'edit',
-        payload: { field, value, userId } satisfies BroadcastEditPayload,
-      });
+      channel?.sendEdit({ field, value, userId });
     },
-    [persisters, userId],
+    [channel, persisters, userId],
   );
+
+  // A failing write is more urgent for the user to know about than a
+  // reconnecting socket (which recovers on its own), so it wins the banner.
+  const connectionStatus: ConnectionStatus = writeFailed ? 'write-failed' : channelStatus;
 
   return { ...content, loading, connectionStatus, updateField };
 }

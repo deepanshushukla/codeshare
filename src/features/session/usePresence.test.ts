@@ -1,63 +1,68 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
+import { usePresence } from './usePresence';
+import { useSessionChannel } from './useSessionChannel';
+import { resetSupabaseMock, soleChannel } from '../../test/supabaseMock';
 
-let presenceState: Record<string, { name: string; status: string }[]> = {};
-let syncHandler: (() => void) | undefined;
-const track = vi.fn().mockResolvedValue('ok');
-const unsubscribe = vi.fn();
-
-vi.mock('../../lib/supabase', () => ({
-  supabase: {
-    channel: () => ({
-      on: (_type: string, _config: { event: string }, cb: () => void) => {
-        syncHandler = cb;
-      },
-      subscribe: (statusCb?: (status: string) => void) => statusCb?.('SUBSCRIBED'),
-      track,
-      presenceState: () => presenceState,
-      unsubscribe,
-    }),
-  },
-}));
+vi.mock('../../lib/supabase', () => import('../../test/supabaseMock'));
 
 beforeEach(() => {
-  presenceState = {};
-  syncHandler = undefined;
-  track.mockClear();
+  resetSupabaseMock();
 });
+
+// usePresence no longer creates its own channel (that was C1: the SDK deduped
+// the topic and then threw on the late presence binding). It takes the one
+// useSessionChannel owns, so these tests compose the two the way
+// SessionWorkspace does.
+function renderPresence(userId: string | null = 'user-1') {
+  return renderHook(() => {
+    const { channel } = useSessionChannel('room', userId);
+    return usePresence(userId, channel);
+  });
+}
 
 describe('usePresence', () => {
   test('tracks the local user on mount', async () => {
-    const { usePresence } = await import('./usePresence');
-    renderHook(() => usePresence('room', 'user-1'));
-    await waitFor(() => expect(track).toHaveBeenCalledWith(expect.objectContaining({ status: 'online' })));
+    renderPresence();
+    await waitFor(() =>
+      expect(soleChannel().track).toHaveBeenCalledWith(expect.objectContaining({ status: 'online' })),
+    );
   });
 
   test('a presence leave event removes that user from the list', async () => {
-    const { usePresence } = await import('./usePresence');
-    const { result } = renderHook(() => usePresence('room', 'user-1'));
-    presenceState = { 'user-2': [{ name: 'User_abc', status: 'online' }] };
-    act(() => syncHandler?.());
+    const { result } = renderPresence();
+    await waitFor(() => expect(soleChannel().track).toHaveBeenCalled());
+    const channel = soleChannel();
+
+    channel.presence = { 'user-2': [{ name: 'User_abc', status: 'online' }] };
+    act(() => channel.emitPresenceSync());
     await waitFor(() => expect(result.current.users.map((u) => u.userId)).toContain('user-2'));
 
-    presenceState = {};
-    act(() => syncHandler?.());
+    channel.presence = {};
+    act(() => channel.emitPresenceSync());
     await waitFor(() => expect(result.current.users.map((u) => u.userId)).not.toContain('user-2'));
   });
 
   test('a visibilitychange after setName re-tracks the custom name, not the default', async () => {
-    const { usePresence } = await import('./usePresence');
-    const { result } = renderHook(() => usePresence('room', 'user-1'));
-    await waitFor(() => expect(track).toHaveBeenCalledWith(expect.objectContaining({ status: 'online' })));
+    const { result } = renderPresence();
+    await waitFor(() =>
+      expect(soleChannel().track).toHaveBeenCalledWith(expect.objectContaining({ status: 'online' })),
+    );
 
     act(() => result.current.setName('Alice'));
-    track.mockClear();
+    soleChannel().track.mockClear();
 
     Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
     act(() => document.dispatchEvent(new Event('visibilitychange')));
 
-    expect(track).toHaveBeenCalledWith({ name: 'Alice', status: 'away' });
+    expect(soleChannel().track).toHaveBeenCalledWith({ name: 'Alice', status: 'away' });
 
     Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+  });
+
+  test('does nothing (and creates no channel) until a userId exists', () => {
+    const { result } = renderPresence(null);
+    expect(result.current.users).toEqual([]);
+    expect(() => soleChannel()).toThrow(/expected exactly 1 realtime channel, found 0/);
   });
 });
