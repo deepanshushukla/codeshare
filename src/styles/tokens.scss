@@ -16,6 +16,20 @@
   // (cards) rather than floating above it (dropdown menus).
   --shadow-card: 0 1px 2px rgb(0 0 0 / 4%), 0 1px 8px rgb(0 0 0 / 6%);
   --color-accent-soft: #eef4ff;
+  // Syntax highlighting (CodeMirror) -- GitHub-Light-ish palette. These are
+  // referenced by name from the HighlightStyle in EditorPane.tsx, so the
+  // editor's colors switch with the rest of the app instead of needing their
+  // own light/dark JS theme.
+  --color-syntax-comment: #6a737d;
+  --color-syntax-string: #22863a;
+  --color-syntax-number: #005cc5;
+  --color-syntax-keyword: #d73a49;
+  --color-syntax-operator: #586069;
+  --color-syntax-function: #6f42c1;
+  --color-syntax-property: #e36209;
+  --color-syntax-type: #005cc5;
+  --color-syntax-tag: #22863a;
+  --color-syntax-attribute: #6f42c1;
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 1rem;
@@ -38,5 +52,16 @@
     --shadow-overlay: 0 10px 30px rgb(0 0 0 / 55%), 0 2px 6px rgb(0 0 0 / 40%);
     --shadow-card: 0 1px 2px rgb(0 0 0 / 20%), 0 1px 10px rgb(0 0 0 / 30%);
     --color-accent-soft: #1b2a41;
+    // One-Dark-ish palette for dark mode.
+    --color-syntax-comment: #7f848e;
+    --color-syntax-string: #98c379;
+    --color-syntax-number: #d19a66;
+    --color-syntax-keyword: #c678dd;
+    --color-syntax-operator: #abb2bf;
+    --color-syntax-function: #61afef;
+    --color-syntax-property: #e5c07b;
+    --color-syntax-type: #e5c07b;
+    --color-syntax-tag: #e06c75;
+    --color-syntax-attribute: #d19a66;
   }
 }

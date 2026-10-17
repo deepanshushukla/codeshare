@@ -1,13 +1,67 @@
 import { useEffect, useRef } from 'react';
-import { EditorView, keymap } from '@codemirror/view';
+import { EditorView } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
-import { defaultKeymap } from '@codemirror/commands';
+import { basicSetup } from 'codemirror';
+import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import { tags as t } from '@lezer/highlight';
 import { html } from '@codemirror/lang-html';
 import { css } from '@codemirror/lang-css';
 import { javascript } from '@codemirror/lang-javascript';
 import styles from './EditorPane.module.scss';
 
 const LANGUAGE_EXTENSIONS = { html: html(), css: css(), javascript: javascript() };
+
+// Colors here are CSS custom properties (defined in src/styles/tokens.scss,
+// light + dark variants) rather than literal hex values, so this follows the
+// app's existing prefers-color-scheme switching automatically -- no JS-side
+// dark-mode detection needed, same as every other component.
+const editorTheme = EditorView.theme({
+  '&': {
+    height: '100%',
+    backgroundColor: 'var(--color-bg)',
+    color: 'var(--color-text)',
+  },
+  '.cm-scroller': {
+    overflow: 'auto',
+    fontFamily: 'var(--font-mono)',
+  },
+  '.cm-content': {
+    caretColor: 'var(--color-accent)',
+  },
+  '.cm-cursor, .cm-dropCursor': {
+    borderLeftColor: 'var(--color-accent)',
+  },
+  '.cm-gutters': {
+    backgroundColor: 'var(--color-bg-raised)',
+    color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
+    border: 'none',
+    borderRight: '1px solid var(--color-border)',
+  },
+  '.cm-activeLine, .cm-activeLineGutter': {
+    backgroundColor: 'var(--color-bg-hover)',
+  },
+  '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
+    backgroundColor: 'color-mix(in srgb, var(--color-accent) 30%, transparent)',
+  },
+});
+
+const syntaxTheme = HighlightStyle.define([
+  { tag: [t.comment, t.lineComment, t.blockComment], color: 'var(--color-syntax-comment)', fontStyle: 'italic' },
+  { tag: [t.string, t.special(t.string), t.regexp], color: 'var(--color-syntax-string)' },
+  { tag: [t.number, t.bool, t.null, t.atom], color: 'var(--color-syntax-number)' },
+  {
+    tag: [t.keyword, t.controlKeyword, t.operatorKeyword, t.modifier],
+    color: 'var(--color-syntax-keyword)',
+    fontWeight: 600,
+  },
+  { tag: [t.operator, t.punctuation], color: 'var(--color-syntax-operator)' },
+  { tag: [t.function(t.variableName), t.function(t.propertyName)], color: 'var(--color-syntax-function)' },
+  { tag: [t.propertyName], color: 'var(--color-syntax-property)' },
+  { tag: [t.typeName, t.className], color: 'var(--color-syntax-type)' },
+  { tag: [t.tagName], color: 'var(--color-syntax-tag)' },
+  { tag: [t.attributeName], color: 'var(--color-syntax-attribute)' },
+  { tag: [t.invalid], color: '#e05252', textDecoration: 'underline wavy' },
+]);
 
 type Props = {
   title: string;
@@ -38,17 +92,10 @@ export default function EditorPane({ title, language, value, onChange }: Props) 
       state: EditorState.create({
         doc: value,
         extensions: [
-          keymap.of(defaultKeymap),
+          basicSetup,
           LANGUAGE_EXTENSIONS[language],
-          // CodeMirror 6 sizes itself to its content by default (like an
-          // auto-growing textarea), not to its container -- without this
-          // theme, `.cm-editor` collapses to a single line's height
-          // regardless of how much space `.codeMirrorHost` (flex: 1) gives
-          // it, leaving the pane looking empty/unstyled.
-          EditorView.theme({
-            '&': { height: '100%' },
-            '.cm-scroller': { overflow: 'auto' },
-          }),
+          editorTheme,
+          syntaxHighlighting(syntaxTheme),
           EditorView.updateListener.of((update) => {
             if (!update.docChanged) return;
             if (applyingExternalValueRef.current) return;
