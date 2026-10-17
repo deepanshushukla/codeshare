@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { ThemeProvider, useTheme } from './ThemeProvider';
 
@@ -16,12 +16,22 @@ function Probe() {
 }
 
 describe('ThemeProvider / useTheme', () => {
+  // writePersisted (src/lib/persistedState.ts) debounces its actual localStorage
+  // write by 400ms via a module-level setTimeout. Using fake timers for every
+  // test -- even ones that don't assert on persistence -- keeps any setTheme/
+  // setHue call from leaving a real pending timeout dangling across tests,
+  // matching the convention in src/lib/persistedState.test.ts.
+  beforeEach(() => {
+    localStorage.clear();
+    vi.useFakeTimers();
+  });
+
   afterEach(() => {
+    vi.useRealTimers();
     localStorage.clear();
   });
 
   it('defaults to abyss/teal when nothing is persisted', () => {
-    localStorage.clear();
     render(
       <ThemeProvider>
         <Probe />
@@ -77,32 +87,26 @@ describe('ThemeProvider / useTheme', () => {
   });
 
   it('persists theme/hue changes so a later mount restores them', () => {
-    localStorage.clear();
-    vi.useFakeTimers();
-    try {
-      const { unmount } = render(
-        <ThemeProvider>
-          <Probe />
-        </ThemeProvider>,
-      );
-      fireEvent.click(screen.getByText('paper'));
-      fireEvent.click(screen.getByText('jade'));
-      // writePersisted debounces the actual localStorage write by 400ms.
-      act(() => {
-        vi.advanceTimersByTime(400);
-      });
-      unmount();
+    const { unmount } = render(
+      <ThemeProvider>
+        <Probe />
+      </ThemeProvider>,
+    );
+    fireEvent.click(screen.getByText('paper'));
+    fireEvent.click(screen.getByText('jade'));
+    // writePersisted debounces the actual localStorage write by 400ms.
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+    unmount();
 
-      render(
-        <ThemeProvider>
-          <Probe />
-        </ThemeProvider>,
-      );
-      expect(screen.getByTestId('theme')).toHaveTextContent('paper');
-      expect(screen.getByTestId('hue')).toHaveTextContent('jade');
-    } finally {
-      vi.useRealTimers();
-    }
+    render(
+      <ThemeProvider>
+        <Probe />
+      </ThemeProvider>,
+    );
+    expect(screen.getByTestId('theme')).toHaveTextContent('paper');
+    expect(screen.getByTestId('hue')).toHaveTextContent('jade');
   });
 
   it('falls back to defaults for an unknown persisted hue value', () => {
