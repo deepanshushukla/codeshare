@@ -2,7 +2,7 @@ import { describe, expect, test, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useSession } from './useSession';
 import { useSessionChannel } from './useSessionChannel';
-import { mockConfig, resetSupabaseMock, soleChannel, upsert } from '../../test/supabaseMock';
+import { maybeSingle, mockConfig, resetSupabaseMock, soleChannel, upsert } from '../../test/supabaseMock';
 
 vi.mock('../../lib/supabase', () => import('../../test/supabaseMock'));
 
@@ -21,6 +21,30 @@ function renderSession(sessionId: string, userId: string | null = 'user-1') {
 }
 
 describe('useSession', () => {
+  test('does not read/create the row until userId is set, then loads once it is', async () => {
+    // Regression guard: the load effect must not run while unauthenticated.
+    // Reading as role `anon` would have RLS filter the select to an empty
+    // result, indistinguishable from "no row yet" -- so an existing room
+    // opened in a fresh browser would look blank and the create-branch would
+    // (be denied and) risk overwriting real content once auth did resolve.
+    mockConfig.sessionRow = { id: 'late-auth-room', html: '<p>existing</p>', css: '', js: '' };
+    const { result, rerender } = renderHook(
+      ({ userId }: { userId: string | null }) => {
+        const { channel, status } = useSessionChannel('late-auth-room', userId);
+        return useSession('late-auth-room', userId, channel, status);
+      },
+      { initialProps: { userId: null as string | null } },
+    );
+
+    expect(maybeSingle).not.toHaveBeenCalled();
+    expect(result.current.loading).toBe(true);
+
+    rerender({ userId: 'user-1' });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.html).toBe('<p>existing</p>');
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
   test('creates a blank row when the session does not exist yet', async () => {
     mockConfig.sessionRow = null;
     const { result } = renderSession('new-room');

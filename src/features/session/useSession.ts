@@ -50,6 +50,15 @@ export function useSession(
   }, [sessionId]);
 
   useEffect(() => {
+    // Don't read/create the row until real auth exists. Without this guard,
+    // a cold visit (no persisted session yet) can run this select as role
+    // `anon`; RLS filters rather than errors on select, so the result looks
+    // identical to "no row yet" and the create-branch fires -- blanking an
+    // existing session's content on the very first visit, or (once
+    // ensureAnonymousSession() does resolve and the user starts typing)
+    // broadcasting/persisting an empty edit over real shared content.
+    if (!userId) return;
+
     let active = true;
     setLoading(true);
     setContent(BLANK_CONTENT);
@@ -79,7 +88,7 @@ export function useSession(
     return () => {
       active = false;
     };
-  }, [sessionId]);
+  }, [sessionId, userId]);
 
   // Apply edits from other clients. The channel-level binding itself is
   // registered once in useSessionChannel; this only adds/removes a listener,
