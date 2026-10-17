@@ -38,4 +38,18 @@ describe('ConsolePanel', () => {
     await userEvent.type(input, '1 + 1{Enter}');
     expect(onRepl).toHaveBeenCalledWith('1 + 1');
   });
+
+  test('Shift+Enter inserts a newline instead of submitting, like DevTools', async () => {
+    const onRepl = vi.fn();
+    render(<ConsolePanel onRepl={onRepl} />);
+    const input = screen.getByLabelText('Console input') as HTMLTextAreaElement;
+    await userEvent.type(input, 'line1{Shift>}{Enter}{/Shift}line2');
+    expect(onRepl).not.toHaveBeenCalled();
+    expect(input.value).toBe('line1\nline2');
+
+    // A plain Enter after that still submits the whole multi-line input.
+    await userEvent.type(input, '{Enter}');
+    expect(onRepl).toHaveBeenCalledWith('line1\nline2');
+    expect(input.value).toBe('');
+  });
 });

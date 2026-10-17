@@ -45,23 +45,33 @@ export default function ConsolePanel({ onRepl }: { onRepl: (code: string) => voi
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  function handleKeyUp(e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter' && input.trim()) {
-      onRepl(input);
-      setInput('');
+  // Enter submits (preventDefault before the textarea inserts its own
+  // newline); Shift+Enter inserts a newline, like Chrome DevTools' console.
+  function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (input.trim()) {
+        onRepl(input);
+        setInput('');
+      }
     }
   }
+
+  // Grows with content up to a cap, rather than scrolling a single line or
+  // taking over the whole panel on a long paste.
+  const rows = Math.min(Math.max(input.split('\n').length, 1), 8);
 
   return (
     <div className={styles.console}>
       <div className={styles.title}>Console</div>
-      <input
+      <textarea
         aria-label="Console input"
         className={styles.input}
-        placeholder="Type JS and press Enter to run it here…"
+        placeholder="Type JS and press Enter to run it, Shift+Enter for a new line…"
+        rows={rows}
         value={input}
         onChange={(e) => setInput(e.target.value)}
-        onKeyUp={handleKeyUp}
+        onKeyDown={handleKeyDown}
       />
       <div className={styles.entries}>
         {entries.map((entry) => (
