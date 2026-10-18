@@ -57,11 +57,26 @@
   // on its natural end state instead of mid-animation. Also harmlessly
   // affects already-paused bucket-1 animations (a no-op: duration doesn't
   // matter for something that never runs).
+  //
+  // The two *-delay overrides are as load-bearing as the duration ones:
+  // several one-shot entrances declare a real delay (Home's .riseSpan
+  // 0.05/0.15/0.25s stagger, .heroSubtitle 0.4s, .heroActions 0.55s, the
+  // orbit's 0.2s, and .highlight's 0.9s highlighter sweep). With fill-mode
+  // `both`/`forwards`, the delay phase *holds the `from` keyframe* -- i.e.
+  // invisible -- so without these a reduced-motion user still watches a
+  // staggered pop-in, and the word "real-time" in the headline stays
+  // unmarked for 900ms. A tiny NEGATIVE animation-delay (rather than 0s) is
+  // deliberate: a negative delay starts the animation already that far into
+  // its (now 0.01ms) timeline, so it is past its end the moment it begins,
+  // with no dependence on an engine actually firing a 0s delay timer on the
+  // very first frame.
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: -0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
   }
 }

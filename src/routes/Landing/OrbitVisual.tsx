@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTheme } from '../../features/theme/ThemeProvider';
 import { tokenizeJs, type Token } from '../../lib/highlightJs';
 import styles from './OrbitVisual.module.scss';
 
@@ -23,17 +24,33 @@ type OrbitVisualProps = {
 };
 
 export default function OrbitVisual({ room }: OrbitVisualProps) {
-  const [typed, setTyped] = useState(0);
+  // This typing loop is driven in JS, so motion.scss's reduced-motion CSS
+  // overrides (which handle every *CSS* animation on this page) cannot reach
+  // it -- without this check it would be the one thing still animating,
+  // forever, for a user who asked for reduced motion. `useTheme()` exposes
+  // the live matchMedia value, so this also reacts to the OS preference
+  // being changed while the page is open.
+  const { reducedMotion } = useTheme();
+  // Seeded from reducedMotion rather than always 0 so the full snippet is
+  // already there on the very first paint, with no empty-then-filled flash.
+  const [typed, setTyped] = useState(() => (reducedMotion ? HERO.length : 0));
 
   // Ticks every 60ms (handoff line 445), incrementing `typed` until
   // HERO.length + 50 (a pause once the full snippet is shown) then looping
-  // back to 0. Only runs while this component is mounted.
+  // back to 0. Only runs while this component is mounted, and only when the
+  // user hasn't asked for reduced motion.
   useEffect(() => {
+    if (reducedMotion) {
+      // Jump straight to the finished state (the caret still blinks, handled
+      // in CSS by `.caret`'s --play-gated blink) and start no timer at all.
+      setTyped(HERO.length);
+      return;
+    }
     const id = setInterval(() => {
       setTyped(current => (current > HERO.length + 50 ? 0 : current + 1));
     }, 60);
     return () => clearInterval(id);
-  }, []);
+  }, [reducedMotion]);
 
   const tokens = tokenizeJs(HERO.slice(0, typed));
   const done = typed >= HERO.length;

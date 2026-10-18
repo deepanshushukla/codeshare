@@ -53,6 +53,18 @@ describe('reduced-motion handling (fix round 1/5: paused-before-first-paint bug)
     expect(reducedMotionBlock).toContain('transition-duration: 0.01ms !important;');
   });
 
+  test('the delay phase is collapsed too, so delayed entrances do not hold their invisible `from` keyframe', () => {
+    // Duration alone is not enough: with fill-mode both/forwards, an
+    // animation's *delay* phase renders the `from` keyframe (opacity: 0 for
+    // rise/fade, background-size: 0% for mark). Home's hero stagger
+    // (.riseSpan 0.05/0.15/0.25s), .heroSubtitle (0.4s), .heroActions
+    // (0.55s), the orbit (0.2s) and .highlight (0.9s) all declare one, so
+    // without these overrides a reduced-motion user still sees a staggered
+    // pop-in and an unmarked "real-time" headline for most of a second.
+    expect(reducedMotionBlock).toContain('animation-delay: -0.01ms !important;');
+    expect(reducedMotionBlock).toContain('transition-delay: 0s !important;');
+  });
+
   test('the override applies universally (*, *::before, *::after), not just to known animated selectors', () => {
     // This file is shared across every plan that opts into the --play
     // pattern (Home's hero/orbit/ticker, ThemeDrawer's drawerIn, future
