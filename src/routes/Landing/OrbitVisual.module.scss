@@ -1,0 +1,199 @@
+// Hero orbit visual -- translated from the design handoff
+// (`design_handoff_codeshare/CodeShare v2.dc.html` lines 89-113): a static
+// outer ring, a slowly spinning tick ring, a breathing glow, a layer of
+// three orbiting file-type chips (counter-rotated so they stay upright),
+// and a center "editor" card with a typing animation.
+
+.orbit {
+  position: relative;
+  width: min(100%, 520px);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  animation: fade 1.2s 0.2s ease both;
+  animation-play-state: var(--play);
+}
+
+.ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line2);
+}
+
+.tickRing {
+  position: absolute;
+  inset: 9%;
+  border-radius: 50%;
+  background: repeating-conic-gradient(var(--line2) 0 0.6deg, transparent 0.6deg 6deg);
+  mask-image: radial-gradient(circle, transparent 64%, #000 65%, #000 70%, transparent 71%);
+  animation: spin 80s linear infinite;
+  animation-play-state: var(--play);
+}
+
+.glow {
+  position: absolute;
+  inset: 24%;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--glow), transparent 70%);
+  filter: blur(30px);
+  animation: breathe 5s ease-in-out infinite;
+  animation-play-state: var(--play);
+}
+
+// --- Orbiting file-type chips ------------------------------------------
+//
+// The whole layer spins; each chip slot is positioned on the circle, and
+// the chip inside counter-rotates at the same speed so it stays upright
+// while it travels around the ring (handoff's spin/unspin pair).
+
+.chipLayer {
+  position: absolute;
+  inset: 0;
+  animation: spin 24s linear infinite;
+  animation-play-state: var(--play);
+}
+
+.chipSlot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+
+  &[data-slot='top'] {
+    left: 50%;
+    top: 0;
+  }
+
+  &[data-slot='right'] {
+    left: 93.3%;
+    top: 75%;
+  }
+
+  &[data-slot='left'] {
+    left: 6.7%;
+    top: 75%;
+  }
+}
+
+.chip {
+  animation: unspin 24s linear infinite;
+  animation-play-state: var(--play);
+  padding: 9px 14px;
+  border-radius: 12px;
+  background: var(--bg2);
+  border: 1px solid var(--line2);
+  font: 600 13px var(--font-mono);
+  box-shadow: 0 10px 30px -10px oklch(0 0 0 / 0.4);
+
+  &[data-color='html'] {
+    color: oklch(0.76 0.15 40);
+  }
+
+  &[data-color='css'] {
+    color: oklch(0.74 0.13 250);
+  }
+
+  &[data-color='js'] {
+    color: oklch(0.86 0.14 95);
+  }
+}
+
+// --- Center "editor" card -----------------------------------------------
+
+.card {
+  position: absolute;
+  inset: 22% 14%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  background: var(--bg2);
+  border: 1px solid var(--line2);
+  box-shadow:
+    0 40px 100px -30px oklch(0 0 0 / 0.6),
+    0 0 80px -30px var(--glow);
+  overflow: hidden;
+}
+
+.cardTitleBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  font: 500 11px var(--font-mono);
+  color: var(--faint);
+}
+
+.cardDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--acc);
+}
+
+.equalizer {
+  margin-left: auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+
+.equalizerBar {
+  width: 3px;
+  height: 100%;
+  background: var(--acc);
+  transform-origin: bottom;
+  animation: bar 1s ease-in-out infinite;
+  animation-play-state: var(--play);
+
+  &[data-delay='1'] {
+    animation-delay: 0.2s;
+  }
+
+  &[data-delay='2'] {
+    animation-delay: 0.4s;
+  }
+}
+
+.cardBody {
+  flex: 1;
+  padding: 16px;
+  font: clamp(11px, 1.6vw, 13px) / 1.75 var(--font-mono);
+  color: var(--text);
+  overflow: hidden;
+}
+
+.code {
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.caret {
+  display: inline-block;
+  width: 7px;
+  height: 1.1em;
+  vertical-align: text-bottom;
+  background: var(--acc);
+  margin-left: 1px;
+  animation: blink 1s steps(1) infinite;
+}
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--ed);
+  font: clamp(11px, 1.6vw, 12.5px) var(--font-mono);
+}
+
+.prompt {
+  color: var(--acc);
+}
+
+.footerOutput {
+  transition: opacity 0.4s ease;
+}

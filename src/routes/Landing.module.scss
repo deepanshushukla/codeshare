@@ -255,63 +255,6 @@
   justify-content: center;
 }
 
-.mockWindow {
-  width: 100%;
-  max-width: 26rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-raised);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
-  transform: rotate(-1deg);
-}
-
-.mockTitleBar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.mockDot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--color-border);
-
-  &[data-variant='red'] { background: #ef4444; }
-  &[data-variant='yellow'] { background: #f59e0b; }
-  &[data-variant='green'] { background: #22c55e; }
-}
-
-.mockTabs {
-  display: flex;
-  gap: var(--space-2);
-  margin-left: var(--space-2);
-  font-size: 0.7rem;
-  opacity: 0.6;
-}
-
-.mockTabActive {
-  opacity: 1;
-  color: var(--color-accent);
-  font-weight: 700;
-}
-
-.mockBody {
-  padding: var(--space-3);
-  background: var(--color-bg);
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  line-height: 1.7;
-}
-
-.mockLine {
-  white-space: pre;
-  opacity: 0.85;
-}
-
 // --- Feature grid -----------------------------------------------------------
 
 .features {

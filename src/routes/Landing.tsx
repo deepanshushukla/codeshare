@@ -14,6 +14,7 @@ import { generateSessionId } from '../lib/randomId';
 import ThemeButton from '../features/theme/ThemeButton';
 import ThemeDrawer from '../features/theme/ThemeDrawer';
 import { useRoomTransition } from '../features/transition/RoomTransitionProvider';
+import OrbitVisual from './Landing/OrbitVisual';
 import styles from './Landing.module.scss';
 
 const FEATURES = [
@@ -47,14 +48,6 @@ const FEATURES = [
     title: 'Troubleshooting & support',
     description: 'Look over someone’s shoulder and fix it together, from anywhere.',
   },
-];
-
-const MOCK_JS_LINES = [
-  { indent: 0, text: 'function greet(name) {' },
-  { indent: 1, text: "console.log(`Hello, ${name}!`);" },
-  { indent: 0, text: '}' },
-  { indent: 0, text: '' },
-  { indent: 0, text: "greet('world');" },
 ];
 
 export default function Landing() {
@@ -162,28 +155,7 @@ export default function Landing() {
         </div>
 
         <div className={styles.heroVisual} aria-hidden="true">
-          <div className={styles.mockWindow}>
-            <div className={styles.mockTitleBar}>
-              <span className={styles.mockDot} data-variant="red" />
-              <span className={styles.mockDot} data-variant="yellow" />
-              <span className={styles.mockDot} data-variant="green" />
-              <span className={styles.mockTabs}>
-                <span className={styles.mockTabActive}>JS</span>
-                <span>Console</span>
-              </span>
-            </div>
-            <div className={styles.mockBody}>
-              {MOCK_JS_LINES.map((line, index) => (
-                <div
-                  key={index}
-                  className={styles.mockLine}
-                  style={{ paddingLeft: `${line.indent * 1.25}rem` }}
-                >
-                  {line.text || ' '}
-                </div>
-              ))}
-            </div>
-          </div>
+          <OrbitVisual room={newRoomId} />
         </div>
       </section>
 
