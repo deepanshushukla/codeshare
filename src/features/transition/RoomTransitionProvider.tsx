@@ -17,6 +17,15 @@ export function RoomTransitionProvider({ children }: { children: ReactNode }) {
   const navigateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const deactivateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // The re-entry (double-click) guard lives in a ref, not in the `active`
+  // state: reading `active` inside start() would make start() close over it,
+  // changing start's identity on every activate/deactivate. Consumers list
+  // `start` in useEffect deps (Landing's "N" keydown listener does), so that
+  // churn would tear down and re-add real listeners twice per transition.
+  // `active` is still state -- the overlay renders off it -- only the guard
+  // moved.
+  const activeRef = useRef(false);
+
   // Clear timers on unmount to prevent dangling timers
   useEffect(() => {
     return () => {
@@ -30,10 +39,11 @@ export function RoomTransitionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const start = useCallback((newRoomId: string, onNavigate: () => void) => {
-    // No-op while active is already true (double-click guard)
-    if (active) {
+    // No-op while a transition is already running (double-click guard)
+    if (activeRef.current) {
       return;
     }
+    activeRef.current = true;
 
     // Set active and roomId synchronously
     setActive(true);
@@ -47,10 +57,11 @@ export function RoomTransitionProvider({ children }: { children: ReactNode }) {
 
     // Schedule deactivation at 1150ms
     deactivateTimeoutRef.current = setTimeout(() => {
+      activeRef.current = false;
       setActive(false);
       deactivateTimeoutRef.current = null;
     }, 1150);
-  }, [active]);
+  }, []);
 
   const value = useMemo<RoomTransitionContextValue>(
     () => ({

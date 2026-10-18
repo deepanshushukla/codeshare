@@ -8,7 +8,12 @@ const RX_JS = /(\/\/[^\n]*|\/\*[\s\S]*?(?:\*\/|$))|(`(?:\\[\s\S]|[^`\\])*`?|'(?:
 const MAP_JS = [0, 'com', 'str', 'key', 'num', 'fn'] as const;
 
 export function tokenizeJs(code: string): Token[] {
-  const re = new RegExp(RX_JS.source, 'g');
+  // RX_JS is a module-level /g regex, so its `lastIndex` carries over between
+  // calls -- resetting it here is what makes reusing the single instance
+  // equivalent to the fresh `new RegExp(RX_JS.source, 'g')` this used to
+  // allocate on every call. (OrbitVisual's typing loop calls this ~17x/sec.)
+  RX_JS.lastIndex = 0;
+  const re = RX_JS;
   const out: Token[] = [];
   let last = 0;
   let m: RegExpExecArray | null;
