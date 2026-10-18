@@ -37,6 +37,7 @@
   margin: 0 auto;
   padding: var(--space-3) var(--space-4);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
 }
@@ -253,6 +254,15 @@
 .heroVisual {
   display: flex;
   justify-content: center;
+  // The orbit's chip layer positions its three chips by percentage of the
+  // ring (OrbitVisual.module.scss's .chipSlot), but each chip's own box
+  // (fixed padding + text) isn't scaled down with it -- at the narrowest
+  // supported widths (~320-360px) a chip can sit close enough to the ring's
+  // edge that it pokes a few px past this wrapper. Clip it here rather than
+  // let that bleed into page-level horizontal scroll; the chips are
+  // decorative (aria-hidden) so a sliver of clipping at the extreme low end
+  // costs nothing visually.
+  overflow: hidden;
 }
 
 // --- Ticker marquee (between hero and features) ----------------------------
