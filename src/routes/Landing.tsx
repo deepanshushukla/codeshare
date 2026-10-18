@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom';
-import { useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import {
   Users,
   ClipboardCheck,
@@ -13,6 +13,7 @@ import {
 import { generateSessionId } from '../lib/randomId';
 import ThemeButton from '../features/theme/ThemeButton';
 import ThemeDrawer from '../features/theme/ThemeDrawer';
+import { useRoomTransition } from '../features/transition/RoomTransitionProvider';
 import styles from './Landing.module.scss';
 
 const FEATURES = [
@@ -60,6 +61,43 @@ export default function Landing() {
   const newRoomId = useMemo(() => generateSessionId(), []);
   const roomHref = `/code/${newRoomId}`;
   const [themeDrawerOpen, setThemeDrawerOpen] = useState(false);
+  const navigate = useNavigate();
+  const { start } = useRoomTransition();
+
+  function enterRoom() {
+    start(newRoomId, () => navigate(roomHref));
+  }
+
+  function handleCreateClick(event: MouseEvent<HTMLAnchorElement>) {
+    // Anything other than a plain, unmodified left click (middle-click,
+    // ctrl/cmd/shift/alt-click) is a request for the browser's native
+    // anchor behavior (new tab, new window, etc.) -- leave it alone.
+    if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+      return;
+    }
+    event.preventDefault();
+    enterRoom();
+  }
+
+  // "N" is the keyboard shortcut for "Create New Room" (handoff's "or press
+  // N" hint). Guarded against INPUT/TEXTAREA focus so typing into a form
+  // field elsewhere on the page can't accidentally trigger it -- there are
+  // no such fields on Home today, but the guard costs nothing and matches
+  // the handoff's own behavior.
+  useEffect(() => {
+    function handleKeydown(event: KeyboardEvent) {
+      if (event.key !== 'n' && event.key !== 'N') {
+        return;
+      }
+      const activeTag = document.activeElement?.tagName;
+      if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') {
+        return;
+      }
+      enterRoom();
+    }
+    window.addEventListener('keydown', handleKeydown);
+    return () => window.removeEventListener('keydown', handleKeydown);
+  }, [newRoomId, navigate, roomHref, start]);
 
   return (
     <div className={styles.page}>
@@ -86,17 +124,34 @@ export default function Landing() {
 
       <section className={styles.hero}>
         <div className={styles.heroCopy}>
-          <p className={styles.eyebrow}>Free &middot; No sign-up required</p>
-          <h1>Share code in real-time with CodeShare</h1>
+          <p className={styles.eyebrow}>
+            <span className={styles.eyebrowDot}>
+              <span className={styles.eyebrowDotCore} />
+              <span className={styles.eyebrowDotPing} />
+            </span>
+            FREE &middot; NO SIGN-UP REQUIRED
+          </p>
+          <h1>
+            <span className={styles.riseSpan}>Share code in</span>{' '}
+            <span className={styles.riseSpan}>
+              <span className={styles.highlight}>real-time</span>
+            </span>{' '}
+            <span className={styles.riseSpan}>with CodeShare</span>
+          </h1>
           <p className={styles.heroSubtitle}>
             Open a workspace, send the link, and start collaborating on HTML, CSS and
             JavaScript together — live, in the browser.
           </p>
           <div className={styles.heroActions}>
-            <Link to={roomHref} className={styles.ctaButton}>
+            <Link to={roomHref} className={styles.ctaButton} onClick={handleCreateClick}>
               Create New Room
-              <ArrowRight size={16} />
+              <span className={styles.ctaIcon}>
+                <ArrowRight size={20} />
+              </span>
             </Link>
+            <span className={styles.kbdHint}>
+              or press <span className={styles.kbdKey}>N</span>
+            </span>
           </div>
         </div>
 

@@ -1,5 +1,3 @@
-@use '../styles/controls' as controls;
-
 .page {
   display: flex;
   flex-direction: column;
@@ -86,6 +84,10 @@
 // --- Hero -----------------------------------------------------------------
 
 .hero {
+  position: relative;
+  // Content sections sit above the fixed, z-index:0 .gridBackground layer
+  // (handoff line 68) -- every section below needs this too, not just hero.
+  z-index: 1;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: center;
@@ -102,49 +104,143 @@
 
 .heroCopy {
   h1 {
-    margin: var(--space-2) 0 var(--space-3);
-    font-size: clamp(2rem, 4vw, 2.75rem);
-    line-height: 1.15;
-    letter-spacing: -0.02em;
+    margin: 28px 0 0;
+    font: 800 clamp(40px, 6.4vw, 84px) / 1.02 var(--font-display);
+    letter-spacing: -0.045em;
+    text-wrap: balance;
   }
 }
 
+// --- Eyebrow: live-pulse dot + label (handoff lines 70-73) -----------------
+
 .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin: 0;
-  color: var(--color-accent);
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font: 600 12px var(--font-mono);
+  letter-spacing: 0.16em;
+  color: var(--acc-t);
+  animation: fade 0.6s ease both;
+}
+
+.eyebrowDot {
+  position: relative;
+  width: 8px;
+  height: 8px;
+}
+
+.eyebrowDotCore,
+.eyebrowDotPing {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--acc);
+}
+
+.eyebrowDotPing {
+  animation: ping 1.6s ease-out infinite;
+  animation-play-state: var(--play);
+}
+
+// --- Headline: three staggered-rise words, "real-time" gets a highlighter
+// sweep (handoff lines 74-78) -----------------------------------------------
+
+.riseSpan {
+  display: inline-block;
+  animation: rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+  &:nth-child(1) {
+    animation-delay: 0.05s;
+  }
+
+  &:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+
+  &:nth-child(3) {
+    animation-delay: 0.25s;
+  }
+}
+
+.highlight {
+  padding: 0 0.12em;
+  margin: 0 -0.04em;
+  color: var(--acc-ink);
+  background: linear-gradient(var(--acc), var(--acc)) no-repeat left / 0% 100%;
+  animation: mark 0.7s 0.9s cubic-bezier(0.7, 0, 0.2, 1) forwards;
+  border-radius: 0.12em;
 }
 
 .heroSubtitle {
-  margin: 0 0 var(--space-4);
-  max-width: 34rem;
-  color: var(--color-text);
-  opacity: 0.75;
-  font-size: 1.05rem;
-  line-height: 1.6;
+  margin: 30px 0 0;
+  max-width: 520px;
+  font-size: clamp(16px, 1.5vw, 19px);
+  line-height: 1.65;
+  color: var(--muted);
+  text-wrap: pretty;
+  animation: fade 0.8s 0.4s ease both;
 }
 
+// --- CTA + keyboard hint (handoff lines 83-86) ------------------------------
+
 .heroActions {
+  margin-top: 40px;
   display: flex;
-  gap: var(--space-2);
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  animation: fade 0.8s 0.55s ease both;
 }
 
 .ctaButton {
-  @include controls.control-button-accent;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-lg);
-  font-size: 0.95rem;
-  font-weight: 600;
-  box-shadow: var(--shadow-card);
-  transition: transform 0.12s ease;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  height: 62px;
+  padding: 0 10px 0 28px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--acc);
+  color: var(--acc-ink);
+  font: 600 17px var(--font-sans);
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 0 0 0 var(--glow), 0 18px 50px -14px var(--glow);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
 
   &:hover {
-    transform: translateY(-1px);
+    box-shadow: 0 0 0 8px var(--acc-soft), 0 24px 70px -10px var(--glow);
+    transform: translateY(-2px);
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--acc-ink);
+    outline-offset: 2px;
+  }
+}
+
+.ctaIcon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--acc-ink);
+  color: var(--acc);
+}
+
+.kbdHint {
+  font: 500 13px var(--font-mono);
+  color: var(--faint);
+}
+
+.kbdKey {
+  padding: 3px 7px;
+  border-radius: 6px;
+  border: 1px solid var(--line2);
+  color: var(--muted);
 }
 
 // --- Hero visual: a CSS-only "editor" mockup, no image asset needed -------
