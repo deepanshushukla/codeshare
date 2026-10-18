@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Users,
   ClipboardCheck,
@@ -11,6 +11,8 @@ import {
   Plus,
 } from 'lucide-react';
 import { generateSessionId } from '../lib/randomId';
+import ThemeButton from '../features/theme/ThemeButton';
+import ThemeDrawer from '../features/theme/ThemeDrawer';
 import styles from './Landing.module.scss';
 
 const FEATURES = [
@@ -57,19 +59,30 @@ const MOCK_JS_LINES = [
 export default function Landing() {
   const newRoomId = useMemo(() => generateSessionId(), []);
   const roomHref = `/code/${newRoomId}`;
+  const [themeDrawerOpen, setThemeDrawerOpen] = useState(false);
 
   return (
     <div className={styles.page}>
+      <div className={styles.gridBackground} aria-hidden="true" />
+
       <header className={styles.header}>
-        <span className={styles.brand}>
-          <span className={styles.logoMark} aria-hidden="true" />
-          CodeShare
-        </span>
-        <Link to={roomHref} className={styles.headerCta}>
-          <Plus size={14} />
-          New Room
-        </Link>
+        <div className={styles.headerInner}>
+          <span className={styles.brand}>
+            <span className={styles.brandBracket}>{'{'}</span>
+            CodeShare
+            <span className={styles.brandBracket}>{'}'}</span>
+          </span>
+
+          <ThemeButton variant="pill" onOpenDrawer={() => setThemeDrawerOpen(true)} />
+
+          <Link to={roomHref} className={styles.headerCta}>
+            <Plus size={14} />
+            New Room
+          </Link>
+        </div>
       </header>
+
+      <ThemeDrawer open={themeDrawerOpen} onClose={() => setThemeDrawerOpen(false)} />
 
       <section className={styles.hero}>
         <div className={styles.heroCopy}>

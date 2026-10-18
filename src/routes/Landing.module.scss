@@ -4,39 +4,83 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--bg);
+  color: var(--text);
+}
+
+// Fixed grid-line backdrop (handoff line 50) behind the whole page, faded out
+// toward the bottom edge via a mask so it doesn't tile all the way down.
+.gridBackground {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: clamp(48px, 8vw, 96px) clamp(48px, 8vw, 96px);
+  mask-image: linear-gradient(180deg, #000, transparent 85%);
+  -webkit-mask-image: linear-gradient(180deg, #000, transparent 85%);
+  opacity: 0.6;
 }
 
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: oklch(from var(--bg) l c h / 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+
+.headerInner {
+  max-width: 1280px;
+  margin: 0 auto;
   padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg-raised);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .brand {
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-weight: 700;
-  font-size: 1.05rem;
+  gap: 2px;
+  font: 800 15px var(--font-display);
+  letter-spacing: -0.02em;
+  color: var(--text);
 }
 
-.logoMark {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-  background: var(--color-accent);
+.brandBracket {
+  color: var(--acc);
 }
 
 .headerCta {
-  @include controls.control-button;
-  gap: var(--space-1);
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 38px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--text);
+  color: var(--bg);
+  font: 600 13px var(--font-sans);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: var(--acc);
+    color: var(--acc-ink);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 1px;
+  }
 }
 
 // --- Hero -----------------------------------------------------------------
