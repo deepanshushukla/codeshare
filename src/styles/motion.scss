@@ -15,24 +15,48 @@
 @keyframes irisOut{0%,60%{opacity:1}100%{opacity:0}}
 @keyframes bar{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
 
+// --- `--play` vs. the reduced-motion duration override below --------------
+//
+// Two different mechanisms cover two different kinds of animation under
+// `prefers-reduced-motion: reduce`, and a component must pick the right one
+// -- wiring the wrong one either does nothing or breaks the component:
+//
+// 1. CONTINUOUS / LOOPING decorative animations (spin, unspin, breathe, bar,
+//    blink, ping, marquee) -- every frame of the loop is a visually sane
+//    resting state, so these should wire `animation-play-state: var(--play)`
+//    directly on the animated rule. `--play` flips to `paused` below and the
+//    animation simply freezes wherever it happens to be. Harmless.
+//
+// 2. ONE-SHOT ENTRANCE/REVEAL animations (rise, fade, mark, paneIn,
+//    drawerIn, toastIn, iris/irisOut -- anything with fill-mode `both` or
+//    `forwards` that runs once from a hidden/offset state to a visible,
+//    settled one) must NOT wire `animation-play-state: var(--play)`.
+//    `animation-play-state: paused` pins an animation's current time at 0
+//    the instant it would start -- an animation that is paused *before it
+//    ever starts* never runs at all, so it sits frozen on its FIRST
+//    keyframe (the hidden/offset one) forever, not its end state. The
+//    `animation-duration`/`animation-iteration-count` override just below
+//    is what actually handles these: it has no effect on an animation
+//    that's paused-before-start (duration/iteration-count only govern an
+//    animation while it's running), but with play-state left at its default
+//    (`running`, inherited implicitly since the property is never set), the
+//    animation runs to completion in ~0ms and lands correctly on its
+//    visible `to`/`100%` end state.
+//
+// When adding a new animation (including in not-yet-built plans), classify
+// it into one of these two buckets first -- do not wire `--play` onto a
+// one-shot entrance animation "to be safe"; that's exactly the mistake that
+// froze Home's hero copy and orbit fade-in invisible under reduced motion.
 :root { --play: running; }
 @media (prefers-reduced-motion: reduce) {
   :root { --play: paused; }
 
-  // `--play: paused` alone freezes every animation at its FIRST keyframe --
-  // for continuous/infinite animations (spin, blink, marquee, breathe, ping,
-  // bar) that's fine, they have no "invisible" frame. But every entrance
-  // animation (rise/fade/mark/paneIn/drawerIn/toastIn/iris/irisOut) uses
-  // fill-mode `both`/`forwards` and starts from an invisible or
-  // off-position "from" state (opacity:0, translated, clipped to 0%, etc).
-  // Paused-before-it-ever-ran means those elements render stuck invisible
-  // forever for a reduced-motion user -- worse than the motion we were
-  // trying to avoid. Forcing every animation/transition to complete almost
-  // instantly, exactly once, makes each one land on its natural `to`/`100%`
-  // end state (the visible, correctly-positioned one) instead of freezing
-  // mid-flight. This is additive -- `animation-play-state: var(--play)`
-  // stays wired everywhere it already is; it has no effect once the
-  // animation itself has already finished in ~0ms.
+  // Covers bucket 2 above (one-shot entrance/reveal animations that do NOT
+  // wire `animation-play-state: var(--play)`): forces every such animation
+  // and transition to complete almost instantly and exactly once, landing
+  // on its natural end state instead of mid-animation. Also harmlessly
+  // affects already-paused bucket-1 animations (a no-op: duration doesn't
+  // matter for something that never runs).
   *,
   *::before,
   *::after {

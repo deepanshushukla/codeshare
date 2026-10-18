@@ -122,8 +122,15 @@
   font: 600 12px var(--font-mono);
   letter-spacing: 0.16em;
   color: var(--acc-t);
+  // One-shot entrance animation (fill-mode `both`) -- deliberately does NOT
+  // wire `animation-play-state: var(--play)`. See the note in
+  // src/styles/motion.scss next to the reduced-motion media query: pausing
+  // an entrance animation via `--play` freezes it at its *first* (hidden)
+  // keyframe forever, since under reduced motion `--play` is already
+  // `paused` before this animation ever starts running. Leaving play-state
+  // at its default (`running`) lets motion.scss's near-zero-duration
+  // override collapse it to its visible `to` state almost instantly instead.
   animation: fade 0.6s ease both;
-  animation-play-state: var(--play);
 }
 
 .eyebrowDot {
@@ -150,8 +157,9 @@
 
 .riseSpan {
   display: inline-block;
+  // One-shot entrance animation -- deliberately no `animation-play-state:
+  // var(--play)` here; see the .eyebrow comment above / motion.scss.
   animation: rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  animation-play-state: var(--play);
 
   &:nth-child(1) {
     animation-delay: 0.05s;
@@ -171,8 +179,9 @@
   margin: 0 -0.04em;
   color: var(--acc-ink);
   background: linear-gradient(var(--acc), var(--acc)) no-repeat left / 0% 100%;
+  // One-shot entrance animation -- deliberately no `animation-play-state:
+  // var(--play)` here; see the .eyebrow comment above / motion.scss.
   animation: mark 0.7s 0.9s cubic-bezier(0.7, 0, 0.2, 1) forwards;
-  animation-play-state: var(--play);
   border-radius: 0.12em;
 }
 
@@ -183,8 +192,9 @@
   line-height: 1.65;
   color: var(--muted);
   text-wrap: pretty;
+  // One-shot entrance animation -- deliberately no `animation-play-state:
+  // var(--play)` here; see the .eyebrow comment above / motion.scss.
   animation: fade 0.8s 0.4s ease both;
-  animation-play-state: var(--play);
 }
 
 // --- CTA + keyboard hint (handoff lines 83-86) ------------------------------
@@ -195,8 +205,9 @@
   flex-wrap: wrap;
   gap: 16px;
   align-items: center;
+  // One-shot entrance animation -- deliberately no `animation-play-state:
+  // var(--play)` here; see the .eyebrow comment above / motion.scss.
   animation: fade 0.8s 0.55s ease both;
-  animation-play-state: var(--play);
 }
 
 .ctaButton {

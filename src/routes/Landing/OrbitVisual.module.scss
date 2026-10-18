@@ -9,8 +9,18 @@
   width: min(100%, 520px);
   aspect-ratio: 1;
   margin: 0 auto;
+  // One-shot entrance animation (fill-mode `both`) -- deliberately does NOT
+  // wire `animation-play-state: var(--play)`. See the note next to the
+  // reduced-motion media query in src/styles/motion.scss: pausing an
+  // entrance animation via `--play` freezes it at its *first* (hidden)
+  // keyframe forever, since under reduced motion `--play` is already
+  // `paused` before this animation ever starts running. Leaving play-state
+  // at its default (`running`) lets motion.scss's near-zero-duration
+  // override collapse it to its visible `to` state almost instantly
+  // instead. The continuous animations below (tickRing/glow/chipLayer/
+  // chip/equalizerBar/caret) keep `animation-play-state: var(--play)` --
+  // they have no invisible keyframe, so pausing mid-cycle is harmless.
   animation: fade 1.2s 0.2s ease both;
-  animation-play-state: var(--play);
 }
 
 .ring {

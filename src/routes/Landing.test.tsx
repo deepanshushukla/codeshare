@@ -100,13 +100,40 @@ test('Ctrl+N / Cmd+N are left alone (native "new window" shortcut, not our trans
   expect(screen.queryByText(/\/r\//)).not.toBeInTheDocument();
 });
 
-test('rise-in and mark-sweep animations respect --play (prefers-reduced-motion)', () => {
+test('one-shot entrance animations do NOT wire --play (they rely on motion.scss\'s reduced-motion duration override instead)', () => {
+  // `animation-play-state: paused` pins an animation's current time at 0 the
+  // instant it would start -- wiring --play onto a fill-mode both/forwards
+  // entrance animation would freeze it at its hidden/offset FIRST keyframe
+  // forever under reduced motion, instead of landing on its visible end
+  // state (see src/styles/motion.scss's comment above the media query).
+  // These five rise/fade/mark entrance rules must stay unwired.
   const scssPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'Landing.module.scss');
   const css = readFileSync(scssPath, 'utf8');
 
   for (const selector of ['.riseSpan', '.highlight', '.eyebrow', '.heroSubtitle', '.heroActions']) {
-    expect(extractRuleBlock(css, selector)).toContain('animation-play-state: var(--play);');
+    const block = extractRuleBlock(css, selector);
+    expect(block).not.toContain('animation-play-state: var(--play);');
+    // Still a real fill-mode entrance animation -- just not play-state-gated.
+    expect(block).toMatch(/animation:\s*(fade|rise|mark)\b/);
   }
+});
+
+test('continuous/looping decorative animations still respect --play (prefers-reduced-motion)', () => {
+  // Unlike the one-shot entrance animations above, these loop forever and
+  // every frame is a visually sane resting state, so pausing mid-cycle via
+  // --play is the correct (and harmless) behavior for them.
+  const scssPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'Landing.module.scss');
+  const css = readFileSync(scssPath, 'utf8');
+
+  expect(extractRuleBlock(css, '.tickerTrack')).toContain('animation-play-state: var(--play);');
+
+  // `.eyebrowDotPing` also appears earlier as part of a combined selector
+  // (`.eyebrowDotCore,\n.eyebrowDotPing { position: ...; background: ...; }`)
+  // that holds no animation at all -- extractRuleBlock's indexOf would grab
+  // that one instead of the standalone rule below it that actually declares
+  // the ping animation, so this checks the specific standalone block by
+  // pattern instead of by selector lookup.
+  expect(css).toMatch(/\.eyebrowDotPing\s*\{\s*animation: ping[^}]*animation-play-state: var\(--play\);\s*\}/);
 });
 
 test('renders the ticker words', () => {
