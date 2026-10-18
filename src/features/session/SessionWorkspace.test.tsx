@@ -84,6 +84,17 @@ test('keeps the sandboxed output iframe mounted in the default js+console layout
   expect(postMessage).toHaveBeenCalledWith({ type: 'repl', code: 'alert(1)' }, '*');
 });
 
+test('Alt+1 toggles the HTML pane via the real toggleTab wired through Header', async () => {
+  renderWorkspace();
+  // Default tabs are js + console; html starts closed.
+  await waitFor(() => expect(screen.getByLabelText('JS editor')).toBeInTheDocument());
+  expect(screen.queryByLabelText('HTML editor')).not.toBeInTheDocument();
+
+  fireEvent.keyDown(window, { code: 'Digit1', altKey: true });
+
+  await waitFor(() => expect(screen.getByLabelText('HTML editor')).toBeInTheDocument());
+});
+
 test('surfaces a failed anonymous sign-in instead of silently staying signed out', async () => {
   mockConfig.signInError = new Error('anonymous sign-in failed: Anonymous sign-ins are disabled');
   const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});

@@ -35,7 +35,7 @@ export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
     };
   }, []);
 
-  const { tabs, setTabs } = useTabsQueryParam();
+  const { tabs, toggleTab } = useTabsQueryParam();
   // Exactly one Realtime channel per session, created here and shared by both
   // useSession (broadcast edits) and usePresence (presence tracking). See
   // useSessionChannel.ts for why creating it in each hook is broken.
@@ -83,7 +83,7 @@ export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
     <div className={styles.workspace}>
       <Header
         tabs={tabs}
-        setTabs={setTabs}
+        toggleTab={toggleTab}
         users={users}
         currentUserId={userId}
         name={name}
