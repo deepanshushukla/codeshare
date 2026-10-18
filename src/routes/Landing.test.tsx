@@ -7,6 +7,10 @@ import { ThemeProvider } from '../features/theme/ThemeProvider';
 import { RoomTransitionProvider } from '../features/transition/RoomTransitionProvider';
 import RoomTransitionOverlay from '../features/transition/RoomTransitionOverlay';
 import Landing from './Landing';
+// Vitest leaves CSS Modules unprocessed by default, so this proxy returns each
+// key as its own class name -- the same value Landing renders into className,
+// which makes it safe to query the DOM with.
+import styles from './Landing.module.scss';
 
 // Extracts the full declaration block for `selector` (e.g. ".riseSpan") from
 // a CSS/SCSS source string, counting braces so nested rules (like
@@ -92,6 +96,21 @@ test('pressing N starts the transition', () => {
   expect(screen.getByText(/\/r\//)).toBeInTheDocument();
 });
 
+test('the header "New Room" pill runs the same animated transition as the other two CTAs', () => {
+  renderLanding();
+  fireEvent.click(screen.getByRole('link', { name: /^new room$/i }));
+  expect(screen.getByText(/\/r\//)).toBeInTheDocument();
+});
+
+test('pressing N closes the theme drawer instead of abandoning it mid-transition', () => {
+  renderLanding();
+  fireEvent.click(screen.getByRole('button', { name: /theme/i }));
+  expect(screen.getByRole('heading', { name: /theme/i })).toBeInTheDocument();
+  fireEvent.keyDown(window, { key: 'n' });
+  expect(screen.getByText(/\/r\//)).toBeInTheDocument(); // transition started
+  expect(screen.queryByRole('heading', { name: /theme/i })).not.toBeInTheDocument();
+});
+
 test('Ctrl+N / Cmd+N are left alone (native "new window" shortcut, not our transition)', () => {
   renderLanding();
   fireEvent.keyDown(window, { key: 'n', ctrlKey: true });
@@ -100,24 +119,14 @@ test('Ctrl+N / Cmd+N are left alone (native "new window" shortcut, not our trans
   expect(screen.queryByText(/\/r\//)).not.toBeInTheDocument();
 });
 
-test('one-shot entrance animations do NOT wire --play (they rely on motion.scss\'s reduced-motion duration override instead)', () => {
-  // `animation-play-state: paused` pins an animation's current time at 0 the
-  // instant it would start -- wiring --play onto a fill-mode both/forwards
-  // entrance animation would freeze it at its hidden/offset FIRST keyframe
-  // forever under reduced motion, instead of landing on its visible end
-  // state (see src/styles/motion.scss's comment above the media query).
-  // These five rise/fade/mark entrance rules must stay unwired.
-  const scssPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'Landing.module.scss');
-  const css = readFileSync(scssPath, 'utf8');
-
-  for (const selector of ['.riseSpan', '.highlight', '.eyebrow', '.heroSubtitle', '.heroActions']) {
-    const block = extractRuleBlock(css, selector);
-    expect(block).not.toContain('animation-play-state: var(--play);');
-    // Still a real fill-mode entrance animation -- just not play-state-gated.
-    expect(block).toMatch(/animation:\s*(fade|rise|mark)\b/);
-  }
-});
-
+// The "one-shot entrance animations must NOT wire --play" allowlist that used
+// to live here (hand-listing .riseSpan/.highlight/.eyebrow/.heroSubtitle/
+// .heroActions) is superseded by src/styles/reducedMotion.test.ts, which
+// enforces the same invariant by reading every *.module.scss in src/ off disk
+// -- so a new animation in a stylesheet nobody remembered to add to a list is
+// still covered. The continuous-animation half below is NOT covered there
+// (that test deliberately does not mandate --play on looping animations), so
+// it stays.
 test('continuous/looping decorative animations still respect --play (prefers-reduced-motion)', () => {
   // Unlike the one-shot entrance animations above, these loop forever and
   // every frame is a visually sane resting state, so pausing mid-cycle via
@@ -136,9 +145,16 @@ test('continuous/looping decorative animations still respect --play (prefers-red
   expect(css).toMatch(/\.eyebrowDotPing\s*\{\s*animation: ping[^}]*animation-play-state: var\(--play\);\s*\}/);
 });
 
-test('renders the ticker words', () => {
-  renderLanding();
-  expect(screen.getAllByText('JavaScript').length).toBeGreaterThan(0);
+test('renders the ticker words twice (seamless marquee loop), each followed by a diamond separator', () => {
+  const { container } = renderLanding();
+  // Two back-to-back copies of the six-word list is what makes @keyframes
+  // marquee's -50% translate loop seamlessly.
+  expect(screen.getAllByText('JavaScript').length).toBe(2);
+  const items = container.querySelectorAll(`.${styles.tickerItem}`);
+  expect(items.length).toBe(12);
+  // Every item gets a trailing diamond -- including the last of each half, so
+  // the looping seam reads the same as every other gap.
+  expect(container.querySelectorAll(`.${styles.tickerDiamond}`).length).toBe(12);
 });
 
 test('renders each feature with its index and tag', () => {

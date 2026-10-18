@@ -36,6 +36,7 @@
   border-radius: 50%;
   background: repeating-conic-gradient(var(--line2) 0 0.6deg, transparent 0.6deg 6deg);
   mask-image: radial-gradient(circle, transparent 64%, #000 65%, #000 70%, transparent 71%);
+  -webkit-mask-image: radial-gradient(circle, transparent 64%, #000 65%, #000 70%, transparent 71%);
   animation: spin 80s linear infinite;
   animation-play-state: var(--play);
 }

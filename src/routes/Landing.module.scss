@@ -4,6 +4,14 @@
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
+  // Catches anything that bleeds a few px past the viewport's right edge (the
+  // orbit visual's decorative chips at the narrowest supported widths) without
+  // letting it turn into a horizontal page scrollbar. `overflow-x: clip`, not
+  // `overflow: hidden`: hidden would make .page a scroll container, which
+  // would become the containing block for the sticky header and break
+  // `position: sticky; top: 0` against the viewport. `clip` never creates a
+  // scroll container, so the header keeps sticking to the viewport.
+  overflow-x: clip;
 }
 
 // Fixed grid-line backdrop (handoff line 50) behind the whole page, faded out
@@ -26,6 +34,12 @@
   position: sticky;
   top: 0;
   z-index: 20;
+  // Fallback first: `oklch(from ...)` relative color syntax is dropped whole
+  // by browsers that don't support it, which would leave the sticky header
+  // fully transparent with page content scrolling behind it. An opaque
+  // var(--bg) is the graceful degradation (just no translucency); supporting
+  // browsers parse the later declaration and it wins the cascade.
+  background: var(--bg);
   background: oklch(from var(--bg) l c h / 0.78);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
@@ -90,17 +104,18 @@
   // (handoff line 68) -- every section below needs this too, not just hero.
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  // `auto-fit` + `minmax(min(100%, 460px), 1fr)` collapses to a single column
+  // on its own once the content box can no longer fit two 460px tracks (plus
+  // the gap) -- no breakpoint needed, which is this page's stated constraint
+  // (no breakpoint-gated behavior on Home). A hard `@media (max-width: 900px)`
+  // override here would both duplicate that and fire at the wrong width.
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr));
   align-items: center;
-  gap: var(--space-5);
-  max-width: 72rem;
+  gap: clamp(56px, 6vw, 72px);
+  max-width: 1280px;
   margin: 0 auto;
-  padding: var(--space-5) var(--space-4);
+  padding: clamp(48px, 8vw, 110px) 20px clamp(56px, 7vw, 96px);
   width: 100%;
-
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-  }
 }
 
 .heroCopy {
@@ -265,15 +280,10 @@
 .heroVisual {
   display: flex;
   justify-content: center;
-  // The orbit's chip layer positions its three chips by percentage of the
-  // ring (OrbitVisual.module.scss's .chipSlot), but each chip's own box
-  // (fixed padding + text) isn't scaled down with it -- at the narrowest
-  // supported widths (~320-360px) a chip can sit close enough to the ring's
-  // edge that it pokes a few px past this wrapper. Clip it here rather than
-  // let that bleed into page-level horizontal scroll; the chips are
-  // decorative (aria-hidden) so a sliver of clipping at the extreme low end
-  // costs nothing visually.
-  overflow: hidden;
+  // Deliberately NOT `overflow: hidden`. The orbit's chips travel just
+  // outside the ring, so clipping at this wrapper's edge visibly slices them
+  // at ordinary widths. Page-level horizontal overflow is handled once, at
+  // the root, by .page's `overflow-x: clip` instead.
 }
 
 // --- Ticker marquee (between hero and features) ----------------------------

@@ -47,6 +47,11 @@ const FEATURES = [
   },
 ];
 
+// The ticker is rendered as this list twice back-to-back so @keyframes
+// marquee's -50% translate loops seamlessly. Every item -- including the last
+// of each half, i.e. the looping seam -- gets a trailing diamond separator.
+const TICKER_WORDS = ['HTML', 'CSS', 'JavaScript', 'Console', 'Output', 'One link'];
+
 export default function Landing() {
   const newRoomId = useMemo(() => generateSessionId(), []);
   const roomHref = `/code/${newRoomId}`;
@@ -55,6 +60,11 @@ export default function Landing() {
   const { start } = useRoomTransition();
 
   function enterRoom() {
+    // Close the theme drawer first if it happens to be open -- the "N"
+    // shortcut can fire while it is, and leaving it mounted mid-transition
+    // would abandon it half-open over the iris wipe. Matches the design
+    // handoff's own newRoom(), which sets `themeOpen: false`.
+    setThemeDrawerOpen(false);
     start(newRoomId, () => navigate(roomHref));
   }
 
@@ -109,7 +119,7 @@ export default function Landing() {
 
           <ThemeButton variant="pill" onOpenDrawer={() => setThemeDrawerOpen(true)} />
 
-          <Link to={roomHref} className={styles.headerCta}>
+          <Link to={roomHref} className={styles.headerCta} onClick={handleCreateClick}>
             <Plus size={14} />
             New Room
           </Link>
@@ -158,23 +168,10 @@ export default function Landing() {
 
       <div className={styles.ticker}>
         <div className={styles.tickerTrack}>
-          {[
-            'HTML',
-            'CSS',
-            'JavaScript',
-            'Console',
-            'Output',
-            'One link',
-            'HTML',
-            'CSS',
-            'JavaScript',
-            'Console',
-            'Output',
-            'One link',
-          ].map((word, index) => (
+          {[...TICKER_WORDS, ...TICKER_WORDS].map((word, index) => (
             <span key={index} className={styles.tickerItem}>
               {word}
-              {index < 11 && <span className={styles.tickerDiamond} />}
+              <span className={styles.tickerDiamond} />
             </span>
           ))}
         </div>
