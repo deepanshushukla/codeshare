@@ -1,0 +1,143 @@
+// `fade` and `drawerIn` are defined globally in `src/styles/motion.scss`
+// (loaded via globals.scss), so they aren't redeclared here.
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: oklch(0 0 0 / 0.35);
+  animation: fade 0.25s ease both;
+}
+
+.content {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 41;
+  width: min(360px, 100%);
+  padding: var(--space-4);
+  overflow: auto;
+  background: var(--bg);
+  border-left: 1px solid var(--line2);
+  box-shadow: -30px 0 80px -20px oklch(0 0 0 / 0.5);
+  animation: drawerIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+  &:focus-visible {
+    outline: none;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font: 800 18px var(--font-display);
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
+.close {
+  all: unset;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line2);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--acc);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 1px;
+  }
+}
+
+.cards {
+  margin-top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.card {
+  all: unset;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  text-align: left;
+  background: transparent;
+  border: 1.5px solid var(--line2);
+  color: var(--text);
+  transition: border-color 0.2s ease;
+}
+
+.preview {
+  display: block;
+  height: 84px;
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  font: 500 11px/1.7 var(--font-mono);
+}
+
+.runChip {
+  display: inline-block;
+  margin-top: var(--space-2);
+  padding: 3px 10px;
+  border-radius: var(--radius);
+}
+
+.cardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font: 600 14px var(--font-sans);
+}
+
+.cardNote {
+  font: 500 11px var(--font-mono);
+  color: var(--faint);
+}
+
+.hueLabel {
+  margin-top: var(--space-4);
+  font: 600 11px var(--font-mono);
+  letter-spacing: 0.14em;
+  color: var(--faint);
+}
+
+.hues {
+  margin-top: var(--space-2);
+  display: flex;
+  gap: var(--space-2);
+}
+
+.swatch {
+  all: unset;
+  flex: 1;
+  height: 40px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--text);
+    outline-offset: 2px;
+  }
+}
