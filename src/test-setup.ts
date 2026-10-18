@@ -46,7 +46,12 @@ if (typeof globalThis.matchMedia === 'undefined') {
       }
     }
 
-    dispatchEvent(_event: Event): boolean {
+    // Actually fire the registered listeners, so a test can drive a media-query
+    // change through dispatchEvent instead of hand-rolling its own mock.
+    dispatchEvent(event: Event): boolean {
+      const event_ = event as MediaQueryListEvent;
+      this.onchange?.call(this, event_);
+      this.listeners.slice().forEach(listener => listener.call(this, event_));
       return true;
     }
   }
