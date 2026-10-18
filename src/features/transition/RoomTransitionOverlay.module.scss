@@ -1,0 +1,25 @@
+// `iris` and `irisOut` are defined globally in `src/styles/motion.scss`
+// (loaded via globals.scss), so they aren't redeclared here.
+
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  animation: irisOut 1.1s ease forwards;
+}
+
+.fill {
+  position: absolute;
+  inset: 0;
+  background: var(--acc);
+  animation: iris 0.6s cubic-bezier(0.7, 0, 0.3, 1) forwards;
+  display: grid;
+  place-items: center;
+}
+
+.label {
+  font: 800 clamp(28px, 6vw, 64px) var(--font-display);
+  letter-spacing: -0.04em;
+  color: var(--acc-ink);
+}
