@@ -447,6 +447,13 @@
   // Content sections sit above the fixed, z-index:0 .gridBackground layer
   // (handoff line 68) -- same as every other section above.
   z-index: 1;
+  // .page is a flex column (min-height: 100vh) -- margin-top: auto pins the
+  // footer to the viewport bottom on short-content pages instead of letting
+  // it ride up directly under the features grid. Carried over from the
+  // pre-redesign footer rule; the handoff's static markup doesn't need to
+  // express this (it has no equivalent of .page's flex-column + min-height
+  // layout), but dropping it here would be an unintentional regression.
+  margin-top: auto;
   border-top: 1px solid var(--line);
 }
 

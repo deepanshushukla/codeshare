@@ -203,7 +203,7 @@ export default function Landing() {
         <Link to={roomHref} className={styles.ctaBlock} onClick={handleCreateClick}>
           <span className={styles.ctaBlockInner}>
             <span className={styles.ctaBlockText}>Create New Room</span>
-            <span className={styles.ctaBlockIcon}>
+            <span className={styles.ctaBlockIcon} aria-hidden="true">
               <ArrowRight size={28} />
             </span>
           </span>
