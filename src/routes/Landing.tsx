@@ -159,6 +159,30 @@ export default function Landing() {
         </div>
       </section>
 
+      <div className={styles.ticker}>
+        <div className={styles.tickerTrack}>
+          {[
+            'HTML',
+            'CSS',
+            'JavaScript',
+            'Console',
+            'Output',
+            'One link',
+            'HTML',
+            'CSS',
+            'JavaScript',
+            'Console',
+            'Output',
+            'One link',
+          ].map((word, index) => (
+            <span key={index} className={styles.tickerItem}>
+              {word}
+              {index < 11 && <span className={styles.tickerDiamond} />}
+            </span>
+          ))}
+        </div>
+      </div>
+
       <section className={styles.features}>
         <h2>Let&rsquo;s code together</h2>
         <div className={styles.featureGrid}>

@@ -255,6 +255,46 @@
   justify-content: center;
 }
 
+// --- Ticker marquee (between hero and features) ----------------------------
+
+.ticker {
+  position: relative;
+  z-index: 1;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  overflow: hidden;
+  background: var(--bg2);
+}
+
+.tickerTrack {
+  display: flex;
+  width: max-content;
+  animation: marquee 30s linear infinite;
+  animation-play-state: var(--play);
+  // The @keyframes marquee global keyframe (src/styles/motion.scss line 6)
+  // translates this element -50% so it seamlessly loops when duplicated.
+  // Do not redeclare it here; just reference by name above.
+}
+
+.tickerItem {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 18px 14px;
+  font: 600 clamp(14px, 1.6vw, 18px) 'Unbounded', sans-serif;
+  letter-spacing: -0.01em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.tickerDiamond {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  transform: rotate(45deg);
+  background: var(--acc);
+}
+
 // --- Feature grid -----------------------------------------------------------
 
 .features {

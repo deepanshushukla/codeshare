@@ -105,3 +105,8 @@ test('rise-in and mark-sweep animations respect --play (prefers-reduced-motion)'
     expect(extractRuleBlock(css, selector)).toContain('animation-play-state: var(--play);');
   }
 });
+
+test('renders the ticker words', () => {
+  renderLanding();
+  expect(screen.getAllByText('JavaScript').length).toBeGreaterThan(0);
+});
