@@ -51,9 +51,12 @@ function renderLanding() {
   );
 }
 
+// Task 9 added a second "Create New Room" link (the bottom CTA block), so
+// every query below takes [0] to keep targeting the hero CTA specifically --
+// otherwise getByRole throws on the now-ambiguous match.
 test('the Create New Room link points at /code/<id>', () => {
   renderLanding();
-  const link = screen.getByRole('link', { name: /^create new room$/i });
+  const link = screen.getAllByRole('link', { name: /^create new room$/i })[0];
   expect(link.getAttribute('href')).toMatch(/^\/code\/[a-z0-9]{10}$/);
 });
 
@@ -65,19 +68,19 @@ test('renders the theme button and opens the theme drawer', () => {
 
 test('keeps the CTA a real link to the new room', () => {
   renderLanding();
-  const link = screen.getByRole('link', { name: /^create new room$/i });
+  const link = screen.getAllByRole('link', { name: /^create new room$/i })[0];
   expect(link.getAttribute('href')).toMatch(/^\/code\/[a-z0-9]{10}$/);
 });
 
 test('a plain click starts the transition instead of navigating immediately', () => {
   renderLanding();
-  fireEvent.click(screen.getByRole('link', { name: /^create new room$/i }));
+  fireEvent.click(screen.getAllByRole('link', { name: /^create new room$/i })[0]);
   expect(screen.getByText(/\/r\//)).toBeInTheDocument(); // overlay now showing /r/{id}
 });
 
 test('a ctrl-click is left alone (native new-tab behavior, no preventDefault)', () => {
   renderLanding();
-  const link = screen.getByRole('link', { name: /^create new room$/i });
+  const link = screen.getAllByRole('link', { name: /^create new room$/i })[0];
   const event = createEvent.click(link, { ctrlKey: true });
   const prevented = !fireEvent(link, event);
   expect(prevented).toBe(false);
@@ -116,4 +119,11 @@ test('renders each feature with its index and tag', () => {
   expect(screen.getByText('01')).toBeInTheDocument();
   expect(screen.getByText('pair')).toBeInTheDocument();
   expect(screen.getByText('Remote pair programming')).toBeInTheDocument();
+});
+
+test('the bottom CTA is also a real link, and the footer shows the 2026 copyright', () => {
+  renderLanding();
+  const links = screen.getAllByRole('link', { name: /create new room/i });
+  expect(links.length).toBe(2); // hero CTA + bottom CTA
+  expect(screen.getByText('© 2026 CodeShare')).toBeInTheDocument();
 });

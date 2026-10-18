@@ -380,14 +380,84 @@
   color: var(--faint);
 }
 
-// --- Footer -----------------------------------------------------------------
+// --- Bottom CTA block (handoff lines 143-149) -------------------------------
+
+.ctaSection {
+  position: relative;
+  // Content sections sit above the fixed, z-index:0 .gridBackground layer
+  // (handoff line 68) -- same as .hero, .ticker and .features above.
+  z-index: 1;
+  padding: 0 20px clamp(72px, 9vw, 120px);
+}
+
+.ctaBlock {
+  display: block;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: clamp(36px, 6vw, 72px) clamp(20px, 4vw, 48px);
+  border-radius: var(--radius-block);
+  border: 1px solid var(--line2);
+  background: var(--bg2);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  transition: all 0.4s ease;
+
+  &:hover {
+    background: var(--acc);
+    color: var(--acc-ink);
+    border-color: var(--acc);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 2px;
+  }
+}
+
+.ctaBlockInner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.ctaBlockText {
+  font: 800 clamp(30px, 5.4vw, 72px) / 1 var(--font-display);
+  letter-spacing: -0.045em;
+}
+
+.ctaBlockIcon {
+  display: grid;
+  place-items: center;
+  width: clamp(56px, 7vw, 88px);
+  height: clamp(56px, 7vw, 88px);
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  flex: none;
+}
+
+// --- Footer (handoff lines 152-157) -----------------------------------------
 
 .footer {
-  margin-top: auto;
-  padding: var(--space-4);
-  border-top: 1px solid var(--color-border);
-  text-align: center;
-  color: var(--color-text);
-  opacity: 0.5;
-  font-size: 0.8rem;
+  position: relative;
+  // Content sections sit above the fixed, z-index:0 .gridBackground layer
+  // (handoff line 68) -- same as every other section above.
+  z-index: 1;
+  border-top: 1px solid var(--line);
+}
+
+.footerInner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: space-between;
+  font: 500 13px var(--font-mono);
+  color: var(--faint);
 }

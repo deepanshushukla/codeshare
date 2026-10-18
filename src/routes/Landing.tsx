@@ -199,8 +199,22 @@ export default function Landing() {
         </div>
       </section>
 
+      <section className={styles.ctaSection}>
+        <Link to={roomHref} className={styles.ctaBlock} onClick={handleCreateClick}>
+          <span className={styles.ctaBlockInner}>
+            <span className={styles.ctaBlockText}>Create New Room</span>
+            <span className={styles.ctaBlockIcon}>
+              <ArrowRight size={28} />
+            </span>
+          </span>
+        </Link>
+      </section>
+
       <footer className={styles.footer}>
-        <span>CodeShare — share code in real time.</span>
+        <div className={styles.footerInner}>
+          <span>{'{CodeShare}'}</span>
+          <span>© 2026 CodeShare</span>
+        </div>
       </footer>
     </div>
   );
