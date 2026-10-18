@@ -37,8 +37,16 @@
   --space-5: 2.5rem;
   --radius: 6px;
   --radius-lg: 12px;
-  --font-sans: system-ui, -apple-system, sans-serif;
-  --font-mono: 'SFMono-Regular', ui-monospace, monospace;
+  // Radii scale from the design handoff's README: pill, tabs/buttons, panes,
+  // hero/theme cards, the bottom CTA block, and tab key badges.
+  --radius-pill: 999px;
+  --radius-btn: 9px;
+  --radius-pane: 14px;
+  --radius-card: 18px;
+  --radius-block: 28px;
+  --radius-badge: 5px;
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SFMono-Regular', ui-monospace, monospace;
   --font-display: 'Unbounded', sans-serif;
   --bg: oklch(0.14 0.02 200);
   --bg2: oklch(0.18 0.022 200);
@@ -63,6 +71,11 @@
   --tk-fn: oklch(0.85 0.13 180);
   --tk-tag: oklch(0.82 0.14 180);
   --tk-attr: oklch(0.78 0.11 250);
+  // Scanline-overlay strength (0 = off) for the default theme. Must be declared
+  // statically: applyTheme() only runs in a React effect, and an unresolved
+  // `opacity: var(--scan)` falls back to opacity's initial value of 1 -- which
+  // would paint a full-strength scanline grid over the viewport on cold load.
+  --scan: 0;
 }
 
 @media (prefers-color-scheme: dark) {
