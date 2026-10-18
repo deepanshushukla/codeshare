@@ -63,4 +63,21 @@ describe('useTabsQueryParam', () => {
     });
     expect(locationRef.value).toContain('selectedTabs=html,css');
   });
+
+  test('toggleTab refuses to close the last open pane', () => {
+    const { result } = renderHook(() => useTabsQueryParam(), { wrapper: withRouter('/code/abc') });
+    act(() => {
+      // start from a state with exactly one pane open
+      result.current.setTabs({ html: false, css: false, js: true, console: false, output: false });
+    });
+    act(() => result.current.toggleTab('js'));
+    expect(result.current.tabs.js).toBe(true);
+  });
+
+  test('toggleTab closes a pane normally when others remain open', () => {
+    const { result } = renderHook(() => useTabsQueryParam(), { wrapper: withRouter('/code/abc') });
+    // default tabs has js+console open
+    act(() => result.current.toggleTab('console'));
+    expect(result.current.tabs.console).toBe(false);
+  });
 });

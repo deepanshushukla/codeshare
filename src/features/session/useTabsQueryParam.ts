@@ -17,7 +17,7 @@ export const DEFAULT_TABS: TabsState = {
   output: false,
 };
 
-const TAB_KEYS = Object.keys(DEFAULT_TABS) as (keyof TabsState)[];
+export const TAB_KEYS = Object.keys(DEFAULT_TABS) as (keyof TabsState)[];
 
 function parseSelectedTabs(value: string | null): TabsState {
   if (!value) return { ...DEFAULT_TABS };
@@ -34,7 +34,11 @@ function serializeTabs(tabs: TabsState): string {
   return TAB_KEYS.filter((key) => tabs[key]).join(',');
 }
 
-export function useTabsQueryParam(): { tabs: TabsState; setTabs: (tabs: TabsState) => void } {
+export function useTabsQueryParam(): {
+  tabs: TabsState;
+  setTabs: (tabs: TabsState) => void;
+  toggleTab: (key: keyof TabsState) => void;
+} {
   const location = useLocation();
   const navigate = useNavigate();
   const [tabs, setTabsState] = useState<TabsState>(() =>
@@ -60,5 +64,14 @@ export function useTabsQueryParam(): { tabs: TabsState; setTabs: (tabs: TabsStat
     [location.pathname, navigate],
   );
 
-  return { tabs, setTabs };
+  const toggleTab = useCallback(
+    (key: keyof TabsState) => {
+      const openCount = TAB_KEYS.filter((k) => tabs[k]).length;
+      if (tabs[key] && openCount === 1) return; // refuse to close the last open pane
+      setTabs({ ...tabs, [key]: !tabs[key] });
+    },
+    [tabs, setTabs],
+  );
+
+  return { tabs, setTabs, toggleTab };
 }

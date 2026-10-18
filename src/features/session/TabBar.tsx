@@ -9,15 +9,17 @@ const LABELS: Record<keyof TabsState, string> = {
   output: 'Output',
 };
 
-export default function TabBar({ tabs, setTabs }: { tabs: TabsState; setTabs: (t: TabsState) => void }) {
+export default function TabBar({
+  tabs,
+  toggleTab,
+}: {
+  tabs: TabsState;
+  toggleTab: (key: keyof TabsState) => void;
+}) {
   return (
     <div className={styles.bar}>
       {(Object.keys(LABELS) as (keyof TabsState)[]).map((key) => (
-        <button
-          key={key}
-          className={tabs[key] ? styles.active : styles.tab}
-          onClick={() => setTabs({ ...tabs, [key]: !tabs[key] })}
-        >
+        <button key={key} className={tabs[key] ? styles.active : styles.tab} onClick={() => toggleTab(key)}>
           {LABELS[key]}
         </button>
       ))}
