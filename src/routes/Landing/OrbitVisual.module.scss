@@ -178,6 +178,7 @@
   background: var(--acc);
   margin-left: 1px;
   animation: blink 1s steps(1) infinite;
+  animation-play-state: var(--play);
 }
 
 .cardFooter {
