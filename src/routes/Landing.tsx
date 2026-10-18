@@ -89,6 +89,12 @@ export default function Landing() {
       if (event.key !== 'n' && event.key !== 'N') {
         return;
       }
+      // Cmd+N (Mac "new browser window") / Ctrl+N (Windows "new window") must
+      // not also fire our in-app shortcut -- matches the design handoff's own
+      // keydown handler exactly (`!e.metaKey && !e.ctrlKey`).
+      if (event.ctrlKey || event.metaKey) {
+        return;
+      }
       const activeTag = document.activeElement?.tagName;
       if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') {
         return;

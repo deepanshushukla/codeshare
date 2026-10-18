@@ -122,6 +122,7 @@
   letter-spacing: 0.16em;
   color: var(--acc-t);
   animation: fade 0.6s ease both;
+  animation-play-state: var(--play);
 }
 
 .eyebrowDot {
@@ -149,6 +150,7 @@
 .riseSpan {
   display: inline-block;
   animation: rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-play-state: var(--play);
 
   &:nth-child(1) {
     animation-delay: 0.05s;
@@ -169,6 +171,7 @@
   color: var(--acc-ink);
   background: linear-gradient(var(--acc), var(--acc)) no-repeat left / 0% 100%;
   animation: mark 0.7s 0.9s cubic-bezier(0.7, 0, 0.2, 1) forwards;
+  animation-play-state: var(--play);
   border-radius: 0.12em;
 }
 
@@ -180,6 +183,7 @@
   color: var(--muted);
   text-wrap: pretty;
   animation: fade 0.8s 0.4s ease both;
+  animation-play-state: var(--play);
 }
 
 // --- CTA + keyboard hint (handoff lines 83-86) ------------------------------
@@ -191,6 +195,7 @@
   gap: 16px;
   align-items: center;
   animation: fade 0.8s 0.55s ease both;
+  animation-play-state: var(--play);
 }
 
 .ctaButton {
