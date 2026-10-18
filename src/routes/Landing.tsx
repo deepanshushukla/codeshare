@@ -1,15 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useMemo, useState, type MouseEvent } from 'react';
-import {
-  Users,
-  ClipboardCheck,
-  Share2,
-  Download,
-  GraduationCap,
-  LifeBuoy,
-  ArrowRight,
-  Plus,
-} from 'lucide-react';
+import { ArrowRight, Plus } from 'lucide-react';
 import { generateSessionId } from '../lib/randomId';
 import ThemeButton from '../features/theme/ThemeButton';
 import ThemeDrawer from '../features/theme/ThemeDrawer';
@@ -19,34 +10,40 @@ import styles from './Landing.module.scss';
 
 const FEATURES = [
   {
-    icon: Users,
+    n: '01',
     title: 'Remote pair programming',
     description: 'Work through a problem together in the same editor, in real time.',
+    tag: 'pair',
   },
   {
-    icon: ClipboardCheck,
+    n: '02',
     title: 'Interviews & tests',
     description: 'A clean, distraction-free room for live coding interviews.',
+    tag: 'hire',
   },
   {
-    icon: Share2,
+    n: '03',
     title: 'Share instantly',
     description: 'Send a link — no account, no install, no setup for your collaborators.',
+    tag: 'link',
   },
   {
-    icon: Download,
+    n: '04',
     title: 'Export your work',
     description: 'Download the finished code as a standalone HTML file or a zip.',
+    tag: 'save',
   },
   {
-    icon: GraduationCap,
+    n: '05',
     title: 'Study groups & workshops',
     description: 'Run a seminar, meetup, or study session with everyone coding along.',
+    tag: 'learn',
   },
   {
-    icon: LifeBuoy,
+    n: '06',
     title: 'Troubleshooting & support',
     description: 'Look over someone’s shoulder and fix it together, from anywhere.',
+    tag: 'fix',
   },
 ];
 
@@ -184,12 +181,16 @@ export default function Landing() {
       </div>
 
       <section className={styles.features}>
-        <h2>Let&rsquo;s code together</h2>
+        <div className={styles.featuresHeader}>
+          <h2>Let&rsquo;s code together</h2>
+          <span className={styles.featuresCount}>06 use cases</span>
+        </div>
         <div className={styles.featureGrid}>
-          {FEATURES.map(({ icon: Icon, title, description }) => (
+          {FEATURES.map(({ n, title, description, tag }) => (
             <div className={styles.featureCard} key={title}>
-              <div className={styles.featureIcon}>
-                <Icon size={18} />
+              <div className={styles.featureCardTop}>
+                <span className={styles.featureIndex}>{n}</span>
+                <span className={styles.featureTag}>{tag}</span>
               </div>
               <h3>{title}</h3>
               <p>{description}</p>

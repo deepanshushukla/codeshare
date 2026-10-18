@@ -295,56 +295,89 @@
   background: var(--acc);
 }
 
-// --- Feature grid -----------------------------------------------------------
+// --- Feature grid (handoff lines 124-140) -----------------------------------
 
 .features {
-  max-width: 72rem;
+  position: relative;
+  // Content sections sit above the fixed, z-index:0 .gridBackground layer
+  // (handoff line 68) -- same as .hero and .ticker above.
+  z-index: 1;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: var(--space-5) var(--space-4) var(--space-5);
-  width: 100%;
+  padding: clamp(72px, 9vw, 120px) 20px;
+}
+
+.featuresHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 40px;
 
   h2 {
-    margin: 0 0 var(--space-4);
-    font-size: 1.4rem;
+    margin: 0;
+    font: 800 clamp(30px, 4.4vw, 56px) / 1 var(--font-display);
+    letter-spacing: -0.04em;
   }
+}
+
+.featuresCount {
+  font: 500 13px var(--font-mono);
+  color: var(--faint);
 }
 
 .featureGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  border-top: 1px solid var(--line2);
+  border-left: 1px solid var(--line2);
 }
 
 .featureCard {
-  padding: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-raised);
-  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+  padding: 32px 28px 36px;
+  border-right: 1px solid var(--line2);
+  border-bottom: 1px solid var(--line2);
+  cursor: default;
+  transition: background 0.35s ease;
+
+  &:hover {
+    background: var(--acc-soft);
+  }
 
   h3 {
-    margin: var(--space-3) 0 var(--space-1);
-    font-size: 1rem;
+    margin: 56px 0 10px;
+    font: 600 21px / 1.25 var(--font-display);
+    letter-spacing: -0.025em;
+    text-wrap: balance;
   }
 
   p {
     margin: 0;
-    color: var(--color-text);
-    opacity: 0.7;
-    font-size: 0.875rem;
-    line-height: 1.5;
+    max-width: 360px;
+    color: var(--muted);
+    font-size: 16px;
+    line-height: 1.6;
+    text-wrap: pretty;
   }
 }
 
-.featureIcon {
-  display: inline-flex;
+.featureCardTop {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: var(--radius);
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
+  justify-content: space-between;
+}
+
+.featureIndex {
+  font: 500 13px var(--font-mono);
+  color: var(--acc-t);
+}
+
+.featureTag {
+  font: 500 13px var(--font-mono);
+  color: var(--faint);
 }
 
 // --- Footer -----------------------------------------------------------------

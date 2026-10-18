@@ -110,3 +110,10 @@ test('renders the ticker words', () => {
   renderLanding();
   expect(screen.getAllByText('JavaScript').length).toBeGreaterThan(0);
 });
+
+test('renders each feature with its index and tag', () => {
+  renderLanding();
+  expect(screen.getByText('01')).toBeInTheDocument();
+  expect(screen.getByText('pair')).toBeInTheDocument();
+  expect(screen.getByText('Remote pair programming')).toBeInTheDocument();
+});
