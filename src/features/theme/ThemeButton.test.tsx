@@ -26,6 +26,27 @@ describe('ThemeButton', () => {
     expect(onOpenDrawer).toHaveBeenCalled();
   });
 
+  it('merges a caller-supplied className onto the variant class', () => {
+    render(
+      <ThemeProvider>
+        <ThemeButton variant="square" onOpenDrawer={vi.fn()} className="headerSlot" />
+      </ThemeProvider>,
+    );
+    const button = screen.getByRole('button');
+    expect(button).toHaveClass('headerSlot');
+    // The per-variant class is still applied alongside it.
+    expect(button.className.split(' ').length).toBe(2);
+  });
+
+  it('renders a real <button> (type="button", so it never submits a form)', () => {
+    render(
+      <ThemeProvider>
+        <ThemeButton variant="pill" onOpenDrawer={vi.fn()} />
+      </ThemeProvider>,
+    );
+    expect(screen.getByRole('button')).toHaveAttribute('type', 'button');
+  });
+
   it('displays theme name for pill variant', () => {
     const onOpenDrawer = vi.fn();
     render(

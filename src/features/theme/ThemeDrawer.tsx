@@ -16,7 +16,10 @@ export default function ThemeDrawer({ open, onClose }: { open: boolean; onClose:
     <Dialog.Root open={open} onOpenChange={next => !next && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className={styles.overlay} />
-        <Dialog.Content className={styles.content}>
+        {/* aria-describedby={undefined} deliberately opts out of Radix's
+            Dialog.Description (there is no descriptive copy in this drawer) and
+            silences its dev-only "missing Description" warning. */}
+        <Dialog.Content className={styles.content} aria-describedby={undefined}>
           <div className={styles.header}>
             <Dialog.Title className={styles.title}>Theme</Dialog.Title>
             <Dialog.Close className={styles.close} aria-label="Close">
@@ -62,6 +65,9 @@ export default function ThemeDrawer({ open, onClose }: { open: boolean; onClose:
                   type="button"
                   className={styles.swatch}
                   aria-label={HUES[key].name}
+                  // Mouse users get the same hue name as a hover tooltip, per
+                  // the handoff's title="{{ h.name }}".
+                  title={HUES[key].name}
                   aria-pressed={active}
                   style={{
                     background: `oklch(0.78 0.13 ${HUES[key].deg})`,

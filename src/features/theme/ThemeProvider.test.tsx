@@ -3,12 +3,13 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { ThemeProvider, useTheme } from './ThemeProvider';
 
 function Probe() {
-  const { theme, hue, themeName, setTheme, setHue } = useTheme();
+  const { theme, hue, themeName, reducedMotion, setTheme, setHue } = useTheme();
   return (
     <div>
       <span data-testid="theme">{theme}</span>
       <span data-testid="hue">{hue}</span>
       <span data-testid="name">{themeName}</span>
+      <span data-testid="reduced-motion">{String(reducedMotion)}</span>
       <button onClick={() => setTheme('paper')}>paper</button>
       <button onClick={() => setHue('jade')}>jade</button>
     </div>
@@ -143,6 +144,35 @@ describe('ThemeProvider / useTheme', () => {
       listeners.forEach((cb) => cb({ matches: true }));
     });
     expect(document.documentElement.style.getPropertyValue('--play')).toBe('paused');
+
+    window.matchMedia = original;
+  });
+
+  it('exposes reducedMotion from useTheme() and updates it live', () => {
+    const listeners: Array<(event: { matches: boolean }) => void> = [];
+    const mql = {
+      matches: true, // OS currently asks for reduced motion
+      media: '(prefers-reduced-motion: reduce)',
+      addEventListener: (type: string, cb: (event: { matches: boolean }) => void) => {
+        if (type === 'change') listeners.push(cb);
+      },
+      removeEventListener: vi.fn(),
+    };
+    const original = window.matchMedia;
+    window.matchMedia = vi.fn().mockReturnValue(mql) as unknown as typeof window.matchMedia;
+
+    render(
+      <ThemeProvider>
+        <Probe />
+      </ThemeProvider>,
+    );
+    // Initial value reflects the current matchMedia state.
+    expect(screen.getByTestId('reduced-motion')).toHaveTextContent('true');
+
+    act(() => {
+      listeners.forEach(cb => cb({ matches: false }));
+    });
+    expect(screen.getByTestId('reduced-motion')).toHaveTextContent('false');
 
     window.matchMedia = original;
   });

@@ -1,13 +1,23 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { ReactNode } from 'react';
 import { applyTheme, DEFAULT_HUE, DEFAULT_THEME, HUES, THEMES } from '../../lib/theme';
 import type { HueKey, ThemeKey } from '../../lib/theme';
-import { readPersisted, writePersisted } from '../../lib/persistedState';
+import { flushPersisted, readPersisted, writePersisted } from '../../lib/persistedState';
 
 type ThemeContextValue = {
   theme: ThemeKey;
   hue: HueKey;
   themeName: string;
+  reducedMotion: boolean;
   setTheme: (t: ThemeKey) => void;
   setHue: (h: HueKey) => void;
 };
@@ -42,19 +52,26 @@ function getReducedMotion(): boolean {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemeKey>(readInitialTheme);
   const [hue, setHueState] = useState<HueKey>(readInitialHue);
-  const reducedMotionRef = useRef(getReducedMotion());
+  const [reducedMotion, setReducedMotion] = useState<boolean>(getReducedMotion);
   // False until after the mount effect below has run once -- lets the shared
   // apply+persist effect skip persisting on mount (the values just came FROM
   // storage, or are defaults; writing them back is redundant) while still
   // persisting every change caused by setTheme/setHue afterwards.
   const mountedRef = useRef(false);
 
-  useEffect(() => {
-    applyTheme(theme, hue, reducedMotionRef.current);
+  // useLayoutEffect, not useEffect: the static defaults in tokens.scss only
+  // match the DEFAULT theme, so applying a persisted Paper/Phosphor after paint
+  // would show one frame of Abyss first. This app is client-rendered only
+  // (BrowserRouter, no SSR), so running before paint is safe here.
+  useLayoutEffect(() => {
+    applyTheme(theme, hue, reducedMotion);
     if (mountedRef.current) {
       writePersisted({ theme, hue });
     }
     mountedRef.current = true;
+    // reducedMotion is intentionally not a dependency: the matchMedia handler
+    // below re-applies the palette itself, and re-running this effect for it
+    // would persist an unchanged theme/hue on every OS-preference change.
   }, [theme, hue]);
 
   // Live-react to the OS reduced-motion setting changing while the app is
@@ -65,12 +82,22 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
     const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
     const handleChange = (event: MediaQueryListEvent) => {
-      reducedMotionRef.current = event.matches;
+      setReducedMotion(event.matches);
       applyTheme(theme, hue, event.matches);
     };
     mql.addEventListener('change', handleChange);
     return () => mql.removeEventListener('change', handleChange);
   }, [theme, hue]);
+
+  // A theme/hue change inside writePersisted's debounce window is lost outright
+  // if the page goes away first -- flush it on pagehide.
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.addEventListener('pagehide', flushPersisted);
+    return () => window.removeEventListener('pagehide', flushPersisted);
+  }, []);
 
   const setTheme = useCallback((t: ThemeKey) => setThemeState(t), []);
   const setHue = useCallback((h: HueKey) => setHueState(h), []);
@@ -80,10 +107,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       theme,
       hue,
       themeName: THEMES[theme].name,
+      reducedMotion,
       setTheme,
       setHue,
     }),
-    [theme, hue, setTheme, setHue],
+    [theme, hue, reducedMotion, setTheme, setHue],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

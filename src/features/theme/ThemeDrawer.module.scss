@@ -42,6 +42,9 @@
 
 .close {
   all: unset;
+  // `all: unset` beats the global `*` reset and would otherwise drop this back
+  // to content-box, inflating the declared 36px by the border.
+  box-sizing: border-box;
   width: 36px;
   height: 36px;
   display: grid;
@@ -71,17 +74,25 @@
 
 .card {
   all: unset;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-3);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   cursor: pointer;
   text-align: left;
   background: transparent;
   border: 1.5px solid var(--line2);
   color: var(--text);
   transition: border-color 0.2s ease;
+
+  // `all: unset` clears `outline`, so without this the cards are keyboard-
+  // focusable with no visible focus indicator.
+  &:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 1px;
+  }
 }
 
 .preview {
@@ -126,9 +137,10 @@
 
 .swatch {
   all: unset;
+  box-sizing: border-box;
   flex: 1;
   height: 40px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-btn);
   cursor: pointer;
   transition: transform 0.2s ease;
 
