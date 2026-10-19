@@ -153,6 +153,20 @@ test('continuous/looping decorative animations still respect --play (prefers-red
   );
 });
 
+test('.page refuses to be flex-shrunk by #root, so overflow:hidden children keep their content height', () => {
+  // #root (globals.scss) is `height: 100%` inside a flex column -- intended
+  // for the Room workspace, which must fit exactly one viewport. Without
+  // flex-shrink: 0 here, #root's flexbox math compresses this taller-than-
+  // viewport page down to exactly 100vh, and within that squeeze, flexbox
+  // resolves an `overflow: hidden` child's automatic minimum height to 0
+  // (instead of its content size) -- so .ticker alone collapsed to ~0px while
+  // its overflow-visible siblings refused to shrink. This is what made the
+  // ticker marquee disappear even though its own CSS was correct in isolation.
+  const scssPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'Landing.module.scss');
+  const css = readFileSync(scssPath, 'utf8');
+  expect(extractRuleBlock(css, '.page')).toContain('flex-shrink: 0;');
+});
+
 test('renders the ticker words twice (seamless marquee loop), each followed by a diamond separator', () => {
   const { container } = renderLanding();
   // Two back-to-back copies of the six-word list is what makes @keyframes
