@@ -1,0 +1,80 @@
+// Mobile bottom pane selector, ported from the design handoff
+// (`CodeShare v2.dc.html`, lines 269-279).
+.bar {
+  flex: none;
+  // The extra bottom padding is iOS home-indicator clearance: on a device
+  // with no inset (and in every desktop browser) `env()` resolves to 0 and
+  // this is just the handoff's 10px.
+  padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.track {
+  position: relative;
+  display: grid;
+  // Five equal columns, which is also what makes the pill's
+  // `translateX(index * 100%)` land exactly on each segment.
+  grid-template-columns: repeat(5, 1fr);
+  padding: 4px;
+  border-radius: 16px;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+}
+
+// One fifth of the track's *inner* width (the track's own 4px padding on each
+// side is excluded), so moving it by 100% of itself steps exactly one segment.
+.pill {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc((100% - 8px) / 5);
+  border-radius: 12px;
+  background: var(--acc);
+  box-shadow: 0 6px 20px -6px var(--glow);
+  // Transform-only transition (no layout properties), so the slide stays on
+  // the compositor. Under prefers-reduced-motion, motion.scss collapses every
+  // transition duration globally -- the pill then jumps straight to the new
+  // segment, which is the correct end state, so nothing to wire here.
+  transition: transform 0.35s cubic-bezier(0.3, 1.3, 0.5, 1);
+}
+
+.segment,
+.segmentActive {
+  // Above the pill, so the label/glyph read against it rather than under it.
+  position: relative;
+  // The touch target: 50px is the handoff's value and comfortably clears the
+  // 44px minimum, which matters more here than anywhere else in the app.
+  min-height: 50px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.25s;
+
+  &:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 2px;
+    border-radius: 12px;
+  }
+}
+
+// `--acc-ink` is the on-accent foreground: the active segment's text sits on
+// top of the accent-filled pill, not on the track.
+.segmentActive {
+  color: var(--acc-ink);
+}
+
+.glyph {
+  font: 600 13px var(--font-mono);
+}
+
+.label {
+  font: 600 10.5px var(--font-sans);
+}
