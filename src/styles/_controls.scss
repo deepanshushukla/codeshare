@@ -8,12 +8,6 @@
 //
 // Mixins only -- this partial emits no CSS of its own, so `@use`-ing it from
 // several modules does not duplicate rules.
-//
-// `control-button`/`control-button-accent` are the ORIGINAL pre-redesign look
-// (legacy `--color-*` tokens); `room-control`/`room-control-accent` below are
-// the Room-header redesign's 36px ghost/accent controls on the themed
-// `--line2`/`--acc` tokens. TabBar is the only remaining consumer of the
-// legacy pair.
 
 // A 36px ghost control in the Room header: transparent, 1px --line2 border
 // that goes --acc on hover. Matches ThemeButton's `square` variant exactly, so
@@ -90,70 +84,5 @@
 
   &[data-highlighted] {
     background: var(--bg3);
-  }
-}
-
-@mixin control-button {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-bg);
-  color: var(--color-text);
-  font: inherit;
-  font-size: 0.8rem;
-  line-height: 1.4;
-  cursor: pointer;
-  // Every current consumer is a real <button>, where this is a no-op -- but
-  // an <a> styled with this mixin (e.g. Landing's CTAs) gets a browser-default
-  // underline otherwise, since nothing else in "looks like a button" resets it.
-  text-decoration: none;
-
-  &:hover {
-    background: var(--color-bg-hover);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-accent);
-    outline-offset: 1px;
-  }
-}
-
-@mixin control-button-accent {
-  @include control-button;
-
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-  color: #fff;
-
-  &:hover {
-    background: var(--color-accent);
-    filter: brightness(1.08);
-  }
-}
-
-@mixin overlay-surface {
-  min-width: 11rem;
-  padding: var(--space-1);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-bg-raised);
-  color: var(--color-text);
-  box-shadow: var(--shadow-overlay);
-  font-size: 0.85rem;
-}
-
-@mixin overlay-item {
-  display: flex;
-  align-items: center;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius);
-  cursor: pointer;
-  outline: none;
-
-  &[data-highlighted] {
-    background: var(--color-bg-hover);
   }
 }

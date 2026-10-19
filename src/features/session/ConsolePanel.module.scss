@@ -23,8 +23,8 @@
   justify-content: space-between;
   gap: var(--space-2);
   padding: 0.25rem 0.5rem;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg-raised);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg2);
   font-size: 0.75rem;
 }
 
@@ -36,7 +36,7 @@
 .clearButton {
   border: none;
   background: transparent;
-  color: var(--faint, var(--color-text));
+  color: var(--faint);
   font-family: var(--font-mono);
   font-size: 0.7rem;
   text-transform: lowercase;
@@ -45,8 +45,8 @@
   border-radius: var(--radius);
 
   &:hover {
-    color: var(--color-text);
-    background: var(--color-bg-hover);
+    color: var(--text);
+    background: var(--bg3);
   }
 }
 
@@ -55,9 +55,9 @@
   width: 100%;
   padding: var(--space-1) var(--space-2);
   border: none;
-  border-top: 1px solid var(--color-border);
-  background: var(--color-bg-raised);
-  color: var(--color-text);
+  border-top: 1px solid var(--line);
+  background: var(--bg2);
+  color: var(--text);
   font-family: var(--font-mono);
   font-size: 0.8rem;
   line-height: 1.5;
@@ -69,11 +69,11 @@
   overflow-y: auto;
 
   &:focus-visible {
-    box-shadow: inset 0 2px 0 var(--color-accent);
+    box-shadow: inset 0 2px 0 var(--acc);
   }
 
   &::placeholder {
-    color: var(--color-text);
+    color: var(--text);
     opacity: 0.45;
   }
 }
@@ -90,7 +90,7 @@
 }
 
 .empty {
-  color: var(--faint, var(--color-text));
+  color: var(--faint);
   opacity: 0.7;
   line-height: 1.6;
 }
@@ -100,7 +100,7 @@
   align-items: flex-start;
   gap: 0.5rem;
   padding: 0.1875rem 0.5rem;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--line);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   line-height: 1.6;
@@ -125,12 +125,12 @@
 // Base per-level treatment: text color + optional tinted background and
 // accent left-edge, per the console handoff's level/style (LS) table.
 .log {
-  color: var(--text, var(--color-text));
+  color: var(--text);
 }
 
 .info {
-  color: var(--acc-t, var(--color-accent));
-  border-left: 2px solid var(--acc, var(--color-accent));
+  color: var(--acc-t);
+  border-left: 2px solid var(--acc);
 }
 
 .warn {
@@ -150,9 +150,9 @@
 // entry.level to these via a dedicated LEVEL_CLASS lookup, not a bare
 // styles[level] index, specifically to keep these two apart.
 .echo {
-  color: var(--muted, var(--color-text));
+  color: var(--muted);
 }
 
 .outcome {
-  color: var(--faint, var(--color-text));
+  color: var(--faint);
 }
