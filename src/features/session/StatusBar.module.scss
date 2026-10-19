@@ -26,11 +26,31 @@
   color: var(--acc-t);
 }
 
+// Every state that is not `connected` (connecting / reconnecting /
+// write-failed / auth-failed). Warn-colored with a hollow ring instead of the
+// filled accent dot, so "not synced" is distinguishable at a glance and not
+// just by reading the label.
+.pending {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--warn);
+}
+
 .dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: var(--acc);
+}
+
+.dotPending {
+  box-sizing: border-box;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: 1px solid var(--warn);
+  background: transparent;
 }
 
 // Right-aligned theme name: the only item pushed away from the rest by

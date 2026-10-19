@@ -222,7 +222,7 @@ export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
       {/* Desktop-only footer -- mobile already has its own bottom bar
           (MobileTabBar) just below, so this is never rendered there at all,
           not merely hidden by CSS. */}
-      {!isMobile && <StatusBar openCount={openCount} />}
+      {!isMobile && <StatusBar openCount={openCount} status={bannerStatus} />}
       {isMobile && <MobileTabBar active={mobileTab} onSelect={setMobileTab} />}
       {/* Mode-independent: `offscreenOutput` is already null whenever Output
           is the visible pane, in either layout. */}
