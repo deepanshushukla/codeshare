@@ -1,4 +1,23 @@
-.pane { display: flex; flex-direction: column; height: 100%; background: var(--ed); }
+// Pane chrome (handoff ~line 135): rounded card sitting inside the
+// react-resizable-panels Panel, with a one-shot entrance fade/scale-in.
+// `overflow: hidden` clips the header's square corners to the radius --
+// without it the header bar's top corners would poke past the rounded
+// border. `paneIn` is a one-shot entrance keyframe (classified in
+// src/styles/reducedMotion.test.ts and src/styles/motion.scss), so this must
+// NOT also declare `animation-play-state: var(--play)` -- that would freeze
+// it on its hidden first keyframe under prefers-reduced-motion instead of
+// landing on its visible end state (motion.scss's duration/delay override
+// handles the reduced-motion case for one-shot animations instead).
+.pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--ed);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pane);
+  overflow: hidden;
+  animation: paneIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
 // 36px header bar: glyph (colored by file type via inline style), filename,
 // and a right-aligned live line count -- mirrors the design handoff's pane
 // header (design_handoff_codeshare, ~line 211).

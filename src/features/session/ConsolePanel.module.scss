@@ -1,11 +1,20 @@
 // Mirrors EditorPane.module.scss's .pane/.title pattern so a Console panel
 // reads as the same kind of region as an HTML/CSS/JS editor pane, not a
-// separate, unstyled thing floating next to them.
+// separate, unstyled thing floating next to them. Pane chrome (handoff
+// ~line 209): see EditorPane.module.scss's `.pane` for the full rationale on
+// `overflow: hidden` + why `paneIn` must NOT also declare
+// `animation-play-state: var(--play)` (it is a one-shot entrance keyframe,
+// classified as such in src/styles/reducedMotion.test.ts and
+// src/styles/motion.scss).
 .console {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--color-bg);
+  background: var(--ed);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pane);
+  overflow: hidden;
+  animation: paneIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .title {

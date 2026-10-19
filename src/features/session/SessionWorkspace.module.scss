@@ -41,7 +41,7 @@
 .separator {
   position: relative;
   width: 1px;
-  background: var(--color-border);
+  background: var(--line);
   cursor: col-resize;
 
   // Widen only the hit/hover area, not the visible line -- a 1px line is
@@ -54,7 +54,7 @@
 
   &:hover,
   &:active {
-    background: var(--color-accent);
+    background: var(--acc);
   }
 }
 
