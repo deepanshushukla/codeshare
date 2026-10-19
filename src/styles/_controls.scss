@@ -8,6 +8,90 @@
 //
 // Mixins only -- this partial emits no CSS of its own, so `@use`-ing it from
 // several modules does not duplicate rules.
+//
+// `control-button`/`control-button-accent` are the ORIGINAL pre-redesign look
+// (legacy `--color-*` tokens); `room-control`/`room-control-accent` below are
+// the Room-header redesign's 36px ghost/accent controls on the themed
+// `--line2`/`--acc` tokens. TabBar is the only remaining consumer of the
+// legacy pair.
+
+// A 36px ghost control in the Room header: transparent, 1px --line2 border
+// that goes --acc on hover. Matches ThemeButton's `square` variant exactly, so
+// the users/export/theme buttons sit on one baseline.
+// (Design handoff `CodeShare v2.dc.html`, Room header, ~lines 191-197.)
+@mixin room-control {
+  box-sizing: border-box;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 11px;
+  border: 1px solid var(--line2);
+  border-radius: var(--radius-btn);
+  background: transparent;
+  color: var(--text);
+  font: 600 13px var(--font-sans);
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+
+  &:hover {
+    border-color: var(--acc);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 1px;
+  }
+}
+
+// The header's single primary action (Run): filled accent, no border, glow.
+// (Design handoff ~line 198.)
+@mixin room-control-accent {
+  @include room-control;
+
+  position: relative;
+  overflow: hidden;
+  padding: 0 14px;
+  border: 0;
+  background: var(--acc);
+  color: var(--acc-ink);
+  font-size: 14px;
+  box-shadow: 0 0 24px -6px var(--glow);
+  transition: transform 0.15s ease;
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  &:hover {
+    border: 0;
+  }
+}
+
+// A floating Radix panel in the Room header, on the themed tokens.
+@mixin room-overlay-surface {
+  min-width: 11rem;
+  padding: var(--space-1);
+  border: 1px solid var(--line2);
+  border-radius: var(--radius-btn);
+  background: var(--bg2);
+  color: var(--text);
+  box-shadow: var(--shadow-overlay);
+  font: 500 13px var(--font-sans);
+}
+
+@mixin room-overlay-item {
+  display: flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  border-radius: 6px;
+  cursor: pointer;
+  outline: none;
+
+  &[data-highlighted] {
+    background: var(--bg3);
+  }
+}
 
 @mixin control-button {
   display: inline-flex;

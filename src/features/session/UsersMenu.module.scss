@@ -1,35 +1,101 @@
 @use '../../styles/controls' as controls;
 
+// Compact trigger (below 1100px, and whenever presence is still empty): the
+// users icon + a count, on the same 36px ghost chrome as the theme/export
+// buttons next to it.
 .trigger {
-  @include controls.control-button;
+  @include controls.room-control;
+
+  gap: var(--space-1);
+  padding: 0 9px;
+  color: var(--muted);
+
+  &:hover {
+    color: var(--text);
+  }
 }
+
 .count {
-  font-size: 0.75rem;
+  font: 500 12px var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
+
+// Avatar-stack trigger (>=1100px): borderless, because the avatars are their
+// own affordance -- a box around them reads as a second, competing button.
+// (Design handoff `CodeShare v2.dc.html`, Room header, ~lines 182-190.)
+.triggerAvatars {
+  @include controls.room-control;
+
+  padding: 0 6px;
+  border-color: transparent;
+
+  &:hover {
+    border-color: var(--line2);
+  }
+}
+
+.stack {
+  display: flex;
+}
+
+.avatar {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  // The ring is the page background, which is what makes the overlap read as
+  // stacked cards rather than one merged blob.
+  border: 2px solid var(--bg);
+  font: 700 11px var(--font-mono);
+
+  & + & {
+    margin-left: -6px;
+  }
+}
+
+// Presence already distinguishes a backgrounded tab; dim those avatars rather
+// than dropping them from the stack.
+.avatar[data-status='away'] {
+  opacity: 0.55;
+}
+
+.overflow {
+  background: var(--bg3);
+  color: var(--muted);
+}
+
 .content {
-  @include controls.overlay-surface;
+  @include controls.room-overlay-surface;
 
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
 }
+
 .item {
-  @include controls.overlay-item;
+  @include controls.room-overlay-item;
 
   cursor: default;
 }
+
 .item input {
   width: 100%;
-  padding: var(--space-1);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-bg);
-  color: var(--color-text);
-  font: inherit;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--line2);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: 500 13px var(--font-mono);
+
+  &:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: -1px;
+  }
 }
+
 .item input:disabled {
   border-color: transparent;
   background: transparent;
-  opacity: 0.75;
+  color: var(--muted);
 }
