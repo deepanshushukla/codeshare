@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /code/
+
+Sitemap: https://codeshare.in/sitemap.xml
