@@ -1,11 +1,60 @@
 @use '../../styles/controls' as controls;
 
-// Run is the primary action in the header, so it gets the accent variant of
-// the shared button; everything else in the header uses the plain one.
+// Run is the header's primary action, so it gets the filled accent treatment
+// (design handoff `CodeShare v2.dc.html`, Room header ~line 198); everything
+// else up there is a ghost control.
 .button {
-  @include controls.control-button-accent;
+  @include controls.room-control-accent;
+
+  gap: var(--space-2);
 }
-.shortcut {
-  opacity: 0.8;
-  font-size: 0.7rem;
+
+// One-shot sweep across the button on click. Declared here rather than in
+// src/styles/motion.scss because it is specific to this one control and CSS
+// Modules scopes the name locally; per motion.scss's classification, a
+// one-shot/fill-forwards animation must NOT wire
+// `animation-play-state: var(--play)` -- motion.scss's reduced-motion
+// duration override is what handles it (it collapses to its settled,
+// invisible end state instead of freezing on the opaque first keyframe).
+@keyframes runFlash {
+  0% {
+    transform: scaleX(0);
+    opacity: 0.35;
+  }
+
+  60% {
+    transform: scaleX(1);
+    opacity: 0.22;
+  }
+
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+
+.flash {
+  position: absolute;
+  inset: 0;
+  transform-origin: left;
+  background: var(--text);
+  pointer-events: none;
+  animation: runFlash 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+// The flash overlay is absolutely positioned over the whole button, so the
+// glyph/labels need their own stacking context to stay on top of it.
+.icon,
+.label,
+.hint {
+  position: relative;
+}
+
+.hint {
+  font: 500 11px var(--font-mono);
+  opacity: 0.65;
+
+  @media (max-width: 759px) {
+    display: none;
+  }
 }

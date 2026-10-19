@@ -1,13 +1,25 @@
 @use '../../styles/controls' as controls;
 
 .trigger {
-  @include controls.control-button;
+  @include controls.room-control;
+
+  gap: 7px;
 }
+
+// Icon-only below 760px -- the header runs out of room there, and the download
+// glyph plus the button's title/aria-label still name the action.
+.label {
+  @media (max-width: 759px) {
+    display: none;
+  }
+}
+
 .content {
-  @include controls.overlay-surface;
+  @include controls.room-overlay-surface;
 
   min-width: 9rem;
 }
+
 .item {
-  @include controls.overlay-item;
+  @include controls.room-overlay-item;
 }

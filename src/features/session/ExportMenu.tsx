@@ -8,19 +8,31 @@ function timestampedName(extension: string): string {
   return `CodeShare_${new Date().toISOString().replace(/[:.]/g, '-')}.${extension}`;
 }
 
-export default function ExportMenu(content: ExportContent) {
+// `onExported` is how Header turns a successful export into a toast: Header
+// owns the single useToast() instance (copy-link needs it too), so this
+// component reports the filename up rather than rendering any feedback itself.
+type Props = ExportContent & { onExported?: (filename: string) => void };
+
+export default function ExportMenu({ onExported, ...content }: Props) {
   async function exportHtml() {
-    saveAs(new Blob([buildHtmlFile(content)], { type: 'text/html;charset=utf-8' }), timestampedName('html'));
+    const filename = timestampedName('html');
+    saveAs(new Blob([buildHtmlFile(content)], { type: 'text/html;charset=utf-8' }), filename);
+    onExported?.(filename);
   }
   async function exportZip() {
-    saveAs(await buildZipBlob(content), timestampedName('zip'));
+    const filename = timestampedName('zip');
+    // Awaited before saveAs, so a zip that fails to build never reports success.
+    saveAs(await buildZipBlob(content), filename);
+    onExported?.(filename);
   }
 
   return (
     <DropdownMenu.Root>
-      <DropdownMenu.Trigger className={styles.trigger} aria-label="Export">
-        <Download size={16} />
-        Export
+      <DropdownMenu.Trigger className={styles.trigger} aria-label="Export" title="Export">
+        <Download size={15} />
+        {/* CSS-hidden below 760px (icon-only there) rather than conditionally
+            rendered, so crossing the breakpoint can't drop the label mid-open. */}
+        <span className={styles.label}>Export</span>
       </DropdownMenu.Trigger>
       {/* Radix renders Content into a portal with no styling of its own, so
           without these classes the menu is transparent text over the page. */}

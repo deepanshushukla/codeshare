@@ -28,7 +28,13 @@ const srcDir = path.resolve(stylesDir, '..');
 // One-shot entrance/reveal/exit keyframes: they run once from a hidden or
 // offset state to a settled one (or, for irisOut, deliberately out). These
 // must NEVER declare `animation-play-state`.
-const ONE_SHOT_KEYFRAMES = ['rise', 'fade', 'mark', 'paneIn', 'drawerIn', 'toastIn', 'iris', 'irisOut'];
+// `runFlash` is the Room header Run button's click sweep -- declared locally in
+// RunControls.module.scss (CSS Modules scopes the name) rather than in
+// motion.scss, since it belongs to that one control. It runs once to
+// `opacity: 0` with fill-mode `forwards`, so it is a one-shot: under reduced
+// motion it must collapse to that settled, invisible end state, not freeze on
+// its opaque first keyframe.
+const ONE_SHOT_KEYFRAMES = ['rise', 'fade', 'mark', 'paneIn', 'drawerIn', 'toastIn', 'iris', 'irisOut', 'runFlash'];
 
 // Continuous/looping decorative keyframes: every frame of the loop is a
 // visually sane resting state, so freezing them mid-cycle via
