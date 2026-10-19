@@ -145,7 +145,7 @@
   // `paused` before this animation ever starts running. Leaving play-state
   // at its default (`running`) lets motion.scss's near-zero-duration
   // override collapse it to its visible `to` state almost instantly instead.
-  animation: fade 0.6s ease both;
+  animation: global(fade) 0.6s ease both;
 }
 
 .eyebrowDot {
@@ -163,7 +163,7 @@
 }
 
 .eyebrowDotPing {
-  animation: ping 1.6s ease-out infinite;
+  animation: global(ping) 1.6s ease-out infinite;
   animation-play-state: var(--play);
 }
 
@@ -174,7 +174,7 @@
   display: inline-block;
   // One-shot entrance animation -- deliberately no `animation-play-state:
   // var(--play)` here; see the .eyebrow comment above / motion.scss.
-  animation: rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: global(rise) 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 
   &:nth-child(1) {
     animation-delay: 0.05s;
@@ -196,7 +196,7 @@
   background: linear-gradient(var(--acc), var(--acc)) no-repeat left / 0% 100%;
   // One-shot entrance animation -- deliberately no `animation-play-state:
   // var(--play)` here; see the .eyebrow comment above / motion.scss.
-  animation: mark 0.7s 0.9s cubic-bezier(0.7, 0, 0.2, 1) forwards;
+  animation: global(mark) 0.7s 0.9s cubic-bezier(0.7, 0, 0.2, 1) forwards;
   border-radius: 0.12em;
 }
 
@@ -209,7 +209,7 @@
   text-wrap: pretty;
   // One-shot entrance animation -- deliberately no `animation-play-state:
   // var(--play)` here; see the .eyebrow comment above / motion.scss.
-  animation: fade 0.8s 0.4s ease both;
+  animation: global(fade) 0.8s 0.4s ease both;
 }
 
 // --- CTA + keyboard hint (handoff lines 83-86) ------------------------------
@@ -222,7 +222,7 @@
   align-items: center;
   // One-shot entrance animation -- deliberately no `animation-play-state:
   // var(--play)` here; see the .eyebrow comment above / motion.scss.
-  animation: fade 0.8s 0.55s ease both;
+  animation: global(fade) 0.8s 0.55s ease both;
 }
 
 .ctaButton {
@@ -300,7 +300,7 @@
 .tickerTrack {
   display: flex;
   width: max-content;
-  animation: marquee 30s linear infinite;
+  animation: global(marquee) 30s linear infinite;
   animation-play-state: var(--play);
   // The @keyframes marquee global keyframe (src/styles/motion.scss line 6)
   // translates this element -50% so it seamlessly loops when duplicated.

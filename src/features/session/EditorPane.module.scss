@@ -16,7 +16,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-pane);
   overflow: hidden;
-  animation: paneIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: global(paneIn) 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 // 36px header bar: glyph (colored by file type via inline style), filename,
 // and a right-aligned live line count -- mirrors the design handoff's pane

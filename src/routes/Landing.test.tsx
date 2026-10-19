@@ -142,7 +142,15 @@ test('continuous/looping decorative animations still respect --play (prefers-red
   // that one instead of the standalone rule below it that actually declares
   // the ping animation, so this checks the specific standalone block by
   // pattern instead of by selector lookup.
-  expect(css).toMatch(/\.eyebrowDotPing\s*\{\s*animation: ping[^}]*animation-play-state: var\(--play\);\s*\}/);
+  //
+  // `global(ping)`, not a bare `ping`: `ping` is declared in the global
+  // src/styles/motion.scss, and CSS Modules rewrites an unwrapped
+  // animation-name token to this file's hashed local scope, where no matching
+  // @keyframes exists -- so the animation silently never runs. See
+  // scripts/verify-animations.mjs, which proves the match in the built CSS.
+  expect(css).toMatch(
+    /\.eyebrowDotPing\s*\{\s*animation: global\(ping\)[^}]*animation-play-state: var\(--play\);\s*\}/,
+  );
 });
 
 test('renders the ticker words twice (seamless marquee loop), each followed by a diamond separator', () => {

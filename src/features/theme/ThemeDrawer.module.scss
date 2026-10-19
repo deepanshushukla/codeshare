@@ -6,7 +6,7 @@
   inset: 0;
   z-index: 40;
   background: oklch(0 0 0 / 0.35);
-  animation: fade 0.25s ease both;
+  animation: global(fade) 0.25s ease both;
 }
 
 .content {
@@ -21,7 +21,7 @@
   background: var(--bg);
   border-left: 1px solid var(--line2);
   box-shadow: -30px 0 80px -20px oklch(0 0 0 / 0.5);
-  animation: drawerIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: global(drawerIn) 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 
   &:focus-visible {
     outline: none;

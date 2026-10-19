@@ -11,6 +11,6 @@
     oklch(0 0 0 / 0.22) 0 1px,
     transparent 1px 3px
   );
-  animation: scanmove 0.4s linear infinite;
+  animation: global(scanmove) 0.4s linear infinite;
   animation-play-state: var(--play);
 }

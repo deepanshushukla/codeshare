@@ -20,7 +20,7 @@
   // instead. The continuous animations below (tickRing/glow/chipLayer/
   // chip/equalizerBar/caret) keep `animation-play-state: var(--play)` --
   // they have no invisible keyframe, so pausing mid-cycle is harmless.
-  animation: fade 1.2s 0.2s ease both;
+  animation: global(fade) 1.2s 0.2s ease both;
 }
 
 .ring {
@@ -37,7 +37,7 @@
   background: repeating-conic-gradient(var(--line2) 0 0.6deg, transparent 0.6deg 6deg);
   mask-image: radial-gradient(circle, transparent 64%, #000 65%, #000 70%, transparent 71%);
   -webkit-mask-image: radial-gradient(circle, transparent 64%, #000 65%, #000 70%, transparent 71%);
-  animation: spin 80s linear infinite;
+  animation: global(spin) 80s linear infinite;
   animation-play-state: var(--play);
 }
 
@@ -47,7 +47,7 @@
   border-radius: 50%;
   background: radial-gradient(circle, var(--glow), transparent 70%);
   filter: blur(30px);
-  animation: breathe 5s ease-in-out infinite;
+  animation: global(breathe) 5s ease-in-out infinite;
   animation-play-state: var(--play);
 }
 
@@ -60,7 +60,7 @@
 .chipLayer {
   position: absolute;
   inset: 0;
-  animation: spin 24s linear infinite;
+  animation: global(spin) 24s linear infinite;
   animation-play-state: var(--play);
 }
 
@@ -85,7 +85,7 @@
 }
 
 .chip {
-  animation: unspin 24s linear infinite;
+  animation: global(unspin) 24s linear infinite;
   animation-play-state: var(--play);
   padding: 9px 14px;
   border-radius: 12px;
@@ -153,7 +153,7 @@
   height: 100%;
   background: var(--acc);
   transform-origin: bottom;
-  animation: bar 1s ease-in-out infinite;
+  animation: global(bar) 1s ease-in-out infinite;
   animation-play-state: var(--play);
 
   &[data-delay='1'] {
@@ -188,7 +188,7 @@
   vertical-align: text-bottom;
   background: var(--acc);
   margin-left: 1px;
-  animation: blink 1s steps(1) infinite;
+  animation: global(blink) 1s steps(1) infinite;
   animation-play-state: var(--play);
 }
 
