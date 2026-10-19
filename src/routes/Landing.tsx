@@ -45,6 +45,18 @@ const FEATURES = [
     description: 'Look over someone’s shoulder and fix it together, from anywhere.',
     tag: 'fix',
   },
+  {
+    n: '07',
+    title: 'Bookmark it for later',
+    description: 'Save the room link — no account needed. Come back anytime and your code is exactly as you left it.',
+    tag: 'mark',
+  },
+  {
+    n: '08',
+    title: 'Nothing expires',
+    description: 'No timers, no cleanup job, no "session ended." Every room stays available permanently.',
+    tag: 'perm',
+  },
 ];
 
 // The ticker is rendered as this list twice back-to-back so @keyframes
@@ -180,7 +192,7 @@ export default function Landing() {
       <section className={styles.features}>
         <div className={styles.featuresHeader}>
           <h2>Let&rsquo;s code together</h2>
-          <span className={styles.featuresCount}>06 use cases</span>
+          <span className={styles.featuresCount}>08 use cases</span>
         </div>
         <div className={styles.featureGrid}>
           {FEATURES.map(({ n, title, description, tag }) => (
