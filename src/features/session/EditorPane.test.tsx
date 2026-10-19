@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { EditorView } from '@codemirror/view';
 import EditorPane from './EditorPane';
@@ -54,5 +54,32 @@ describe('EditorPane', () => {
     textarea.focus();
     await userEvent.type(textarea, 'z', { skipClick: true });
     expect(onChange).toHaveBeenCalledWith('z');
+  });
+
+  test('shows the file glyph, filename, and a live line count', () => {
+    render(<EditorPane title="JS" language="javascript" value={'a\nb\nc'} onChange={() => {}} />);
+    expect(screen.getByText('script.js')).toBeInTheDocument();
+    expect(screen.getByText('3 ln')).toBeInTheDocument();
+  });
+
+  test('updates the line count live as the user types', () => {
+    render(<EditorPane title="JS" language="javascript" value="a" onChange={onChange} />);
+    expect(screen.getByText('1 ln')).toBeInTheDocument();
+
+    const view = codeMirrorView();
+    act(() => {
+      view.dispatch({ changes: { from: view.state.doc.length, insert: '\nb\nc' }, userEvent: 'input.type' });
+    });
+
+    expect(screen.getByText('3 ln')).toBeInTheDocument();
+  });
+
+  test('updates the line count when the value prop changes remotely', () => {
+    const { rerender } = render(<EditorPane title="JS" language="javascript" value="a" onChange={onChange} />);
+    expect(screen.getByText('1 ln')).toBeInTheDocument();
+
+    rerender(<EditorPane title="JS" language="javascript" value={'a\nb\nc\nd'} onChange={onChange} />);
+
+    expect(screen.getByText('4 ln')).toBeInTheDocument();
   });
 });
