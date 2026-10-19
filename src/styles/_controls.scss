@@ -64,6 +64,11 @@
 
 // A floating Radix panel in the Room header, on the themed tokens.
 @mixin room-overlay-surface {
+  // Belt-and-suspenders with the Portal these panels render through
+  // (document.body, so they already paint above the page by DOM order):
+  // an explicit z-index removes any doubt once CodeMirror's own stacking
+  // context is in the picture, matching Toast's z-index:1000 convention.
+  z-index: 1000;
   min-width: 11rem;
   padding: var(--space-1);
   border: 1px solid var(--line2);

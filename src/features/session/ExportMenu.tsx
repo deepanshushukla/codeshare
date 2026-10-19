@@ -34,16 +34,21 @@ export default function ExportMenu({ onExported, ...content }: Props) {
             rendered, so crossing the breakpoint can't drop the label mid-open. */}
         <span className={styles.label}>Export</span>
       </DropdownMenu.Trigger>
-      {/* Radix renders Content into a portal with no styling of its own, so
-          without these classes the menu is transparent text over the page. */}
-      <DropdownMenu.Content className={styles.content} sideOffset={6} align="end">
-        <DropdownMenu.Item className={styles.item} onSelect={exportHtml}>
-          HTML file
-        </DropdownMenu.Item>
-        <DropdownMenu.Item className={styles.item} onSelect={exportZip}>
-          Zip file
-        </DropdownMenu.Item>
-      </DropdownMenu.Content>
+      {/* Content must be explicitly placed in a Portal -- Radix does NOT do
+          this on its own. Without it, Content renders inline in the header's
+          own stacking context, which puts it behind the resizable panes
+          (CodeMirror in particular establishes its own stacking context), not
+          floating above the page where its fixed positioning intends it. */}
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content className={styles.content} sideOffset={6} align="end">
+          <DropdownMenu.Item className={styles.item} onSelect={exportHtml}>
+            HTML file
+          </DropdownMenu.Item>
+          <DropdownMenu.Item className={styles.item} onSelect={exportZip}>
+            Zip file
+          </DropdownMenu.Item>
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
     </DropdownMenu.Root>
   );
 }

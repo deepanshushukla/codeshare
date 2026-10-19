@@ -105,28 +105,32 @@ export default function UsersMenu({ users, currentUserId, name, onNameChange, is
           </>
         )}
       </DropdownMenu.Trigger>
-      {/* Radix renders Content into a portal with no styling of its own, so
-          without a real surface here the menu is transparent text over the
-          page -- see UsersMenu.module.scss. */}
-      <DropdownMenu.Content className={styles.content} sideOffset={6} align="end">
-        {users.map((user) => (
-          <DropdownMenu.Item key={user.userId} className={styles.item} onSelect={(e) => e.preventDefault()}>
-            <input
-              value={user.userId === currentUserId ? name : user.name}
-              disabled={user.userId !== currentUserId}
-              onChange={(e) => onNameChange(e.target.value)}
-              // Radix's Menu primitive does roving-tabindex focus management and
-              // typeahead search at the Content/Item level, which otherwise
-              // intercepts arrow keys, letters, and Escape before they reach this
-              // input. Stop propagation so normal text editing works.
-              onKeyDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => e.stopPropagation()}
-              aria-label={`Display name${user.userId === currentUserId ? ' (yours)' : ''}`}
-            />
-          </DropdownMenu.Item>
-        ))}
-      </DropdownMenu.Content>
+      {/* Content must be explicitly placed in a Portal -- Radix does NOT do
+          this on its own. Without it, Content renders inline in the header's
+          own stacking context, which puts it behind the resizable panes
+          (CodeMirror in particular establishes its own stacking context), not
+          floating above the page where its fixed positioning intends it. */}
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content className={styles.content} sideOffset={6} align="end">
+          {users.map((user) => (
+            <DropdownMenu.Item key={user.userId} className={styles.item} onSelect={(e) => e.preventDefault()}>
+              <input
+                value={user.userId === currentUserId ? name : user.name}
+                disabled={user.userId !== currentUserId}
+                onChange={(e) => onNameChange(e.target.value)}
+                // Radix's Menu primitive does roving-tabindex focus management and
+                // typeahead search at the Content/Item level, which otherwise
+                // intercepts arrow keys, letters, and Escape before they reach this
+                // input. Stop propagation so normal text editing works.
+                onKeyDown={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+                aria-label={`Display name${user.userId === currentUserId ? ' (yours)' : ''}`}
+              />
+            </DropdownMenu.Item>
+          ))}
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
     </DropdownMenu.Root>
   );
 }
