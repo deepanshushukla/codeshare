@@ -11,9 +11,16 @@
   min-height: 0;
 }
 
+// `gap: 8px` + `padding: 8px` per the design handoff: each pane is a card
+// (14px radius + a `--line` border, set in EditorPane/ConsolePanel/
+// OutputPane.module.scss), and without a gutter around and between them the
+// rounded corners read as notches cut out of one continuous boundary rather
+// than as separated cards.
 .panes {
   flex: 1;
   min-height: 0;
+  gap: 8px;
+  padding: 8px;
 }
 
 // The mobile (<760px) single-pane host. Same `flex: 1` + `min-height: 0`
@@ -46,10 +53,15 @@
 
   // Widen only the hit/hover area, not the visible line -- a 1px line is
   // enough to read as a boundary; a 1px *target* is not enough to grab.
+  //
+  // `-8px` matches `.panes`' `gap`, which lands on either side of this
+  // separator: the visible 1px line sits centered in a 17px gutter, and this
+  // makes the grab target span exactly that gutter (previously -3px, sized
+  // for panes that butted flush together with no gap at all).
   &::after {
     content: '';
     position: absolute;
-    inset: 0 -3px;
+    inset: 0 -8px;
   }
 
   &:hover,
