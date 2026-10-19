@@ -6,14 +6,26 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
-  background: var(--acc);
-  color: var(--acc-ink);
+  // Inverted contrast per the handoff -- a dark pill on light themes, light on
+  // dark -- rather than the accent color, which this used to use (--acc /
+  // --acc-ink) and which read as a control rather than a transient notice.
+  background: var(--text);
+  color: var(--bg);
   border-radius: var(--radius-pill);
-  font-size: 0.85rem;
-  font-weight: 500;
+  font: 500 13px var(--font-mono);
   box-shadow: var(--shadow-overlay);
   z-index: 1000;
   pointer-events: none;
+  // `toastIn` lives in the global src/styles/motion.scss, so the keyframe name
+  // must be wrapped in `global(...)`: CSS Modules otherwise rewrites the
+  // animation-name token to this file's hashed local scope, where no matching
+  // @keyframes exists and the animation silently never runs.
+  //
+  // Its `translate(-50%, 16px)` -> `translate(-50%, 0)` matches this rule's
+  // own `translateX(-50%)` centering -- the keyframe was authored for exactly
+  // this element. One-shot entrance (fill-mode `both`), so it must NOT declare
+  // `animation-play-state: var(--play)`; see src/styles/motion.scss.
+  animation: global(toastIn) 0.25s ease both;
 }
 
 .icon {
