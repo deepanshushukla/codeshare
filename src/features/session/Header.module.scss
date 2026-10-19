@@ -102,6 +102,17 @@
   min-width: 0;
   display: flex;
   justify-content: flex-start;
+
+  // Below 760px the bottom MobileTabBar is the pane selector (see
+  // SessionWorkspace), so this row would be a second, differently-behaving
+  // copy of the same control on screen at once -- it toggles the desktop
+  // multi-pane `tabs` set, which the mobile layout does not read. Hidden
+  // rather than unmounted: `tabs` and the Alt+1-5 shortcut stay live, so
+  // crossing back over the breakpoint restores the pane set unchanged.
+  @media (max-width: 759px) {
+    display: none;
+  }
+
   align-items: center;
   overflow-x: auto;
   // Per CSS Overflow 3, pairing `auto` on one axis with `visible` on the other
