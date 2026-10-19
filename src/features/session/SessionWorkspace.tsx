@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 import { useSession, type ConnectionStatus } from './useSession';
 import { useSessionChannel } from './useSessionChannel';
-import { useTabsQueryParam, type TabsState } from './useTabsQueryParam';
+import { TAB_KEYS, useTabsQueryParam, type TabsState } from './useTabsQueryParam';
 import { usePresence } from './usePresence';
 import { useBreakpoint } from './useBreakpoint';
 import { ensureAnonymousSession } from '../../lib/supabase';
@@ -13,6 +13,7 @@ import ConsolePanel from './ConsolePanel';
 import Header from './Header';
 import MobileTabBar from './MobileTabBar';
 import ConnectionBanner from './ConnectionBanner';
+import StatusBar from './StatusBar';
 import styles from './SessionWorkspace.module.scss';
 
 // The three panes a Run should take the user *away* from on mobile: having
@@ -140,6 +141,12 @@ export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
 
   const bannerStatus: ConnectionStatus = authFailed ? 'auth-failed' : connectionStatus;
 
+  // Desktop pane count for the StatusBar footer -- counts from `tabs` (the
+  // desktop multi-select), not `mobileTab`, since StatusBar only ever renders
+  // in the desktop branch, where `tabs` is what actually drives the Group's
+  // panes.
+  const openCount = TAB_KEYS.filter((key) => tabs[key]).length;
+
   return (
     <div className={styles.workspace}>
       <Header
@@ -212,6 +219,10 @@ export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
           {visibleOutput && <Panel>{visibleOutput}</Panel>}
         </Group>
       )}
+      {/* Desktop-only footer -- mobile already has its own bottom bar
+          (MobileTabBar) just below, so this is never rendered there at all,
+          not merely hidden by CSS. */}
+      {!isMobile && <StatusBar openCount={openCount} />}
       {isMobile && <MobileTabBar active={mobileTab} onSelect={setMobileTab} />}
       {/* Mode-independent: `offscreenOutput` is already null whenever Output
           is the visible pane, in either layout. */}

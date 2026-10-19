@@ -1,0 +1,40 @@
+// Desktop-only footer bar, ported from the design handoff
+// (`CodeShare v2.dc.html`, lines 258-264). It is also gated at the JSX level
+// in SessionWorkspace (rendered only in the desktop branch) -- this
+// `display: none` below 760px is a backstop, not the only guard, in case the
+// breakpoint hook and the CSS media query ever briefly disagree mid-resize.
+.bar {
+  flex: none;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 16px;
+  border-top: 1px solid var(--line);
+  font: 500 11.5px var(--font-mono);
+  color: var(--faint);
+
+  @media (max-width: 759px) {
+    display: none;
+  }
+}
+
+.synced {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--acc-t);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--acc);
+}
+
+// Right-aligned theme name: the only item pushed away from the rest by
+// `margin-left: auto`, matching the handoff's layout exactly.
+.theme {
+  margin-left: auto;
+}
