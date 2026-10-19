@@ -133,6 +133,33 @@ describe('presence trigger', () => {
     expect(screen.queryByText('A')).not.toBeInTheDocument();
   });
 
+  test('caps the stack and keeps default-named users distinguishable', () => {
+    setWide(true);
+    renderHeader({
+      users: [
+        { userId: 'a', name: 'User_ab12', status: 'online' },
+        { userId: 'b', name: 'User_cd34', status: 'online' },
+        { userId: 'c', name: 'Mei Chen', status: 'online' },
+        { userId: 'd', name: 'Kenji', status: 'online' },
+        { userId: 'e', name: 'Sam', status: 'online' },
+        { userId: 'f', name: 'Zoe', status: 'online' },
+      ],
+      currentUserId: 'a',
+      name: 'User_ab12',
+    });
+
+    // `User_ab12`/`User_cd34` would both read "US" on a naive first-two-chars
+    // rule -- the whole room is default-named until someone renames.
+    expect(screen.getByText('UA')).toBeInTheDocument();
+    expect(screen.getByText('UC')).toBeInTheDocument();
+    expect(screen.getByText('MC')).toBeInTheDocument();
+    expect(screen.getByText('KE')).toBeInTheDocument();
+    // Beyond four avatars the rest collapse into a +N chip (all six are still
+    // listed in the dropdown).
+    expect(screen.queryByText('SA')).not.toBeInTheDocument();
+    expect(screen.getByText('+2')).toBeInTheDocument();
+  });
+
   test.each([
     ['wide avatar stack', true],
     ['compact fallback', false],
