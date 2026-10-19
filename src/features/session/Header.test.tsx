@@ -276,6 +276,27 @@ describe('pane tabs in the header', () => {
     expect(center).not.toContain('justify-content: center;');
     expect(center).toContain('margin-inline: auto;');
   });
+
+  test('.center stays the header flex spacer below 760px; only its contents hide', () => {
+    const scss = readFileSync(
+      path.join(path.dirname(fileURLToPath(import.meta.url)), 'Header.module.scss'),
+      'utf8',
+    );
+    const center = scss.slice(scss.indexOf('.center {'), scss.indexOf('.actions {'));
+    // `.center` is the header's ONLY `flex: 1` child -- `.logo`, `.roomChip`
+    // and `.actions` are all `flex: none`. `display: none` on the element
+    // itself (what this used to do) removed the sole flexible spacer, bunching
+    // every control against the left edge with dead space to the right of Run.
+    // The tab row inside it is what must hide at that width, not the box.
+    expect(center).toContain('flex: 1;');
+
+    const narrow = center.slice(center.indexOf('@media (max-width: 759px)'));
+    expect(narrow).toContain('display: none;');
+    // The hide must live inside the `> *` child block, which starts before the
+    // media query -- i.e. the media query is nested in the child rule, not a
+    // direct child of `.center`.
+    expect(center.indexOf('> *')).toBeLessThan(center.indexOf('@media (max-width: 759px)'));
+  });
 });
 
 test('opens the theme drawer from the header theme button', async () => {
