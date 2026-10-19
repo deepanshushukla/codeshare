@@ -114,6 +114,25 @@ test('tells the user when copying the room link failed instead of claiming succe
   expect(screen.queryByText(/room link copied/i)).not.toBeInTheDocument();
 });
 
+test.each([
+  // Below 760px SessionWorkspace renders the ~76px MobileTabBar along the
+  // bottom edge; at the desktop 28px offset the toast paints over its middle
+  // segments, so it has to be lifted clear of it.
+  { label: 'clears the mobile bottom tab bar', isMobile: true, bottom: '96px' },
+  { label: 'sits just above the desktop status bar', isMobile: false, bottom: '28px' },
+])('the toast $label', async ({ isMobile, bottom }) => {
+  mockMatchMedia((query) => (query.includes('max-width: 759px') ? isMobile : false));
+  Object.assign(navigator, { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } });
+  renderHeader();
+
+  fireEvent.click(screen.getByTitle(/copy room link/i));
+
+  // Toast positions itself with an inline `bottom`, so the rendered style is
+  // the honest assertion -- Header picking the right offset is the behavior.
+  const toast = (await screen.findByText(/room link copied/i)).parentElement;
+  expect(toast).toHaveStyle({ bottom });
+});
+
 describe('presence trigger', () => {
   test('shows an overlapping avatar per present user at wide widths, with the current user styled distinctly', () => {
     setWide(true);

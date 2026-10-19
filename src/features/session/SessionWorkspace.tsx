@@ -17,8 +17,13 @@ import styles from './SessionWorkspace.module.scss';
 
 // The three panes a Run should take the user *away* from on mobile: having
 // pressed Run from an editor, what they want to see next is the result.
-// Console and Output are already showing output, so a Run from either stays
-// put rather than yanking the pane out from under them.
+//
+// DELIBERATE NARROWING of the plan's literal `mobileTab !== 'output'`: this
+// excludes 'console' as well as 'output'. Both already show the result of a
+// run, and the Console pane in particular is where someone reads log output
+// and re-runs from the REPL -- switching away from it mid-Run would yank away
+// the pane they are actively reading. Pinned by a test
+// ("mobile Run from the Console pane stays on Console").
 const MOBILE_EDITOR_TABS: (keyof TabsState)[] = ['html', 'css', 'js'];
 
 // react-resizable-panels v4 renamed the old PanelGroup/Panel/PanelResizeHandle
@@ -83,7 +88,8 @@ export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
     // depends on its identity), so a closed-over `mobileTab` would be exactly
     // the stale value that makes the auto-switch work once and then stop.
     // Returning `current` unchanged is a React state bail-out, so a Run from
-    // Console/Output costs no extra render.
+    // Console/Output costs no extra render. See MOBILE_EDITOR_TABS above for
+    // why Console is excluded from the auto-switch, not just Output.
     setMobileTab((current) => (MOBILE_EDITOR_TABS.includes(current) ? 'output' : current));
   }, [isMobile]);
 

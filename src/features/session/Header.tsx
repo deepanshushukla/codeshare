@@ -14,9 +14,12 @@ import { useToast } from './useToast';
 import { useBreakpoint } from './useBreakpoint';
 import styles from './Header.module.scss';
 
-// Clears the (desktop) status bar added by this plan's later task. A mobile
-// layout may want a different value once the bottom tab bar lands.
+// How far off the bottom of the viewport the toast floats, per layout.
+// Desktop clears the status bar added by this plan's later task; mobile has to
+// clear the ~76px bottom MobileTabBar (SessionWorkspace renders it below 760px)
+// -- at the desktop offset the toast paints straight over its middle segments.
 const TOAST_BOTTOM_OFFSET = 28;
+const TOAST_BOTTOM_OFFSET_MOBILE = 96;
 
 type Props = {
   roomId: string;
@@ -68,8 +71,10 @@ export default function Header({
   const { message: toast, showToast } = useToast();
   const [themeDrawerOpen, setThemeDrawerOpen] = useState(false);
   // Only the avatar-stack *visual* is gated on >=1100px; UsersMenu's rename
-  // dropdown is reachable from either trigger (see UsersMenu.tsx).
-  const { isWide } = useBreakpoint();
+  // dropdown is reachable from either trigger (see UsersMenu.tsx). `isMobile`
+  // is read from the same call purely to raise the toast above the bottom tab
+  // bar -- the header's own mobile adaptations are all CSS.
+  const { isWide, isMobile } = useBreakpoint();
 
   const copyRoomLink = useCallback(async () => {
     // The chip shows the room's real route (`/code/:sessionId`) and copies the
@@ -129,7 +134,7 @@ export default function Header({
       </div>
 
       <ThemeDrawer open={themeDrawerOpen} onClose={() => setThemeDrawerOpen(false)} />
-      <Toast message={toast} bottomOffset={TOAST_BOTTOM_OFFSET} />
+      <Toast message={toast} bottomOffset={isMobile ? TOAST_BOTTOM_OFFSET_MOBILE : TOAST_BOTTOM_OFFSET} />
     </header>
   );
 }
