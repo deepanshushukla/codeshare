@@ -1,0 +1,51 @@
+// Mirrors EditorPane.module.scss's .pane/.header pattern (see that file) so
+// the Output pane reads as the same kind of region as an editor pane, with a
+// reload button taking the place of the line-count readout. Matches the
+// design handoff's output pane header (design_handoff_codeshare, ~line 249).
+.pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--ed);
+}
+
+.header {
+  height: 36px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px 0 12px;
+  border-bottom: 1px solid var(--line);
+  font: 500 12px var(--font-mono);
+  color: var(--muted);
+}
+
+.glyph {
+  font-weight: 600;
+}
+
+.reloadButton {
+  margin-left: auto;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--faint);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--bg3);
+    color: var(--text);
+  }
+}
+
+.frameHost {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  background: #fff;
+}

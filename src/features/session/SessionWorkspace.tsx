@@ -7,6 +7,7 @@ import { usePresence } from './usePresence';
 import { ensureAnonymousSession } from '../../lib/supabase';
 import EditorPane from './EditorPane';
 import OutputFrame from './OutputFrame';
+import OutputPane from './OutputPane';
 import ConsolePanel from './ConsolePanel';
 import Header from './Header';
 import ConnectionBanner from './ConnectionBanner';
@@ -123,7 +124,24 @@ export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
           </Panel>
         )}
         {tabs.console && tabs.output && <Separator className={styles.separator} />}
-        {tabs.output && <Panel>{outputFrame}</Panel>}
+        {/* Header-wrapped OutputPane is only for this visible, on-tab
+            instance -- the off-screen mount below keeps using the bare
+            `outputFrame` (OutputFrame, unmodified), since it has no visible
+            chrome to put a header on. */}
+        {tabs.output && (
+          <Panel>
+            <OutputPane
+              html={html}
+              css={css}
+              js={js}
+              runToken={runToken}
+              onRun={handleRun}
+              onWindowReady={(win) => {
+                iframeWindowRef.current = win;
+              }}
+            />
+          </Panel>
+        )}
       </Group>
       {!tabs.output && outputFrame && (
         <div className={styles.offscreenOutput} aria-hidden="true">
