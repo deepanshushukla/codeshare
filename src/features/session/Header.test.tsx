@@ -1,5 +1,8 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Header from './Header';
@@ -128,8 +131,11 @@ describe('presence trigger', () => {
     setWide(false);
     renderHeader({ users: [{ userId: 'a', name: 'A', status: 'online' }] });
 
-    expect(screen.getByRole('button', { name: /users in this session/i })).toBeInTheDocument();
-    expect(screen.getByText('1')).toBeInTheDocument();
+    const trigger = screen.getByRole('button', { name: /users in this session/i });
+    expect(trigger).toBeInTheDocument();
+    // Scoped to the trigger: the pane tabs carry Alt+N badges that also render
+    // a bare "1".
+    expect(within(trigger).getByText('1')).toBeInTheDocument();
     expect(screen.queryByText('A')).not.toBeInTheDocument();
   });
 
@@ -207,6 +213,50 @@ test('runs the code and flashes the Run button', () => {
 
   expect(onRun).toHaveBeenCalledTimes(1);
   expect(container.querySelector('[data-run-flash]')).not.toBeNull();
+});
+
+test('Ctrl+Enter runs and flashes too, not just the click', () => {
+  const onRun = vi.fn();
+  const { container } = renderHeader({ onRun });
+
+  fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true });
+
+  expect(onRun).toHaveBeenCalledTimes(1);
+  // The keyboard is the more frequent path; without this it fired silently.
+  expect(container.querySelector('[data-run-flash]')).not.toBeNull();
+});
+
+describe('pane tabs in the header', () => {
+  test('carry an Alt+N badge without it leaking into the accessible name', () => {
+    renderHeader();
+
+    // The badge digit is decoration for the shortcut Header owns; the button
+    // must still be addressable as "Output", not "5 Output" (which is what
+    // SessionWorkspace's own tests, and any screen-reader user, rely on).
+    const output = screen.getByRole('button', { name: 'Output' });
+    expect(output).toHaveAttribute('aria-keyshortcuts', 'Alt+5');
+    expect(output).toHaveTextContent('5');
+  });
+
+  // jsdom loads no CSS and computes no layout, so the actual overflow
+  // behavior below cannot be exercised here -- this asserts the declaration
+  // that makes it correct, in the same source-text style as
+  // src/styles/reducedMotion.test.ts.
+  test('the tab row stays scrollable to its left end when the header is narrow', () => {
+    const scss = readFileSync(
+      path.join(path.dirname(fileURLToPath(import.meta.url)), 'Header.module.scss'),
+      'utf8',
+    );
+    const center = scss.slice(scss.indexOf('.center {'), scss.indexOf('.actions {'));
+
+    // `justify-content: center` would split the *negative* free space of an
+    // overflowing row across both sides, and no scroll gesture can reach a
+    // negative scrollLeft -- the HTML/CSS/JS tabs would be clipped away for
+    // good. Auto margins on the row collapse to 0 instead.
+    expect(center).toContain('justify-content: flex-start;');
+    expect(center).not.toContain('justify-content: center;');
+    expect(center).toContain('margin-inline: auto;');
+  });
 });
 
 test('opens the theme drawer from the header theme button', async () => {

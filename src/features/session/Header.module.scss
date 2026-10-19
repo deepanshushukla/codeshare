@@ -88,18 +88,40 @@
 
 // Takes the slack between the chip and the right-hand controls, and scrolls
 // rather than squeezing the tab row when the header gets tight.
+//
+// `justify-content` is deliberately NOT `center`: flex centering splits
+// *negative* free space across both sides, and a scroll container cannot
+// scroll to a negative scrollLeft -- so once the tab row is wider than this
+// box (around a 400px viewport) its left end, HTML/CSS/JS, would be clipped
+// off and unreachable by any scroll gesture. Start-aligned + `margin-inline:
+// auto` on the row itself behaves identically when there IS free space (auto
+// margins absorb it symmetrically) and collapses to 0 when there is not,
+// leaving the whole row scrollable.
 .center {
   flex: 1;
   min-width: 0;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
+  align-items: center;
   overflow-x: auto;
+  // Per CSS Overflow 3, pairing `auto` on one axis with `visible` on the other
+  // computes that `visible` to `auto` -- overflow-y here is a scroll box
+  // whether it is declared or not, so it cannot simply be opted out of.
+  // 4px of block padding gives the tab row's focus ring (2px outline at 1px
+  // offset) room inside the scroll box instead of being clipped by it.
+  padding-block: var(--space-1);
   // Hides the horizontal scrollbar that would otherwise sit inside the 56px
   // bar; the row is still scrollable by wheel/trackpad/touch.
   scrollbar-width: none;
 
   &::-webkit-scrollbar {
     display: none;
+  }
+
+  // The tab row is TabBar's own root element, so it is reached as a child
+  // rather than by class name (CSS Modules scopes each file's classes).
+  > * {
+    margin-inline: auto;
   }
 }
 
