@@ -12,10 +12,39 @@ let nextId = 0;
 // constant amount of memory and render work.
 export const MAX_CONSOLE_ENTRIES = 500;
 
-function appendCapped(entries: ConsoleEntry[], entry: ConsoleEntry): ConsoleEntry[] {
+// 'input' is a local-only echo of what the user typed into the REPL -- it is
+// never sent by the sandbox bridge (see sandbox.ts), so it is not part of
+// ConsoleEntry['level']. It's appended through the same appendCapped() path
+// as every bridge-sourced entry so it counts toward, and is capped by, the
+// same 500-entry limit as everything else.
+type DisplayEntry = { id: string; level: ConsoleEntry['level'] | 'input'; args: unknown[] };
+
+function appendCapped(entries: DisplayEntry[], entry: DisplayEntry): DisplayEntry[] {
   const next = entries.length < MAX_CONSOLE_ENTRIES ? entries : entries.slice(entries.length - MAX_CONSOLE_ENTRIES + 1);
   return [...next, entry];
 }
+
+const LEVEL_GLYPH: Record<DisplayEntry['level'], string> = {
+  log: '',
+  info: 'i',
+  warn: '!',
+  error: '×',
+  input: '❯',
+  result: '←',
+};
+
+// Maps a level to its CSS module class. Deliberately not a bare
+// `styles[entry.level]` index: the module also has an unrelated `.input`
+// class for the REPL textarea itself, so the 'input' *level* is styled via
+// `.echo` instead to avoid colliding with that class name.
+const LEVEL_CLASS: Record<DisplayEntry['level'], string> = {
+  log: styles.log,
+  info: styles.info,
+  warn: styles.warn,
+  error: styles.error,
+  input: styles.echo,
+  result: styles.outcome,
+};
 
 // Listens for postMessage traffic from the sandboxed output iframe (see
 // sandbox.ts / OutputFrame.tsx) and renders it. There is no eval() or other
@@ -26,9 +55,11 @@ function appendCapped(entries: ConsoleEntry[], entry: ConsoleEntry): ConsoleEntr
 // The REPL input below does not execute anything itself either: on Enter
 // it calls `onRepl`, which the parent (SessionWorkspace) forwards via
 // postMessage to the sandboxed iframe's own `eval` (inside the bridge
-// script in sandbox.ts) -- the only place user code ever runs.
+// script in sandbox.ts) -- the only place user code ever runs. The entry it
+// adds locally for the typed command ('input' level) is purely cosmetic
+// echo text, not anything that gets executed in this window.
 export default function ConsolePanel({ onRepl }: { onRepl: (code: string) => void }) {
-  const [entries, setEntries] = useState<ConsoleEntry[]>([]);
+  const [entries, setEntries] = useState<DisplayEntry[]>([]);
   const [input, setInput] = useState('');
 
   useEffect(() => {
@@ -45,15 +76,20 @@ export default function ConsolePanel({ onRepl }: { onRepl: (code: string) => voi
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
+  function submit() {
+    const code = input;
+    if (!code.trim()) return;
+    setEntries((prev) => appendCapped(prev, { id: String(nextId++), level: 'input', args: [code] }));
+    onRepl(code);
+    setInput('');
+  }
+
   // Enter submits (preventDefault before the textarea inserts its own
   // newline); Shift+Enter inserts a newline, like Chrome DevTools' console.
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (input.trim()) {
-        onRepl(input);
-        setInput('');
-      }
+      submit();
     }
   }
 
@@ -63,7 +99,29 @@ export default function ConsolePanel({ onRepl }: { onRepl: (code: string) => voi
 
   return (
     <div className={styles.console}>
-      <div className={styles.title}>Console</div>
+      <div className={styles.title}>
+        <span className={styles.titleLabel}>❯_ console {entries.length}</span>
+        <button type="button" className={styles.clearButton} onClick={() => setEntries([])}>
+          clear
+        </button>
+      </div>
+      <div className={styles.entries}>
+        {entries.length === 0 ? (
+          <div className={styles.empty}>
+            <div>// Press Run or Ctrl + Enter.</div>
+            <div>// Logs from your code land here.</div>
+          </div>
+        ) : (
+          entries.map((entry) => (
+            <div key={entry.id} className={`${styles.entry} ${LEVEL_CLASS[entry.level]}`}>
+              <span className={styles.glyph}>{LEVEL_GLYPH[entry.level]}</span>
+              <span className={styles.text}>
+                {entry.args.map((arg) => (typeof arg === 'string' ? arg : JSON.stringify(arg))).join(' ')}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
       <textarea
         aria-label="Console input"
         className={styles.input}
@@ -73,13 +131,6 @@ export default function ConsolePanel({ onRepl }: { onRepl: (code: string) => voi
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
       />
-      <div className={styles.entries}>
-        {entries.map((entry) => (
-          <div key={entry.id} className={styles[entry.level]}>
-            {entry.args.map((arg) => (typeof arg === 'string' ? arg : JSON.stringify(arg))).join(' ')}
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

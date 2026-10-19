@@ -9,11 +9,36 @@
 }
 
 .title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
   padding: 0.25rem 0.5rem;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-bg-raised);
   font-size: 0.75rem;
+}
+
+.titleLabel {
+  font-family: var(--font-mono);
   opacity: 0.7;
+}
+
+.clearButton {
+  border: none;
+  background: transparent;
+  color: var(--faint, var(--color-text));
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: lowercase;
+  cursor: pointer;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius);
+
+  &:hover {
+    color: var(--color-text);
+    background: var(--color-bg-hover);
+  }
 }
 
 .input {
@@ -21,7 +46,7 @@
   width: 100%;
   padding: var(--space-1) var(--space-2);
   border: none;
-  border-bottom: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border);
   background: var(--color-bg-raised);
   color: var(--color-text);
   font-family: var(--font-mono);
@@ -35,7 +60,7 @@
   overflow-y: auto;
 
   &:focus-visible {
-    box-shadow: inset 0 -2px 0 var(--color-accent);
+    box-shadow: inset 0 2px 0 var(--color-accent);
   }
 
   &::placeholder {
@@ -51,28 +76,74 @@
   padding: var(--space-2);
   font-family: var(--font-mono);
   font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
 }
 
-.log,
-.info,
-.warn,
-.error {
-  padding: 0.25rem 0;
+.empty {
+  color: var(--faint, var(--color-text));
+  opacity: 0.7;
+  line-height: 1.6;
+}
+
+.entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.1875rem 0.5rem;
   border-bottom: 1px solid var(--color-border);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  line-height: 1.6;
 
   &:first-child {
-    padding-top: 0;
+    padding-top: 0.1875rem;
   }
 }
-.log,
+
+.glyph {
+  flex: none;
+  width: 0.75rem;
+  text-align: center;
+  opacity: 0.8;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+}
+
+// Base per-level treatment: text color + optional tinted background and
+// accent left-edge, per the console handoff's level/style (LS) table.
+.log {
+  color: var(--text, var(--color-text));
+}
+
 .info {
-  opacity: 0.9;
+  color: var(--acc-t, var(--color-accent));
+  border-left: 2px solid var(--acc, var(--color-accent));
 }
+
 .warn {
-  color: #caa23a;
+  color: var(--warn);
+  background: color-mix(in oklch, var(--warn) 15%, transparent);
+  border-left: 2px solid var(--warn);
 }
+
 .error {
-  color: #e05252;
+  color: var(--err);
+  background: color-mix(in oklch, var(--err) 15%, transparent);
+  border-left: 2px solid var(--err);
+}
+
+// Named echo/outcome rather than input/result to avoid colliding with the
+// .input class above (the REPL textarea) -- ConsolePanel.tsx maps
+// entry.level to these via a dedicated LEVEL_CLASS lookup, not a bare
+// styles[level] index, specifically to keep these two apart.
+.echo {
+  color: var(--muted, var(--color-text));
+}
+
+.outcome {
+  color: var(--faint, var(--color-text));
 }

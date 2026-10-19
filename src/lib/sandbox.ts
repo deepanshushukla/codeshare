@@ -11,7 +11,7 @@
 // executed only because the browser parses and runs a <script> tag inside
 // this separately-sandboxed document, exactly as it would for any other
 // HTML page.
-export type ConsoleEntry = { id: string; level: 'log' | 'warn' | 'error' | 'info'; args: unknown[] };
+export type ConsoleEntry = { id: string; level: 'log' | 'warn' | 'error' | 'info' | 'result'; args: unknown[] };
 
 export type SandboxMessage =
   | { type: 'console'; level: ConsoleEntry['level']; args: unknown[] }
@@ -49,9 +49,9 @@ const BRIDGE_SCRIPT = `
   window.addEventListener('message', function (event) {
     if (event.data && event.data.type === 'repl') {
       try {
-        console.log(eval(event.data.code));
+        parent.postMessage({ type: 'console', level: 'result', args: [eval(event.data.code)] }, '*');
       } catch (err) {
-        console.error(err);
+        parent.postMessage({ type: 'console', level: 'error', args: [err] }, '*');
       }
     }
   });

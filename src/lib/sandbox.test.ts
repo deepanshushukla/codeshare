@@ -20,4 +20,10 @@ describe('buildSandboxDocument', () => {
     expect(doc).toContain("type: 'console'");
     expect(doc).toMatch(/console\.(log|error|warn|info)\s*=/);
   });
+
+  test('posts a result-level console message for a successful REPL eval, not a log-level one', () => {
+    const doc = buildSandboxDocument('', '', '');
+    expect(doc).toContain("level: 'result'");
+    expect(doc).not.toMatch(/console\.log\(eval\(/);
+  });
 });

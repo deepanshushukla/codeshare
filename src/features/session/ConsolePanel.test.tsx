@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ConsolePanel, { MAX_CONSOLE_ENTRIES } from './ConsolePanel';
 
@@ -51,5 +51,33 @@ describe('ConsolePanel', () => {
     await userEvent.type(input, '{Enter}');
     expect(onRepl).toHaveBeenCalledWith('line1\nline2');
     expect(input.value).toBe('');
+  });
+
+  test('echoes the submitted input as its own row before the result arrives', () => {
+    const onRepl = vi.fn();
+    render(<ConsolePanel onRepl={onRepl} />);
+    const input = screen.getByLabelText('Console input');
+    fireEvent.change(input, { target: { value: '1+1' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(screen.getByText('1+1')).toBeInTheDocument();
+    expect(onRepl).toHaveBeenCalledWith('1+1');
+  });
+
+  test('shows the empty-state copy when there are no entries, and clears entries on Clear', () => {
+    render(<ConsolePanel onRepl={() => {}} />);
+    expect(screen.getByText(/Press Run or Ctrl \+ Enter/)).toBeInTheDocument();
+    fireEvent(window, new MessageEvent('message', { data: { type: 'console', level: 'warn', args: ['careful'] } }));
+    expect(screen.getByText('careful')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /clear/i }));
+    expect(screen.queryByText('careful')).not.toBeInTheDocument();
+  });
+
+  test('still caps entries at 500 after the restyle', () => {
+    render(<ConsolePanel onRepl={() => {}} />);
+    for (let i = 0; i < 520; i++) {
+      fireEvent(window, new MessageEvent('message', { data: { type: 'console', level: 'log', args: [String(i)] } }));
+    }
+    expect(screen.queryByText('0')).not.toBeInTheDocument();
+    expect(screen.getByText('519')).toBeInTheDocument();
   });
 });
