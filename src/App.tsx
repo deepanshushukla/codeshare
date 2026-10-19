@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import Landing from './routes/Landing';
 import NotFound from './routes/NotFound';
 import SessionRoute from './routes/SessionRoute';
@@ -21,6 +22,7 @@ export default function App() {
           <RoomTransitionOverlay />
         </RoomTransitionProvider>
       </ThemeProvider>
+      <Analytics />
     </BrowserRouter>
   );
 }
