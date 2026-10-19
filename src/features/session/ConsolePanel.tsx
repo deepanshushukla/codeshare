@@ -46,6 +46,27 @@ const LEVEL_CLASS: Record<DisplayEntry['level'], string> = {
   result: styles.outcome,
 };
 
+// Renders one console argument as display text.
+//
+// `JSON.stringify` alone (what this used to be) degrades the REPL's two most
+// common outcomes:
+//   - A thrown Error serializes to `{}`, because `name`/`message`/`stack` are
+//     all non-enumerable -- so `throw new Error('boom')` rendered as `× {}`.
+//   - `undefined` is the *value* `JSON.stringify` returns for `undefined`
+//     (not a string), and the surrounding `.join(' ')` turned that into an
+//     empty string -- so every statement that evaluates to undefined (`let
+//     x = 5`, most assignments, a trailing `console.log(...)`) rendered as a
+//     blank row carrying nothing but the `←` glyph.
+// Everything else (strings verbatim, plain objects/arrays/numbers via JSON)
+// is unchanged. This is display-only: the sandbox bridge in lib/sandbox.ts
+// decides what is sent, and is deliberately not touched here.
+function formatArg(arg: unknown): string {
+  if (typeof arg === 'string') return arg;
+  if (arg === undefined) return 'undefined';
+  if (arg instanceof Error) return `${arg.name}: ${arg.message}`;
+  return JSON.stringify(arg);
+}
+
 // Listens for postMessage traffic from the sandboxed output iframe (see
 // sandbox.ts / OutputFrame.tsx) and renders it. There is no eval() or other
 // dynamic code execution here -- this component only reads plain data
@@ -116,7 +137,7 @@ export default function ConsolePanel({ onRepl }: { onRepl: (code: string) => voi
             <div key={entry.id} className={`${styles.entry} ${LEVEL_CLASS[entry.level]}`}>
               <span className={styles.glyph}>{LEVEL_GLYPH[entry.level]}</span>
               <span className={styles.text}>
-                {entry.args.map((arg) => (typeof arg === 'string' ? arg : JSON.stringify(arg))).join(' ')}
+                {entry.args.map(formatArg).join(' ')}
               </span>
             </div>
           ))

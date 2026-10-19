@@ -72,6 +72,48 @@ describe('ConsolePanel', () => {
     expect(screen.queryByText('careful')).not.toBeInTheDocument();
   });
 
+  // Argument rendering used to be `typeof arg === 'string' ? arg :
+  // JSON.stringify(arg)`, which degraded the REPL's two most common outcomes.
+  describe('argument serialization', () => {
+    function postResult(args: unknown[]) {
+      act(() =>
+        window.dispatchEvent(new MessageEvent('message', { data: { type: 'console', level: 'result', args } })),
+      );
+    }
+
+    test('an Error result renders "Error: <message>", not the empty object JSON.stringify produces', () => {
+      // Error's name/message/stack are all non-enumerable, so
+      // JSON.stringify(new Error('boom')) is "{}" -- `throw new Error('boom')`
+      // used to render as a bare "× {}".
+      render(<ConsolePanel onRepl={vi.fn()} />);
+      postResult([new Error('boom')]);
+      expect(screen.getByText('Error: boom')).toBeInTheDocument();
+      expect(screen.queryByText('{}')).not.toBeInTheDocument();
+    });
+
+    test('an Error subclass keeps its own name', () => {
+      render(<ConsolePanel onRepl={vi.fn()} />);
+      postResult([new TypeError('x is not a function')]);
+      expect(screen.getByText('TypeError: x is not a function')).toBeInTheDocument();
+    });
+
+    test('an undefined result renders the literal text "undefined", not a blank row', () => {
+      // JSON.stringify(undefined) returns the *value* undefined (not a
+      // string), which `.join(' ')` collapsed to '' -- so `let x = 5` and
+      // every other undefined-valued statement rendered as an empty row
+      // carrying nothing but the `←` glyph.
+      render(<ConsolePanel onRepl={vi.fn()} />);
+      postResult([undefined]);
+      expect(screen.getByText('undefined')).toBeInTheDocument();
+    });
+
+    test('strings, numbers, null and plain objects are unchanged', () => {
+      render(<ConsolePanel onRepl={vi.fn()} />);
+      postResult(['plain', 42, null, { a: 1 }]);
+      expect(screen.getByText('plain 42 null {"a":1}')).toBeInTheDocument();
+    });
+  });
+
   test('still caps entries at 500 after the restyle', () => {
     render(<ConsolePanel onRepl={() => {}} />);
     for (let i = 0; i < 520; i++) {
