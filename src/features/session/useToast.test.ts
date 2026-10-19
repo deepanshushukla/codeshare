@@ -29,4 +29,18 @@ describe('useToast', () => {
     expect(result.current.message).toBeNull();
     vi.useRealTimers();
   });
+
+  it('clears pending timer on unmount', () => {
+    vi.useFakeTimers();
+    const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
+    const { result, unmount } = renderHook(() => useToast());
+    act(() => result.current.showToast('Test message'));
+    expect(result.current.message).toBe('Test message');
+    // Unmount should trigger the cleanup
+    unmount();
+    // Verify clearTimeout was called to clean up the pending timer
+    expect(clearTimeoutSpy).toHaveBeenCalled();
+    clearTimeoutSpy.mockRestore();
+    vi.useRealTimers();
+  });
 });

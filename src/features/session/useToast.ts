@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 export function useToast() {
   const [message, setMessage] = useState<string | null>(null);
@@ -18,6 +18,15 @@ export function useToast() {
       setMessage(null);
       hideTimerRef.current = null;
     }, 2000);
+  }, []);
+
+  // Clean up any pending timer on unmount
+  useEffect(() => {
+    return () => {
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+      }
+    };
   }, []);
 
   return { message, showToast };
