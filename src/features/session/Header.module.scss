@@ -1,18 +1,110 @@
+// Room header, ported from the design handoff (`CodeShare v2.dc.html`,
+// ~lines 163-204): a fixed 56px bar holding the logo, the copy-room-link
+// chip, the centered pane-tab row, and the presence/theme/export/run
+// controls.
 .header {
+  flex: none;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg-raised);
+  gap: 10px;
+  height: 56px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
 }
-.brand {
-  font-weight: 600;
+
+.logo {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px;
+  border-radius: var(--radius-btn);
+  color: var(--text);
+  font: 800 14px var(--font-display);
+  letter-spacing: -0.02em;
   text-decoration: none;
-  color: var(--color-text);
+
+  &:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 1px;
+  }
 }
+
+.brace {
+  color: var(--acc);
+}
+
+// Below 760px the braces alone carry the mark, so the header has room for the
+// controls on the right.
+.wordmark {
+  @media (max-width: 759px) {
+    display: none;
+  }
+}
+
+// Dashed to read as "a link you can take with you" rather than a control that
+// changes the room; it solidifies on hover.
+.roomChip {
+  box-sizing: border-box;
+  height: 32px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 11px;
+  border: 1px dashed var(--line2);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: 500 12px var(--font-mono);
+  cursor: pointer;
+  transition: border-color 0.2s ease, border-style 0.2s ease, color 0.2s ease;
+
+  &:hover {
+    border-style: solid;
+    border-color: var(--acc);
+    color: var(--text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 1px;
+  }
+}
+
+.roomPath {
+  // Shown only at >=1100px; the copy icon is the whole chip below that.
+  display: none;
+
+  @media (min-width: 1100px) {
+    display: inline;
+  }
+}
+
+.roomPrefix {
+  color: var(--faint);
+}
+
+// Takes the slack between the chip and the right-hand controls, and scrolls
+// rather than squeezing the tab row when the header gets tight.
+.center {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;
+  // Hides the horizontal scrollbar that would otherwise sit inside the 56px
+  // bar; the row is still scrollable by wheel/trackpad/touch.
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 .actions {
+  flex: none;
   display: flex;
   align-items: center;
   gap: var(--space-2);

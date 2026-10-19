@@ -83,6 +83,7 @@ export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
   return (
     <div className={styles.workspace}>
       <Header
+        roomId={sessionId}
         tabs={tabs}
         toggleTab={toggleTab}
         users={users}

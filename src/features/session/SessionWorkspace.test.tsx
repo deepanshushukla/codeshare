@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import SessionWorkspace from './SessionWorkspace';
+import { ThemeProvider } from '../theme/ThemeProvider';
 import { getChannels, mockConfig, resetSupabaseMock, soleChannel } from '../../test/supabaseMock';
 
 // Shared mock, which reproduces the two SDK behaviours the old bespoke stubs
@@ -14,10 +15,15 @@ beforeEach(() => {
   resetSupabaseMock();
 });
 
+// ThemeProvider is required, not decorative: the redesigned Header renders
+// ThemeButton/ThemeDrawer, and useTheme() throws outside a provider (App.tsx
+// wraps every route in one).
 function renderWorkspace() {
   return render(
     <MemoryRouter initialEntries={['/code/abc']}>
-      <SessionWorkspace sessionId="abc" />
+      <ThemeProvider>
+        <SessionWorkspace sessionId="abc" />
+      </ThemeProvider>
     </MemoryRouter>,
   );
 }
