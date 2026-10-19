@@ -37,7 +37,19 @@ export function avatarInitials(displayName: string): string {
   return (words[0] ?? '').slice(0, 2).toUpperCase() || '?';
 }
 
-function AvatarStack({ users, currentUserId, name }: Omit<Props, 'onNameChange' | 'isWide'>) {
+function avatarStyleFor(userId: string) {
+  const { bg, ink } = avatarColorFor(userId);
+  return { background: bg, color: ink };
+}
+
+type AvatarStackProps = {
+  users: PresenceUser[];
+  currentUserId: string | null;
+  // The live local display name, used for the current user's own avatar.
+  name: string;
+};
+
+function AvatarStack({ users, currentUserId, name }: AvatarStackProps) {
   const shown = users.slice(0, MAX_AVATARS);
   const overflow = users.length - shown.length;
 
@@ -48,15 +60,15 @@ function AvatarStack({ users, currentUserId, name }: Omit<Props, 'onNameChange' 
         // `name` is the live local value for yourself (presence echo can lag a
         // keystroke behind), exactly as the rename input below uses it.
         const label = isSelf ? name || user.name : user.name;
-        const color = avatarColorFor(user.userId);
         return (
           <span
             key={user.userId}
             className={styles.avatar}
             data-status={user.status}
-            // The current user is deliberately NOT given a hashed color: they
-            // read as "you" by carrying the live theme accent.
-            style={isSelf ? { background: 'var(--acc)', color: 'var(--acc-ink)' } : { background: color.bg, color: color.ink }}
+            // The current user is deliberately NOT given a hashed color (and
+            // so does not pay for one): they read as "you" by carrying the
+            // live theme accent.
+            style={isSelf ? { background: 'var(--acc)', color: 'var(--acc-ink)' } : avatarStyleFor(user.userId)}
           >
             {avatarInitials(label)}
           </span>

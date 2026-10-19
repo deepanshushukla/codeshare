@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Play } from 'lucide-react';
 import styles from './RunControls.module.scss';
 
@@ -20,22 +20,25 @@ export default function RunControls({ onRun }: { onRun: () => void }) {
   const [flashing, setFlashing] = useState(false);
   const [flashKey, setFlashKey] = useState(0);
 
-  function handleRun() {
+  const handleRun = useCallback(() => {
     setFlashKey((k) => k + 1);
     setFlashing(true);
     onRun();
-  }
+  }, [onRun]);
 
+  // Ctrl/Cmd+Enter goes through handleRun, not onRun directly: the keyboard is
+  // the more frequent path, and it needs the same visual confirmation that the
+  // run fired as a click gets.
   useEffect(() => {
     function handleKeydown(e: KeyboardEvent) {
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
-        onRun();
+        handleRun();
       }
     }
     window.addEventListener('keydown', handleKeydown);
     return () => window.removeEventListener('keydown', handleKeydown);
-  }, [onRun]);
+  }, [handleRun]);
 
   return (
     <button

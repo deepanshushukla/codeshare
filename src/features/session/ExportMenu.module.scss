@@ -4,6 +4,15 @@
   @include controls.room-control;
 
   gap: 7px;
+
+  // Icon-only below 760px: without dropping the horizontal padding the button
+  // stays ~39px wide and sits a few pixels off the 36px square theme button
+  // beside it.
+  @media (max-width: 759px) {
+    width: 36px;
+    padding: 0;
+    justify-content: center;
+  }
 }
 
 // Icon-only below 760px -- the header runs out of room there, and the download
