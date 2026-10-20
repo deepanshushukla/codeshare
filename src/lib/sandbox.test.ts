@@ -26,4 +26,18 @@ describe('buildSandboxDocument', () => {
     expect(doc).toContain("level: 'result'");
     expect(doc).not.toMatch(/console\.log\(eval\(/);
   });
+
+  test('wraps html and css in elements the bridge can patch live, by id', () => {
+    const doc = buildSandboxDocument('<p>hi</p>', 'p{color:red}', '');
+    expect(doc).toContain('<div id="__cs_root"><p>hi</p></div>');
+    expect(doc).toContain('<style id="__cs_style">p{color:red}</style>');
+  });
+
+  test('bridge listens for update messages and patches the DOM in place, not via eval or reload', () => {
+    const doc = buildSandboxDocument('', '', '');
+    expect(doc).toContain("event.data.type === 'update'");
+    expect(doc).toContain("getElementById('__cs_root')");
+    expect(doc).toContain("getElementById('__cs_style')");
+    expect(doc).not.toMatch(/eval\(event\.data\.html\)/);
+  });
 });

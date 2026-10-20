@@ -49,6 +49,22 @@ export default function OutputFrame({ html, css, js, runToken, onWindowReady }: 
   useEffect(() => {
     onWindowReadyRef.current = onWindowReady;
   }, [onWindowReady]);
+
+  // Live HTML/CSS preview, decoupled from Run: frameWindowRef is only set
+  // once this exact iframe instance has fired onLoad (so its bridge script's
+  // message listener actually exists), and is nulled again whenever runToken
+  // replaces the element -- so a stray postMessage can never reach a
+  // destroyed iframe or race a not-yet-loaded one. JS is deliberately not a
+  // dependency here: it only ever takes effect via the runToken-gated srcDoc
+  // rebuild above (an explicit Run), because unlike HTML/CSS -- which a
+  // browser parses leniently, mid-keystroke, with no errors -- JS throws on
+  // incomplete syntax, which is the exact bug this split fixes (see
+  // sandbox.ts's 'update' handler for the receiving end).
+  const frameWindowRef = useRef<Window | null>(null);
+  useEffect(() => {
+    frameWindowRef.current?.postMessage({ type: 'update', html, css }, '*');
+  }, [html, css]);
+
   // Hand back a null window whenever the <iframe> this component owns goes
   // away -- both on unmount and when a Run bumps `runToken` and so replaces
   // the element. The parent otherwise keeps a handle on a destroyed window and
@@ -56,6 +72,7 @@ export default function OutputFrame({ html, css, js, runToken, onWindowReady }: 
   useEffect(
     () => () => {
       onWindowReadyRef.current(null);
+      frameWindowRef.current = null;
     },
     [runToken],
   );
@@ -67,7 +84,10 @@ export default function OutputFrame({ html, css, js, runToken, onWindowReady }: 
       srcDoc={srcDoc}
       sandbox="allow-scripts"
       style={{ width: '100%', height: '100%', border: 0 }}
-      onLoad={(e) => onWindowReady(e.currentTarget.contentWindow)}
+      onLoad={(e) => {
+        frameWindowRef.current = e.currentTarget.contentWindow;
+        onWindowReady(e.currentTarget.contentWindow);
+      }}
     />
   );
 }

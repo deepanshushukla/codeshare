@@ -53,17 +53,29 @@ const BRIDGE_SCRIPT = `
       } catch (err) {
         parent.postMessage({ type: 'console', level: 'error', args: [err] }, '*');
       }
+    } else if (event.data && event.data.type === 'update') {
+      // Live HTML/CSS preview: patches the DOM in place via innerHTML/
+      // textContent, never eval or a document reload -- so it never re-runs
+      // the user's <script> (that stays Run-button-only, see OutputFrame.tsx)
+      // and never throws the mid-keystroke syntax errors a reload would.
+      var styleEl = document.getElementById('__cs_style');
+      if (styleEl) styleEl.textContent = event.data.css;
+      var rootEl = document.getElementById('__cs_root');
+      if (rootEl) rootEl.innerHTML = event.data.html;
     }
   });
 })();
 `;
 
 export function buildSandboxDocument(html: string, css: string, js: string): string {
+  // html/css live inside id'd elements (not bare in the body) so the bridge's
+  // 'update' handler above can target them directly -- see OutputFrame.tsx
+  // for what posts those messages and why only html/css do, never js.
   return `<!DOCTYPE html>
 <html>
-  <head><style>${css}</style></head>
+  <head><style id="__cs_style">${css}</style></head>
   <body>
-    ${html}
+    <div id="__cs_root">${html}</div>
     <script>${BRIDGE_SCRIPT}</script>
     <script>${js}</script>
   </body>
