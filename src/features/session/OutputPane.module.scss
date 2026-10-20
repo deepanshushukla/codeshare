@@ -58,3 +58,20 @@
   position: relative;
   background: #fff;
 }
+
+// Shown only before the first Run (runToken === 0); the iframe below it is a
+// blank white document at that point, so this sits on plain white and needs
+// no dark-mode handling -- it is pointer-events: none since there is nothing
+// to click through to underneath, and clicking "through" it should still hit
+// the Run button in the toolbar, not this pane. Mirrors ConsolePanel's own
+// `.empty` hint (same copy style, "// ..." comment lines) so the two panes
+// that both wait on a Run read as one consistent affordance.
+.emptyState {
+  position: absolute;
+  inset: 0;
+  padding: 12px;
+  pointer-events: none;
+  font: 400 0.8rem var(--font-mono);
+  line-height: 1.6;
+  color: #9a9b9e;
+}

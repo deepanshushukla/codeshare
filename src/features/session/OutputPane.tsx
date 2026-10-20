@@ -38,6 +38,12 @@ export default function OutputPane({ onRun, ...frameProps }: OutputFrameProps & 
       </div>
       <div className={styles.frameHost}>
         <OutputFrame {...frameProps} />
+        {frameProps.runToken === 0 && (
+          <div className={styles.emptyState} aria-live="polite">
+            <div>// Press Run or Ctrl + Enter.</div>
+            <div>// Your HTML/CSS render here.</div>
+          </div>
+        )}
       </div>
     </div>
   );

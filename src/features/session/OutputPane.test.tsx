@@ -13,3 +13,13 @@ test('renders the output iframe from the wrapped OutputFrame', () => {
   render(<OutputPane html="" css="" js="" runToken={0} onWindowReady={() => {}} onRun={() => {}} />);
   expect(screen.getByTitle('Output')).toBeInTheDocument();
 });
+
+test('shows a hint to click Run before the first run', () => {
+  render(<OutputPane html="" css="" js="" runToken={0} onWindowReady={() => {}} onRun={() => {}} />);
+  expect(screen.getByText(/Press Run or Ctrl \+ Enter/i)).toBeInTheDocument();
+});
+
+test('hides the Run hint once a run has happened', () => {
+  render(<OutputPane html="" css="" js="" runToken={1} onWindowReady={() => {}} onRun={() => {}} />);
+  expect(screen.queryByText(/Press Run or Ctrl \+ Enter/i)).not.toBeInTheDocument();
+});
