@@ -45,11 +45,12 @@ describe('useSession', () => {
     expect(upsert).not.toHaveBeenCalled();
   });
 
-  test('creates a blank row when the session does not exist yet', async () => {
+  test('creates a row with starter content when the session does not exist yet', async () => {
     mockConfig.sessionRow = null;
     const { result } = renderSession('new-room');
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.html).toBe('');
+    expect(result.current.html).toContain('Welcome to CodeShare');
+    expect(result.current.js).toContain('console.log');
     expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ id: 'new-room' }));
   });
 

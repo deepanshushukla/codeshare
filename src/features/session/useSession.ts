@@ -17,6 +17,12 @@ type UseSessionResult = SessionContent & {
 const UPSERT_DEBOUNCE_MS = 400;
 const BLANK_CONTENT: SessionContent = { html: '', css: '', js: '' };
 
+const STARTER_CONTENT: SessionContent = {
+  html: '<h1>Welcome to CodeShare 👋</h1>\n<p>Start typing — everyone on this link sees it live.</p>',
+  css: 'body {\n  font-family: sans-serif;\n  padding: 2rem;\n  color: #222;\n}',
+  js: "console.log('Welcome to CodeShare!');",
+};
+
 /**
  * Session content: loads the row from Postgres, applies remote edits arriving
  * over the shared Realtime channel, and persists local edits back (debounced
@@ -74,11 +80,13 @@ export function useSession(
         // "no row yet" and upsert blanks over an existing session's content.
         const { error: writeError } = await supabase
           .from('sessions')
-          .upsert({ id: sessionId, html: '', css: '', js: '' });
+          .upsert({ id: sessionId, ...STARTER_CONTENT });
         if (!active) return;
         if (writeError) {
           console.error('codeshare: creating the session row failed', writeError);
           setWriteFailed(true);
+        } else {
+          setContent(STARTER_CONTENT);
         }
       }
       if (active) setLoading(false);
