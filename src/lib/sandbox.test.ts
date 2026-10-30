@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { buildSandboxDocument } from './sandbox';
+import { buildSandboxDocument, serializeForBridge } from './sandbox';
 
 describe('buildSandboxDocument', () => {
   test('embeds the given html, css, and js', () => {
@@ -39,5 +39,73 @@ describe('buildSandboxDocument', () => {
     expect(doc).toContain("getElementById('__cs_root')");
     expect(doc).toContain("getElementById('__cs_style')");
     expect(doc).not.toMatch(/eval\(event\.data\.html\)/);
+  });
+
+  test('bridge sanitizes console args through serializeForBridge before posting them', () => {
+    const doc = buildSandboxDocument('', '', '');
+    expect(doc).toContain('serializeForBridge');
+  });
+});
+
+// console.log(someButton) used to throw `DataCloneError: ... could not be
+// cloned` from inside the bridge's wrapped console.log, because
+// postMessage's structured-clone algorithm cannot clone DOM nodes or
+// functions. That throw happened before the native console.log ran, so the
+// user lost both the postMessage relay *and* the native log, and the error
+// surfaced as an uncaught exception in their own script. serializeForBridge
+// is the fix: it walks a console argument and swaps in a clone-safe stand-in
+// for anything postMessage can't carry, so logging a DOM node behaves like a
+// normal console call instead of crashing the sandbox.
+describe('serializeForBridge', () => {
+  test('passes primitives through unchanged', () => {
+    expect(serializeForBridge('hi')).toBe('hi');
+    expect(serializeForBridge(42)).toBe(42);
+    expect(serializeForBridge(true)).toBe(true);
+    expect(serializeForBridge(null)).toBe(null);
+    expect(serializeForBridge(undefined)).toBe(undefined);
+  });
+
+  test('describes a DOM element instead of trying to clone it', () => {
+    const button = document.createElement('button');
+    button.id = 'go';
+    button.className = 'primary big';
+    expect(serializeForBridge(button)).toBe('<button#go.primary.big>');
+  });
+
+  test('describes a bare element with no id or class', () => {
+    const div = document.createElement('div');
+    expect(serializeForBridge(div)).toBe('<div>');
+  });
+
+  test('stringifies functions instead of trying to clone them', () => {
+    function greet() {}
+    expect(serializeForBridge(greet)).toBe('[Function: greet]');
+    expect(serializeForBridge(() => {})).toBe('[Function: anonymous]');
+  });
+
+  test('leaves Error, Date, and RegExp instances alone -- those clone fine natively', () => {
+    const err = new Error('boom');
+    const date = new Date(0);
+    const re = /x/g;
+    expect(serializeForBridge(err)).toBe(err);
+    expect(serializeForBridge(date)).toBe(date);
+    expect(serializeForBridge(re)).toBe(re);
+  });
+
+  test('recursively sanitizes arrays and plain objects', () => {
+    const button = document.createElement('button');
+    expect(serializeForBridge([1, 'a', button])).toEqual([1, 'a', '<button>']);
+    expect(serializeForBridge({ el: button, n: 1 })).toEqual({ el: '<button>', n: 1 });
+  });
+
+  test('breaks circular references instead of recursing forever', () => {
+    const obj: Record<string, unknown> = { a: 1 };
+    obj.self = obj;
+    expect(serializeForBridge(obj)).toEqual({ a: 1, self: '[Circular]' });
+  });
+
+  test('bottoms out past the depth limit instead of walking unbounded structures', () => {
+    const deep = { a: { b: { c: { d: { e: 1 } } } } };
+    expect(serializeForBridge(deep, [], 2)).toEqual({ a: { b: '[Object]' } });
   });
 });

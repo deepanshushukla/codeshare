@@ -17,6 +17,66 @@ export type SandboxMessage =
   | { type: 'console'; level: ConsoleEntry['level']; args: unknown[] }
   | { type: 'runtime-error'; message: string };
 
+// `parent.postMessage` (used by the bridge below to relay console calls out
+// of the sandboxed iframe) carries its payload through the structured-clone
+// algorithm, which cannot clone DOM nodes, functions, or symbols -- it
+// throws DataCloneError synchronously instead. Before this existed, logging
+// a DOM element (`console.log(document.createElement('button'))`) threw
+// *inside* the wrapped console.log, which both skipped the native
+// console.log passthrough and surfaced as an uncaught exception in the
+// user's own script. This walks a console argument and swaps in a
+// clone-safe stand-in for anything postMessage can't carry, so logging a
+// DOM node (or a function, or an object containing either) behaves like a
+// normal console call instead of crashing the sandbox.
+//
+// Exported so it has real unit tests against actual DOM nodes/functions
+// (see sandbox.test.ts) rather than only being exercised as an opaque
+// string inside BRIDGE_SCRIPT. Its source is embedded into BRIDGE_SCRIPT via
+// `.toString()` below so the sandboxed iframe runs this exact, tested
+// implementation -- not a hand-copied duplicate that could drift from it.
+export function serializeForBridge(value: unknown, seen: unknown[] = [], depth = 4): unknown {
+  if (value === null || typeof value !== 'object') {
+    if (typeof value === 'function') {
+      return `[Function: ${(value as (...args: unknown[]) => unknown).name || 'anonymous'}]`;
+    }
+    if (typeof value === 'symbol') return value.toString();
+    return value;
+  }
+  if (typeof Node !== 'undefined' && value instanceof Node) {
+    if (value.nodeType === 1) {
+      const el = value as Element;
+      const id = el.id ? `#${el.id}` : '';
+      const classes = typeof el.className === 'string' && el.className.trim() ? `.${el.className.trim().split(/\s+/).join('.')}` : '';
+      return `<${el.tagName.toLowerCase()}${id}${classes}>`;
+    }
+    return '[Node]';
+  }
+  // Error/Date/RegExp are structured-cloneable natively -- leave them as-is
+  // so ConsolePanel's `instanceof Error` display logic keeps working.
+  if (value instanceof Error || value instanceof Date || value instanceof RegExp) return value;
+  if (seen.includes(value)) return '[Circular]';
+  if (depth <= 0) return Array.isArray(value) ? '[Array]' : '[Object]';
+  const nextSeen = seen.concat([value]);
+  if (Array.isArray(value)) {
+    return value.slice(0, 100).map((item) => serializeForBridge(item, nextSeen, depth - 1));
+  }
+  if (value instanceof Map) {
+    return Array.from(value.entries())
+      .slice(0, 100)
+      .map(([k, v]) => [serializeForBridge(k, nextSeen, depth - 1), serializeForBridge(v, nextSeen, depth - 1)]);
+  }
+  if (value instanceof Set) {
+    return Array.from(value.values())
+      .slice(0, 100)
+      .map((v) => serializeForBridge(v, nextSeen, depth - 1));
+  }
+  const result: Record<string, unknown> = {};
+  for (const key of Object.keys(value as object).slice(0, 100)) {
+    result[key] = serializeForBridge((value as Record<string, unknown>)[key], nextSeen, depth - 1);
+  }
+  return result;
+}
+
 // This string is injected into the sandboxed iframe's own document and runs
 // only in that isolated context -- never in the main window. It wraps
 // console methods and window.onerror so output/errors are relayed to the
@@ -31,10 +91,23 @@ export type SandboxMessage =
 // React tree.
 const BRIDGE_SCRIPT = `
 (function () {
+  var serializeForBridge = ${serializeForBridge.toString()};
   function wrap(level, original) {
     return function () {
       var args = Array.prototype.slice.call(arguments);
-      parent.postMessage({ type: 'console', level: level, args: args }, '*');
+      try {
+        var safeArgs = args.map(function (a) { return serializeForBridge(a); });
+        parent.postMessage({ type: 'console', level: level, args: safeArgs }, '*');
+      } catch (err) {
+        // Last-resort fallback so a value serializeForBridge didn't catch
+        // (or a postMessage quirk) still can't crash the user's script --
+        // the native console call below still runs either way.
+        try {
+          parent.postMessage({ type: 'console', level: level, args: args.map(String) }, '*');
+        } catch (err2) {
+          // Give up relaying this one; never let the bridge itself throw.
+        }
+      }
       original.apply(console, args);
     };
   }
@@ -49,7 +122,8 @@ const BRIDGE_SCRIPT = `
   window.addEventListener('message', function (event) {
     if (event.data && event.data.type === 'repl') {
       try {
-        parent.postMessage({ type: 'console', level: 'result', args: [eval(event.data.code)] }, '*');
+        var replResult = eval(event.data.code);
+        parent.postMessage({ type: 'console', level: 'result', args: [serializeForBridge(replResult)] }, '*');
       } catch (err) {
         parent.postMessage({ type: 'console', level: 'error', args: [err] }, '*');
       }
