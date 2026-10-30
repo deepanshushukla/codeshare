@@ -11,10 +11,14 @@ type Props = {
 
 // SECURITY: this is the single place user-authored JS runs. `srcDoc` is
 // parsed by the browser into a brand-new, separately-sandboxed document --
-// not evaluated by this app's JS -- and `sandbox="allow-scripts"` (with no
-// `allow-same-origin`) gives that document an opaque origin, so it cannot
-// reach this window's localStorage, cookies, or JS globals (e.g. the
+// not evaluated by this app's JS -- and `sandbox="allow-scripts allow-modals"`
+// (with no `allow-same-origin`) gives that document an opaque origin, so it
+// cannot reach this window's localStorage, cookies, or JS globals (e.g. the
 // Supabase client) even if the postMessage bridge in sandbox.ts has a bug.
+// `allow-modals` only re-enables alert/confirm/prompt -- expected to work in
+// a code playground -- and only affects the tab of whoever clicked Run
+// themselves: `runToken` is local React state (see SessionWorkspace.tsx),
+// never broadcast, so one person's alert() can't block anyone else's Output.
 //
 // `runToken` is bumped by the Run button/Ctrl+Enter shortcut (see
 // RunControls.tsx / SessionWorkspace.tsx) and used as the iframe's React
@@ -82,7 +86,7 @@ export default function OutputFrame({ html, css, js, runToken, onWindowReady }: 
       key={runToken}
       title="Output"
       srcDoc={srcDoc}
-      sandbox="allow-scripts"
+      sandbox="allow-scripts allow-modals"
       style={{ width: '100%', height: '100%', border: 0 }}
       onLoad={(e) => {
         frameWindowRef.current = e.currentTarget.contentWindow;
