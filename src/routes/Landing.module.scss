@@ -223,6 +223,53 @@
   animation: global(fade) 0.8s 0.4s ease both;
 }
 
+// --- Web / React session type toggle ---------------------------------------
+// A segmented pill: the group draws the track, each option is a borderless
+// segment that fills with --acc when it is the pressed one. On the same
+// tokens (--line2/--bg2/--acc/--acc-ink) as every other control on this page,
+// so it stays on-theme in both light and dark mode.
+
+.typeToggle {
+  display: inline-flex;
+  gap: 2px;
+  margin-top: 28px;
+  padding: 4px;
+  border: 1px solid var(--line2);
+  border-radius: var(--radius-pill);
+  background: var(--bg2);
+}
+
+.typeOption {
+  height: 34px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--muted);
+  font: 600 13px var(--font-sans);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+
+  &:hover {
+    color: var(--text);
+  }
+
+  // Keyboard users get the same visible ring as .headerCta / .ctaButton. The
+  // inline styles this replaced had none at all, so Tab'ing onto the toggle
+  // left no indication of which segment was focused.
+  &:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 2px;
+  }
+
+  // Driven off the ARIA state that is already the source of truth for which
+  // option is selected, rather than a second, parallel "active" class.
+  &[aria-pressed='true'] {
+    background: var(--acc);
+    color: var(--acc-ink);
+  }
+}
+
 // --- CTA + keyboard hint (handoff lines 83-86) ------------------------------
 
 .heroActions {

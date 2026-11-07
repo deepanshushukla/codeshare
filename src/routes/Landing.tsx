@@ -167,42 +167,20 @@ export default function Landing() {
             JavaScript together — live, in the browser.
           </p>
           {/*
-            Deliberately inline-styled rather than adding classes to
-            Landing.module.scss -- this task's scope is Landing.tsx/.test.tsx
-            only. The pill look borrows the same CSS custom properties
-            (--line2/--bg2/--acc/--acc-ink) the rest of this page's SCSS
-            already uses, so it stays on-theme in both light and dark mode
-            without introducing a new stylesheet dependency.
+            Styling lives in Landing.module.scss (.typeToggle/.typeOption) like
+            every other control on this page -- including the :focus-visible
+            ring the earlier inline-styled version had no way to express.
+            The selected segment is painted off `aria-pressed`, so there is one
+            source of truth for which option is active.
           */}
-          <div
-            role="group"
-            aria-label="Session type"
-            style={{
-              display: 'inline-flex',
-              marginTop: 28,
-              padding: 4,
-              gap: 2,
-              border: '1px solid var(--line2)',
-              borderRadius: 999,
-              background: 'var(--bg2)',
-            }}
-          >
+          <div role="group" aria-label="Session type" className={styles.typeToggle}>
             {(['web', 'react'] as const).map((option) => (
               <button
                 key={option}
                 type="button"
+                className={styles.typeOption}
                 aria-pressed={sessionType === option}
                 onClick={() => setSessionType(option)}
-                style={{
-                  height: 34,
-                  padding: '0 16px',
-                  border: 0,
-                  borderRadius: 999,
-                  cursor: 'pointer',
-                  font: '600 13px var(--font-sans)',
-                  background: sessionType === option ? 'var(--acc)' : 'transparent',
-                  color: sessionType === option ? 'var(--acc-ink)' : 'var(--muted)',
-                }}
               >
                 {option === 'web' ? 'Web' : 'React'}
               </button>

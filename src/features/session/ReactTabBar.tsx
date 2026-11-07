@@ -24,7 +24,8 @@ export default function ReactTabBar({
           className={tabs[key] ? styles.active : styles.tab}
           onClick={() => toggleTab(key)}
           // The badge shows the digit; these say what it means, for mouse and
-          // screen-reader users respectively (Header owns the listener).
+          // screen-reader users respectively (useReactTabsQueryParam owns the
+          // window keydown listener that actually implements Alt+1-5).
           title={`Alt+${index + 1}`}
           aria-keyshortcuts={`Alt+${index + 1}`}
         >

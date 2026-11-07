@@ -168,7 +168,7 @@ test('keeps the sandboxed output iframe mounted in the default appJsx+console la
   expect(postMessage).toHaveBeenCalledWith({ type: 'repl', code: 'alert(1)' }, '*');
 });
 
-test('Alt+2 toggles the Components.jsx pane via the real toggleTab wired through Header', async () => {
+test("Alt+2 toggles the Components.jsx pane via useReactTabsQueryParam's own keydown listener", async () => {
   renderWorkspace();
   // Default tabs are appJsx + console; componentsJsx starts closed.
   await waitFor(() => expect(screen.getByLabelText('App editor')).toBeInTheDocument());
