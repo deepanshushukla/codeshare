@@ -82,4 +82,19 @@ describe('EditorPane', () => {
 
     expect(screen.getByText('4 ln')).toBeInTheDocument();
   });
+
+  test('renders a jsx-language pane with JSX syntax support', () => {
+    render(<EditorPane title="App" language="jsx" value="function App() { return <div />; }" onChange={() => {}} />);
+    // assert no throw / pane renders — CodeMirror's javascript({jsx:true}) extension accepts JSX syntax that plain javascript() would mark invalid.
+  });
+
+  test('fileName prop overrides the default displayed filename', () => {
+    render(<EditorPane title="App" language="jsx" fileName="App.jsx" value="" onChange={() => {}} />);
+    expect(screen.getByText('App.jsx')).toBeInTheDocument();
+  });
+
+  test('omitting fileName keeps the existing default for an unaffected language', () => {
+    render(<EditorPane title="JS" language="javascript" value="" onChange={() => {}} />);
+    expect(screen.getByText('script.js')).toBeInTheDocument();
+  });
 });

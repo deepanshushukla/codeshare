@@ -9,7 +9,7 @@ import { css } from '@codemirror/lang-css';
 import { javascript } from '@codemirror/lang-javascript';
 import styles from './EditorPane.module.scss';
 
-const LANGUAGE_EXTENSIONS = { html: html(), css: css(), javascript: javascript() };
+const LANGUAGE_EXTENSIONS = { html: html(), css: css(), javascript: javascript(), jsx: javascript({ jsx: true }) };
 
 // File-type metadata (glyph + accent color + display filename), mirroring
 // the design handoff's META map (design_handoff_codeshare, lines ~332-336).
@@ -19,6 +19,7 @@ const META: Record<keyof typeof LANGUAGE_EXTENSIONS, { file: string; glyph: stri
   html: { file: 'index.html', glyph: '<>', color: 'oklch(0.74 0.15 40)' },
   css: { file: 'style.css', glyph: '{}', color: 'oklch(0.72 0.13 250)' },
   javascript: { file: 'script.js', glyph: 'JS', color: 'oklch(0.84 0.14 95)' },
+  jsx: { file: 'App.jsx', glyph: 'JSX', color: 'oklch(0.74 0.15 220)' },
 };
 
 // Colors here are CSS custom properties (the --ed/--text/--acc/--tk-* design
@@ -90,9 +91,10 @@ type Props = {
   language: keyof typeof LANGUAGE_EXTENSIONS;
   value: string;
   onChange: (value: string) => void;
+  fileName?: string;
 };
 
-export default function EditorPane({ title, language, value, onChange }: Props) {
+export default function EditorPane({ title, language, value, onChange, fileName }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
@@ -164,7 +166,7 @@ export default function EditorPane({ title, language, value, onChange }: Props) 
         <span className={styles.glyph} style={{ color: meta.color }}>
           {meta.glyph}
         </span>
-        <span>{meta.file}</span>
+        <span>{fileName ?? meta.file}</span>
         <span className={styles.lineCount}>{lineCount} ln</span>
       </div>
       <div ref={hostRef} className={styles.codeMirrorHost} />
