@@ -1,7 +1,14 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { saveAs } from 'file-saver';
 import { Download } from 'lucide-react';
-import { buildHtmlFile, buildZipBlob, type ExportContent } from '../../lib/export';
+import {
+  buildHtmlFile,
+  buildZipBlob,
+  buildReactHtmlFile,
+  buildReactZipBlob,
+  type ExportContent,
+  type ReactExportContent,
+} from '../../lib/export';
 import styles from './ExportMenu.module.scss';
 
 function timestampedName(extension: string): string {
@@ -11,18 +18,22 @@ function timestampedName(extension: string): string {
 // `onExported` is how Header turns a successful export into a toast: Header
 // owns the single useToast() instance (copy-link needs it too), so this
 // component reports the filename up rather than rendering any feedback itself.
-type Props = ExportContent & { onExported?: (filename: string) => void };
+type Props = (({ sessionType?: 'web' } & ExportContent) | ({ sessionType: 'react' } & ReactExportContent)) & {
+  onExported?: (filename: string) => void;
+};
 
 export default function ExportMenu({ onExported, ...content }: Props) {
   async function exportHtml() {
     const filename = timestampedName('html');
-    saveAs(new Blob([buildHtmlFile(content)], { type: 'text/html;charset=utf-8' }), filename);
+    const file = content.sessionType === 'react' ? buildReactHtmlFile(content) : buildHtmlFile(content);
+    saveAs(new Blob([file], { type: 'text/html;charset=utf-8' }), filename);
     onExported?.(filename);
   }
   async function exportZip() {
     const filename = timestampedName('zip');
     // Awaited before saveAs, so a zip that fails to build never reports success.
-    saveAs(await buildZipBlob(content), filename);
+    const blob = content.sessionType === 'react' ? await buildReactZipBlob(content) : await buildZipBlob(content);
+    saveAs(blob, filename);
     onExported?.(filename);
   }
 

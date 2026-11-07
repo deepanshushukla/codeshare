@@ -2,6 +2,8 @@ import JSZip from 'jszip';
 
 export type ExportContent = { html: string; css: string; js: string };
 
+export type ReactExportContent = { appJsx: string; componentsJsx: string; reactCss: string };
+
 export function buildHtmlFile({ html, css, js }: ExportContent): string {
   return `<!DOCTYPE html>
 <html>
@@ -21,5 +23,64 @@ export async function buildZipBlob({ html, css, js }: ExportContent): Promise<Bl
   );
   zip.file('css/index.css', css, { createFolders: false });
   zip.file('js/index.js', js, { createFolders: false });
+  return zip.generateAsync({ type: 'blob' });
+}
+
+// Same inline Babel-transform-and-mount technique as buildReactSandboxDocument
+// in sandbox.ts (Task 4), reimplemented independently here -- export.ts has no
+// dependency on sandbox.ts and this file produces a different artifact (a
+// downloadable document, not a live sandboxed iframe), so there's no shared
+// error-display wrapper: an uncaught exception just surfaces in the browser
+// console when the exported file is opened, which is acceptable here.
+//
+// The componentsJsx+appJsx source is JSON.stringify'd so it can be embedded
+// as a JS string literal inside a <script> tag below. JSON.stringify does NOT
+// escape a literal `</script` substring inside the string, and the HTML
+// parser doesn't care that it's inside a quoted JS string -- it will still
+// treat `</script` as closing the tag early, truncating the document. The
+// `.replace(...)` guards against that the same way buildReactSandboxDocument
+// does.
+function reactMountScript(appJsx: string, componentsJsx: string): string {
+  const userCode = JSON.stringify(`${componentsJsx}\n${appJsx}`).replace(/<\/script/gi, '<\\/script');
+  return `
+    <script src="https://unpkg.com/react@19.2.0/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@19.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+    <script>
+      (function () {
+        var transformed = Babel.transform(${userCode}, { presets: ['react'] }).code;
+        var App = new Function('React', 'ReactDOM', transformed + '\\nreturn App;')(React, ReactDOM);
+        ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+      })();
+    </script>`;
+}
+
+export function buildReactHtmlFile({ appJsx, componentsJsx, reactCss }: ReactExportContent): string {
+  return `<!DOCTYPE html>
+<html>
+  <head><style>${reactCss}</style></head>
+  <body>
+    <div id="root"></div>
+    ${reactMountScript(appJsx, componentsJsx)}
+  </body>
+</html>`;
+}
+
+export async function buildReactZipBlob({ appJsx, componentsJsx, reactCss }: ReactExportContent): Promise<Blob> {
+  const zip = new JSZip();
+  zip.file(
+    'index.html',
+    `<!DOCTYPE html>
+<html>
+  <head><link href="./styles.css" rel="stylesheet"></head>
+  <body>
+    <div id="root"></div>
+    ${reactMountScript(appJsx, componentsJsx)}
+  </body>
+</html>`,
+  );
+  zip.file('App.jsx', appJsx, { createFolders: false });
+  zip.file('Components.jsx', componentsJsx, { createFolders: false });
+  zip.file('styles.css', reactCss, { createFolders: false });
   return zip.generateAsync({ type: 'blob' });
 }
