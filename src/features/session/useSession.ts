@@ -105,9 +105,14 @@ export function useSession(
           html: data.html,
           css: data.css,
           js: data.js,
-          app_jsx: data.app_jsx,
-          components_jsx: data.components_jsx,
-          react_css: data.react_css,
+          // `?? ''` is defensive, not a live fix: the migration defaults
+          // these three to '' and NOT NULL. It guards rows written before
+          // those columns existed (and any hand-written row) from putting a
+          // null into a `string`-typed field, which CodeMirror would then
+          // receive as a non-string doc.
+          app_jsx: data.app_jsx ?? '',
+          components_jsx: data.components_jsx ?? '',
+          react_css: data.react_css ?? '',
         });
       } else if (!error) {
         // Only create a blank row when we positively know none exists. On a
