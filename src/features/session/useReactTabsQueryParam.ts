@@ -42,6 +42,27 @@ function serializeTabs(tabs: ReactTabsState): string {
   return REACT_TAB_KEYS.filter((key) => tabs[key]).join(',');
 }
 
+/**
+ * The new query string for a `selectedTabs` change, keeping every OTHER param
+ * that was already in the URL -- most importantly `?type=react`, the
+ * session-type hint a freshly created React room relies on until its Postgres
+ * row exists (see SessionRoute/useSessionType). Writing `?selectedTabs=...`
+ * wholesale dropped it, so toggling a pane in a brand-new React room could
+ * silently persist it as a Web session.
+ *
+ * Duplicated verbatim from useTabsQueryParam.ts (same reason parse/serialize
+ * are: each hook owns its own tab-key set); see that copy for why the
+ * selectedTabs part is concatenated rather than run through
+ * URLSearchParams.toString().
+ */
+function buildSearch(currentSearch: string, serialized: string): string {
+  const others = new URLSearchParams(currentSearch);
+  others.delete('selectedTabs');
+  const rest = others.toString();
+  const parts = [serialized ? `selectedTabs=${serialized}` : '', rest].filter(Boolean);
+  return parts.length ? `?${parts.join('&')}` : '';
+}
+
 export function useReactTabsQueryParam(): {
   tabs: ReactTabsState;
   setTabs: (tabs: ReactTabsState) => void;
@@ -63,13 +84,12 @@ export function useReactTabsQueryParam(): {
   const setTabs = useCallback(
     (next: ReactTabsState) => {
       setTabsState(next);
-      const serialized = serializeTabs(next);
       navigate(
-        { pathname: location.pathname, search: serialized ? `?selectedTabs=${serialized}` : '' },
+        { pathname: location.pathname, search: buildSearch(location.search, serializeTabs(next)) },
         { replace: true },
       );
     },
-    [location.pathname, navigate],
+    [location.pathname, location.search, navigate],
   );
 
   const toggleTab = useCallback(

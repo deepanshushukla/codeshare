@@ -82,6 +82,28 @@ describe('useReactTabsQueryParam', () => {
     expect(locationRef.value).toContain('selectedTabs=appJsx,componentsJsx');
   });
 
+  test('setTabs preserves other query params, notably the ?type=react session-type hint', () => {
+    // A freshly created React room still depends on ?type=react until its
+    // Postgres row exists. Dropping it on a pane toggle made SessionRoute
+    // re-resolve the room as 'web' and persist it that way -- permanently
+    // converting a React session.
+    const locationRef = { value: '' };
+    const { result } = renderHook(() => useReactTabsQueryParam(), {
+      wrapper: withRouter('/code/abc?type=react', locationRef),
+    });
+    act(() => {
+      result.current.setTabs({
+        appJsx: true,
+        componentsJsx: false,
+        reactCss: false,
+        console: true,
+        output: true,
+      });
+    });
+    expect(locationRef.value).toContain('type=react');
+    expect(locationRef.value).toContain('selectedTabs=appJsx,console,output');
+  });
+
   test('toggleTab refuses to close the last open pane', () => {
     const { result } = renderHook(() => useReactTabsQueryParam(), { wrapper: withRouter('/code/abc') });
     act(() => {

@@ -34,6 +34,31 @@ function serializeTabs(tabs: TabsState): string {
   return TAB_KEYS.filter((key) => tabs[key]).join(',');
 }
 
+/**
+ * The new query string for a `selectedTabs` change, keeping every OTHER param
+ * that was already in the URL.
+ *
+ * Writing `?selectedTabs=...` wholesale used to drop them, and one of them
+ * matters: `?type=react` is the session-type hint a freshly created React room
+ * relies on until its Postgres row exists (see SessionRoute/useSessionType).
+ * Losing it mid-lazy-create made the room re-resolve as 'web' and persist
+ * `session_type: 'web'` -- permanently converting a React session because
+ * someone toggled a pane.
+ *
+ * Built by hand rather than with `URLSearchParams.toString()` for the
+ * selectedTabs part, because that percent-encodes the commas
+ * (`selectedTabs=html%2Ccss`), changing the URLs this app has always produced.
+ * Duplicated verbatim in useReactTabsQueryParam.ts, which mirrors this whole
+ * hook for React mode's own tab set.
+ */
+function buildSearch(currentSearch: string, serialized: string): string {
+  const others = new URLSearchParams(currentSearch);
+  others.delete('selectedTabs');
+  const rest = others.toString();
+  const parts = [serialized ? `selectedTabs=${serialized}` : '', rest].filter(Boolean);
+  return parts.length ? `?${parts.join('&')}` : '';
+}
+
 export function useTabsQueryParam(): {
   tabs: TabsState;
   setTabs: (tabs: TabsState) => void;
@@ -55,13 +80,12 @@ export function useTabsQueryParam(): {
   const setTabs = useCallback(
     (next: TabsState) => {
       setTabsState(next);
-      const serialized = serializeTabs(next);
       navigate(
-        { pathname: location.pathname, search: serialized ? `?selectedTabs=${serialized}` : '' },
+        { pathname: location.pathname, search: buildSearch(location.search, serializeTabs(next)) },
         { replace: true },
       );
     },
-    [location.pathname, navigate],
+    [location.pathname, location.search, navigate],
   );
 
   const toggleTab = useCallback(

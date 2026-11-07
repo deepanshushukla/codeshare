@@ -62,6 +62,24 @@ describe('useTabsQueryParam', () => {
       result.current.setTabs({ html: true, css: true, js: false, console: false, output: false });
     });
     expect(locationRef.value).toContain('selectedTabs=html,css');
+    // Unchanged from before other params were preserved: with nothing else in
+    // the URL, the search string is still exactly this (commas unencoded).
+    expect(locationRef.value).toBe('/code/abc?selectedTabs=html,css');
+  });
+
+  test('setTabs preserves other query params, notably the ?type= session-type hint', () => {
+    // A freshly created session still depends on ?type= until its Postgres
+    // row exists. Dropping it on a pane toggle made SessionRoute re-resolve
+    // the room's type from scratch -- see useReactTabsQueryParam's twin test.
+    const locationRef = { value: '' };
+    const { result } = renderHook(() => useTabsQueryParam(), {
+      wrapper: withRouter('/code/abc?type=react', locationRef),
+    });
+    act(() => {
+      result.current.setTabs({ html: true, css: false, js: true, console: false, output: false });
+    });
+    expect(locationRef.value).toContain('type=react');
+    expect(locationRef.value).toContain('selectedTabs=html,js');
   });
 
   test('toggleTab refuses to close the last open pane', () => {
