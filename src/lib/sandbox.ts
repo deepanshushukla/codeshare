@@ -171,17 +171,49 @@ export function buildReactSandboxDocument(appJsx: string, componentsJsx: string,
     <script>${BRIDGE_SCRIPT}</script>
     <script>
       (function () {
+        var source = ${userCode};
         function escapeHtml(s) {
           return String(s).replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; });
         }
+        // Paints a visible error into the output pane, but ONLY when nothing
+        // has rendered there yet: an unrelated error later in a session's
+        // life (a failed fetch inside an event handler, say) must not wipe
+        // out a tree that is working.
+        function showError(message) {
+          var rootEl = document.getElementById('__cs_root');
+          if (!rootEl || rootEl.innerHTML !== '') return;
+          rootEl.innerHTML =
+            '<pre style="color:#e05252;white-space:pre-wrap;padding:1rem;font-family:monospace;">' + escapeHtml(message) + '</pre>';
+        }
+        // React 18+ renders asynchronously, so a throw inside the user's App
+        // component body happens *outside* the try/catch below and escapes to
+        // the window as an error event -- leaving #__cs_root blank (React
+        // unmounts the failed tree) with the message only in the Console.
+        // This listener gives render errors the same visible treatment
+        // transform errors get. It is registered with addEventListener on
+        // purpose: BRIDGE_SCRIPT above owns the window.onerror property for
+        // the console relay, and assigning that property here would clobber
+        // it. (The bridge's handler returns true, which only preventDefaults
+        // the event -- additional listeners like this one still run.) This
+        // one deliberately does not postMessage the error itself either:
+        // the bridge already relays every window error to the parent, so
+        // doing it here too would double-log it in the Console.
+        window.addEventListener('error', function (event) {
+          showError(String((event.error && event.error.message) || event.message));
+        });
+        // Nothing authored yet (a brand-new React room before its first Run):
+        // skip the transform/construct/render entirely. Running them on blank
+        // source made Babel emit an empty module and the constructed function
+        // 'return App;' throw "App is not defined" -- a fabricated error in
+        // the Console, painted under the Output pane's own empty state.
+        if (!source.trim()) return;
         try {
-          var transformed = Babel.transform(${userCode}, { presets: ['react'] }).code;
+          var transformed = Babel.transform(source, { presets: ['react'] }).code;
           var App = new Function('React', 'ReactDOM', transformed + '\\nreturn App;')(React, ReactDOM);
           ReactDOM.createRoot(document.getElementById('__cs_root')).render(React.createElement(App));
         } catch (err) {
           var message = String((err && err.message) || err);
-          document.getElementById('__cs_root').innerHTML =
-            '<pre style="color:#e05252;white-space:pre-wrap;padding:1rem;font-family:monospace;">' + escapeHtml(message) + '</pre>';
+          showError(message);
           parent.postMessage({ type: 'runtime-error', message: message }, '*');
         }
       })();

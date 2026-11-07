@@ -111,6 +111,10 @@ describe('serializeForBridge', () => {
 });
 
 describe('buildReactSandboxDocument', () => {
+  // Everything from `var source = ...` onwards, i.e. the generated mount
+  // script only -- never the BRIDGE_SCRIPT that precedes it in the document.
+  const mountScript = (doc: string) => doc.slice(doc.indexOf('var source ='));
+
   test('includes pinned CDN script tags for React, ReactDOM, and Babel Standalone', () => {
     const doc = buildReactSandboxDocument('function App(){return null;}', '', '');
     expect(doc).toContain('https://unpkg.com/react@19.2.0/umd/react.production.min.js');
@@ -136,9 +140,60 @@ describe('buildReactSandboxDocument', () => {
 
   test('the catch block always wires both the visible #__cs_root error display and the runtime-error postMessage relay', () => {
     const doc = buildReactSandboxDocument('function App(){return null;}', '', '');
-    const catchBlock = doc.slice(doc.indexOf('} catch (err) {'));
-    expect(catchBlock).toContain("getElementById('__cs_root')");
+    // Slice off the mount script first: BRIDGE_SCRIPT has a `} catch (err) {`
+    // of its own (the REPL handler), so searching the whole document for one
+    // lands in the wrong script.
+    const script = mountScript(doc);
+    const catchBlock = script.slice(script.indexOf('} catch (err) {'));
+    // The visible display now goes through the shared showError() helper
+    // (declared above the try, so it is outside this slice) because the
+    // window 'error' listener below needs the exact same painting logic.
+    expect(catchBlock).toContain('showError(message)');
     expect(catchBlock).toContain("type: 'runtime-error'");
+    // ...and showError is what actually writes into #__cs_root.
+    const showError = script.slice(script.indexOf('function showError('), script.indexOf('} catch (err) {'));
+    expect(showError).toContain("getElementById('__cs_root')");
+  });
+
+  // jsdom cannot execute this document (no React/Babel CDN, and the script is
+  // only ever parsed inside a real sandboxed iframe), so -- exactly like the
+  // catch-block test above -- these assert the generated *source* wires the
+  // behaviour, not the end-to-end runtime effect.
+  test('skips the transform/construct/render entirely when the user source is blank', () => {
+    const script = mountScript(buildReactSandboxDocument('', '', ''));
+    const guardIndex = script.indexOf('if (!source.trim()) return;');
+    const transformIndex = script.indexOf('Babel.transform(');
+    // A blank, never-Run React room must not reach Babel.transform or the
+    // `return App;` construct -- that pair fabricated "App is not defined".
+    expect(guardIndex).toBeGreaterThan(-1);
+    expect(transformIndex).toBeGreaterThan(-1);
+    expect(guardIndex).toBeLessThan(transformIndex);
+    expect(script.indexOf('createRoot')).toBeGreaterThan(guardIndex);
+  });
+
+  test('treats whitespace-only user source as blank too', () => {
+    const doc = buildReactSandboxDocument('   \n  ', '\t', '');
+    // The guard is `source.trim()`, so the serialized source being non-empty
+    // whitespace still short-circuits before Babel.transform.
+    expect(doc).toContain('if (!source.trim()) return;');
+  });
+
+  test('also paints render-time errors into an empty #__cs_root via a window error listener', () => {
+    const doc = buildReactSandboxDocument('function App(){throw new Error("boom");}', '', '');
+    const script = mountScript(doc);
+    // React 18+ renders asynchronously, so this throw escapes the try/catch.
+    const listenerIndex = script.indexOf("window.addEventListener('error'");
+    expect(listenerIndex).toBeGreaterThan(-1);
+    const listener = script.slice(listenerIndex, script.indexOf('if (!source.trim())'));
+    expect(listener).toContain('showError(');
+    // It must chain onto BRIDGE_SCRIPT's relay rather than replace it, so the
+    // mount script must never assign to the onerror property itself.
+    expect(script).not.toContain('onerror =');
+    expect(doc).toContain('window.onerror = function (message)'); // still the bridge's
+    // ...and the paint is guarded on #__cs_root being empty, so an unrelated
+    // later error cannot blank out a working render.
+    const showError = script.slice(script.indexOf('function showError('), listenerIndex);
+    expect(showError).toContain("rootEl.innerHTML !== ''");
   });
 
   test('escapes </script> in user code so it cannot prematurely close the user-code script block', () => {
@@ -154,11 +209,12 @@ describe('buildReactSandboxDocument', () => {
     // Verify the bridge script closing tags still exist (the document structure is intact)
     expect(doc).toContain('</script>');
 
-    // Extract the Babel.transform call and verify the user code is properly escaped
-    const transformIndex = doc.indexOf('Babel.transform(');
-    expect(transformIndex).toBeGreaterThan(0);
-    const transformCall = doc.substring(transformIndex, doc.indexOf(';', transformIndex));
-    // The user code inside the transform call should have the escaped version
-    expect(transformCall).toContain('<\\/script>');
+    // Extract the `var source = <json literal>;` assignment that feeds
+    // Babel.transform and verify the user code is properly escaped there.
+    const sourceIndex = doc.indexOf('var source =');
+    expect(sourceIndex).toBeGreaterThan(0);
+    const sourceAssignment = doc.substring(sourceIndex, doc.indexOf('\n', sourceIndex));
+    expect(sourceAssignment).toContain('<\\/script>');
+    expect(sourceAssignment).not.toContain('</script>');
   });
 });
