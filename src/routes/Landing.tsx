@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { ArrowRight, Plus } from 'lucide-react';
 import { generateSessionId } from '../lib/randomId';
+import type { SessionType } from '../features/session/sessionType';
 import ThemeButton from '../features/theme/ThemeButton';
 import ThemeDrawer from '../features/theme/ThemeDrawer';
 import { useRoomTransition } from '../features/transition/RoomTransitionProvider';
@@ -66,7 +67,12 @@ const TICKER_WORDS = ['HTML', 'CSS', 'JavaScript', 'Console', 'Output', 'One lin
 
 export default function Landing() {
   const newRoomId = useMemo(() => generateSessionId(), []);
-  const roomHref = `/code/${newRoomId}`;
+  // Plain derived const, not memoized -- cheap to recompute, and every
+  // consumer (the three `Link to={roomHref}` call sites below, plus
+  // enterRoom's `navigate(roomHref)`) just reads this one variable, so it
+  // automatically picks up a sessionType change on the next render.
+  const [sessionType, setSessionType] = useState<SessionType>('web');
+  const roomHref = `/code/${newRoomId}${sessionType === 'react' ? '?type=react' : ''}`;
   const [themeDrawerOpen, setThemeDrawerOpen] = useState(false);
   const navigate = useNavigate();
   const { start } = useRoomTransition();
@@ -160,6 +166,49 @@ export default function Landing() {
             Open a workspace, send the link, and start collaborating on HTML, CSS and
             JavaScript together — live, in the browser.
           </p>
+          {/*
+            Deliberately inline-styled rather than adding classes to
+            Landing.module.scss -- this task's scope is Landing.tsx/.test.tsx
+            only. The pill look borrows the same CSS custom properties
+            (--line2/--bg2/--acc/--acc-ink) the rest of this page's SCSS
+            already uses, so it stays on-theme in both light and dark mode
+            without introducing a new stylesheet dependency.
+          */}
+          <div
+            role="group"
+            aria-label="Session type"
+            style={{
+              display: 'inline-flex',
+              marginTop: 28,
+              padding: 4,
+              gap: 2,
+              border: '1px solid var(--line2)',
+              borderRadius: 999,
+              background: 'var(--bg2)',
+            }}
+          >
+            {(['web', 'react'] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                aria-pressed={sessionType === option}
+                onClick={() => setSessionType(option)}
+                style={{
+                  height: 34,
+                  padding: '0 16px',
+                  border: 0,
+                  borderRadius: 999,
+                  cursor: 'pointer',
+                  font: '600 13px var(--font-sans)',
+                  background: sessionType === option ? 'var(--acc)' : 'transparent',
+                  color: sessionType === option ? 'var(--acc-ink)' : 'var(--muted)',
+                }}
+              >
+                {option === 'web' ? 'Web' : 'React'}
+              </button>
+            ))}
+          </div>
+
           <div className={styles.heroActions}>
             <Link to={roomHref} className={styles.ctaButton} onClick={handleCreateClick}>
               Create New Room

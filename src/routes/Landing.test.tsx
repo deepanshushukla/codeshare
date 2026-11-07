@@ -192,3 +192,52 @@ test('the bottom CTA is also a real link, and the footer shows the 2026 copyrigh
   expect(links.length).toBe(2); // hero CTA + bottom CTA
   expect(screen.getByText('© 2026 CodeShare')).toBeInTheDocument();
 });
+
+// --- Web/React session type toggle ------------------------------------------
+//
+// The brief's example tests click `getByText('Create New Room')` and assert
+// against a `mockNavigate`. Neither translates directly here: "Create New
+// Room" text matches more than one node once the hero CTA *and* the bottom
+// CTA block's inner span are both in the DOM (Task 9), and navigate() is only
+// invoked 650ms into RoomTransitionProvider's animation (see
+// RoomTransitionProvider.test.tsx), not synchronously on click. Asserting on
+// the rendered `href` of each `Link to={roomHref}` instead exercises the same
+// underlying roomHref computation these tests care about, synchronously and
+// unambiguously -- and is exactly how the pre-existing
+// "the Create New Room link points at /code/<id>" test above already
+// verifies this link.
+test('defaults to creating a Web session: the room href has no ?type= query string', () => {
+  renderLanding();
+  const link = screen.getAllByRole('link', { name: /^create new room$/i })[0];
+  expect(link.getAttribute('href')).toMatch(/^\/code\/[a-z0-9]{10}$/);
+  expect(link.getAttribute('href')).not.toMatch(/\?type=/);
+});
+
+test('selecting React before creating updates every "Create New Room" / "New Room" link to ?type=react', () => {
+  renderLanding();
+  fireEvent.click(screen.getByRole('button', { name: /^react$/i }));
+  const heroAndBottomLinks = screen.getAllByRole('link', { name: /^create new room$/i });
+  const headerPill = screen.getByRole('link', { name: /^new room$/i });
+  for (const link of [...heroAndBottomLinks, headerPill]) {
+    expect(link.getAttribute('href')).toMatch(/^\/code\/[a-z0-9]{10}\?type=react$/);
+  }
+});
+
+test('switching back to Web after selecting React drops ?type= again', () => {
+  renderLanding();
+  fireEvent.click(screen.getByRole('button', { name: /^react$/i }));
+  fireEvent.click(screen.getByRole('button', { name: /^web$/i }));
+  const link = screen.getAllByRole('link', { name: /^create new room$/i })[0];
+  expect(link.getAttribute('href')).toMatch(/^\/code\/[a-z0-9]{10}$/);
+});
+
+test('the Web/React toggle reflects the active selection via aria-pressed', () => {
+  renderLanding();
+  const webButton = screen.getByRole('button', { name: /^web$/i });
+  const reactButton = screen.getByRole('button', { name: /^react$/i });
+  expect(webButton).toHaveAttribute('aria-pressed', 'true');
+  expect(reactButton).toHaveAttribute('aria-pressed', 'false');
+  fireEvent.click(reactButton);
+  expect(webButton).toHaveAttribute('aria-pressed', 'false');
+  expect(reactButton).toHaveAttribute('aria-pressed', 'true');
+});
