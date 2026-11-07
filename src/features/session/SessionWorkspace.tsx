@@ -63,7 +63,7 @@ export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
   // useSession (broadcast edits) and usePresence (presence tracking). See
   // useSessionChannel.ts for why creating it in each hook is broken.
   const { channel, status: channelStatus } = useSessionChannel(sessionId, userId);
-  const { html, css, js, connectionStatus, updateField } = useSession(sessionId, userId, channel, channelStatus);
+  const { html, css, js, connectionStatus, updateField } = useSession(sessionId, userId, channel, channelStatus, 'web');
   const { users, name, setName } = usePresence(userId, channel);
 
   // `runToken` only changes when the user explicitly hits Run (button or

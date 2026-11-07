@@ -95,7 +95,7 @@ describe('useSession + usePresence on one shared channel', () => {
   function renderWorkspaceHooks(sessionId = 'room', userId: string | null = 'user-1') {
     return renderHook(() => {
       const { channel, status } = useSessionChannel(sessionId, userId);
-      const session = useSession(sessionId, userId, channel, status);
+      const session = useSession(sessionId, userId, channel, status, 'web');
       const presence = usePresence(userId, channel);
       return { session, presence };
     });

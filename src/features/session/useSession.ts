@@ -2,25 +2,49 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { debounce } from '../../lib/debounce';
 import type { ChannelStatus, EditField, SessionChannel } from './useSessionChannel';
+import { isSessionType, type SessionType } from './sessionType';
 
 export type { EditField };
 export type ConnectionStatus = ChannelStatus | 'write-failed' | 'auth-failed';
 
-type SessionContent = { html: string; css: string; js: string };
+type SessionContent = {
+  html: string;
+  css: string;
+  js: string;
+  app_jsx: string;
+  components_jsx: string;
+  react_css: string;
+};
 
 type UseSessionResult = SessionContent & {
   loading: boolean;
   connectionStatus: ConnectionStatus;
   updateField: (field: EditField, value: string) => void;
+  sessionType: SessionType;
 };
 
 const UPSERT_DEBOUNCE_MS = 400;
-const BLANK_CONTENT: SessionContent = { html: '', css: '', js: '' };
+const BLANK_CONTENT: SessionContent = {
+  html: '',
+  css: '',
+  js: '',
+  app_jsx: '',
+  components_jsx: '',
+  react_css: '',
+};
 
-const STARTER_CONTENT: SessionContent = {
+const STARTER_CONTENT_WEB: SessionContent = {
+  ...BLANK_CONTENT,
   html: '<h1>Welcome to CodeShare 👋</h1>\n<p>Start typing — everyone on this link sees it live.</p>',
   css: 'body {\n  font-family: sans-serif;\n  padding: 2rem;\n  color: #222;\n}',
   js: "console.log('Welcome to CodeShare!');",
+};
+
+const STARTER_CONTENT_REACT: SessionContent = {
+  ...BLANK_CONTENT,
+  app_jsx: 'function App() {\n  return <h1>Welcome to CodeShare 👋</h1>;\n}',
+  components_jsx: '// Shared components go here, in the same scope as App.jsx.',
+  react_css: 'body {\n  font-family: sans-serif;\n  padding: 2rem;\n  color: #222;\n}',
 };
 
 /**
@@ -37,9 +61,11 @@ export function useSession(
   userId: string | null,
   channel: SessionChannel | null,
   channelStatus: ChannelStatus,
+  typeHint: SessionType,
 ): UseSessionResult {
   const [content, setContent] = useState<SessionContent>(BLANK_CONTENT);
   const [loading, setLoading] = useState(true);
+  const [sessionType, setSessionType] = useState<SessionType>(typeHint);
   // Set when Postgres rejects a write (RLS, the char_length constraint, a
   // dropped connection). Without this the user sees their edit applied locally
   // and broadcast to everyone else while it silently never lands in the row --
@@ -73,20 +99,31 @@ export function useSession(
       const { data, error } = await supabase.from('sessions').select('*').eq('id', sessionId).maybeSingle();
       if (!active) return;
       if (data) {
-        setContent({ html: data.html, css: data.css, js: data.js });
+        const resolvedType = isSessionType(data.session_type) ? data.session_type : 'web';
+        setSessionType(resolvedType);
+        setContent({
+          html: data.html,
+          css: data.css,
+          js: data.js,
+          app_jsx: data.app_jsx,
+          components_jsx: data.components_jsx,
+          react_css: data.react_css,
+        });
       } else if (!error) {
         // Only create a blank row when we positively know none exists. On a
         // transient read error, `data` is also falsy — don't treat that as
         // "no row yet" and upsert blanks over an existing session's content.
+        const starter = typeHint === 'react' ? STARTER_CONTENT_REACT : STARTER_CONTENT_WEB;
         const { error: writeError } = await supabase
           .from('sessions')
-          .upsert({ id: sessionId, ...STARTER_CONTENT });
+          .upsert({ id: sessionId, session_type: typeHint, ...starter });
         if (!active) return;
         if (writeError) {
           console.error('codeshare: creating the session row failed', writeError);
           setWriteFailed(true);
         } else {
-          setContent(STARTER_CONTENT);
+          setSessionType(typeHint);
+          setContent(starter);
         }
       }
       if (active) setLoading(false);
@@ -138,6 +175,9 @@ export function useSession(
       html: makePersister('html'),
       css: makePersister('css'),
       js: makePersister('js'),
+      app_jsx: makePersister('app_jsx'),
+      components_jsx: makePersister('components_jsx'),
+      react_css: makePersister('react_css'),
     };
   });
 
@@ -154,5 +194,5 @@ export function useSession(
   // reconnecting socket (which recovers on its own), so it wins the banner.
   const connectionStatus: ConnectionStatus = writeFailed ? 'write-failed' : channelStatus;
 
-  return { ...content, loading, connectionStatus, updateField };
+  return { ...content, loading, connectionStatus, updateField, sessionType };
 }

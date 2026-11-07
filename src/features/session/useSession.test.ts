@@ -3,6 +3,7 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import { useSession } from './useSession';
 import { useSessionChannel } from './useSessionChannel';
 import { maybeSingle, mockConfig, resetSupabaseMock, soleChannel, upsert } from '../../test/supabaseMock';
+import type { SessionType } from './sessionType';
 
 vi.mock('../../lib/supabase', () => import('../../test/supabaseMock'));
 
@@ -13,10 +14,10 @@ beforeEach(() => {
 // Renders useSession on top of the real useSessionChannel, the way
 // SessionWorkspace does, against the shared Supabase mock -- so these tests
 // exercise the actual channel wiring instead of a bespoke channel stub.
-function renderSession(sessionId: string, userId: string | null = 'user-1') {
+function renderSession(sessionId: string, userId: string | null = 'user-1', typeHint: SessionType = 'web') {
   return renderHook(() => {
     const { channel, status } = useSessionChannel(sessionId, userId);
-    return useSession(sessionId, userId, channel, status);
+    return useSession(sessionId, userId, channel, status, typeHint);
   });
 }
 
@@ -31,7 +32,7 @@ describe('useSession', () => {
     const { result, rerender } = renderHook(
       ({ userId }: { userId: string | null }) => {
         const { channel, status } = useSessionChannel('late-auth-room', userId);
-        return useSession('late-auth-room', userId, channel, status);
+        return useSession('late-auth-room', userId, channel, status, 'web');
       },
       { initialProps: { userId: null as string | null } },
     );
@@ -184,6 +185,108 @@ describe('useSession', () => {
     mockConfig.upsertResult = { error: { message: 'permission denied for table sessions' } };
     const { result } = renderSession('denied-room');
     await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.connectionStatus).toBe('write-failed');
+  });
+
+  test('creates a React session with React starter content when no row exists and typeHint is react', async () => {
+    mockConfig.sessionRow = null;
+    const { result } = renderSession('new-react-room', 'user-1', 'react');
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'new-react-room',
+        session_type: 'react',
+        app_jsx: expect.any(String),
+        components_jsx: expect.any(String),
+        react_css: expect.any(String),
+      }),
+    );
+    const call = upsert.mock.calls[0][0] as Record<string, unknown>;
+    expect(call.app_jsx).not.toBe('');
+    expect(call.components_jsx).not.toBe('');
+    expect(call.react_css).not.toBe('');
+    expect(result.current.sessionType).toBe('react');
+  });
+
+  test("loads an existing session's session_type from the row, ignoring typeHint", async () => {
+    const row = {
+      id: 'react-existing-room',
+      html: '',
+      css: '',
+      js: '',
+      session_type: 'react',
+      app_jsx: 'x',
+      components_jsx: 'y',
+      react_css: 'z',
+    };
+    mockConfig.sessionRow = row;
+    const { result } = renderSession('react-existing-room', 'user-1', 'web');
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.sessionType).toBe('react');
+    expect(result.current.app_jsx).toBe('x');
+  });
+
+  test('updateField persists app_jsx the same debounced way as html', async () => {
+    const persistRow = {
+      id: 'react-room-persist',
+      html: '',
+      css: '',
+      js: '',
+      session_type: 'react',
+      app_jsx: '',
+      components_jsx: '',
+      react_css: '',
+    };
+    mockConfig.sessionRow = persistRow;
+    const { result } = renderSession('react-room-persist', 'user-1', 'react');
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    upsert.mockClear();
+
+    vi.useFakeTimers();
+    try {
+      act(() => result.current.updateField('app_jsx', 'const x = 1'));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'react-room-persist',
+        app_jsx: 'const x = 1',
+        updated_at: expect.any(String),
+      }),
+    );
+  });
+
+  test('surfaces write-failed when a React field write is rejected', async () => {
+    const failRow = {
+      id: 'react-room-fail',
+      html: '',
+      css: '',
+      js: '',
+      session_type: 'react',
+      app_jsx: '',
+      components_jsx: '',
+      react_css: '',
+    };
+    mockConfig.sessionRow = failRow;
+    const { result } = renderSession('react-room-fail', 'user-1', 'react');
+    await waitFor(() => expect(result.current.connectionStatus).toBe('connected'));
+
+    mockConfig.upsertResult = { error: { message: 'new row violates check constraint' } };
+    vi.useFakeTimers();
+    try {
+      act(() => result.current.updateField('app_jsx', 'const x = 1'));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+
     expect(result.current.connectionStatus).toBe('write-failed');
   });
 });

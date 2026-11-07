@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 
-export type EditField = 'html' | 'css' | 'js';
+export type EditField = 'html' | 'css' | 'js' | 'app_jsx' | 'components_jsx' | 'react_css';
 export type ChannelStatus = 'connecting' | 'connected' | 'reconnecting';
 
 export type BroadcastEditPayload = { field: EditField; value: string; userId: string | null };
