@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { buildSandboxDocument, serializeForBridge } from './sandbox';
+import { buildSandboxDocument, buildReactSandboxDocument, serializeForBridge } from './sandbox';
 
 describe('buildSandboxDocument', () => {
   test('embeds the given html, css, and js', () => {
@@ -107,5 +107,37 @@ describe('serializeForBridge', () => {
   test('bottoms out past the depth limit instead of walking unbounded structures', () => {
     const deep = { a: { b: { c: { d: { e: 1 } } } } };
     expect(serializeForBridge(deep, [], 2)).toEqual({ a: { b: '[Object]' } });
+  });
+});
+
+describe('buildReactSandboxDocument', () => {
+  test('includes pinned CDN script tags for React, ReactDOM, and Babel Standalone', () => {
+    const doc = buildReactSandboxDocument('function App(){return null;}', '', '');
+    expect(doc).toContain('https://unpkg.com/react@19.2.0/umd/react.production.min.js');
+    expect(doc).toContain('https://unpkg.com/react-dom@19.2.0/umd/react-dom.production.min.js');
+    expect(doc).toContain('https://unpkg.com/@babel/standalone@7.26.4/babel.min.js');
+  });
+
+  test('inlines css into the id="__cs_style" tag', () => {
+    const doc = buildReactSandboxDocument('function App(){return null;}', '', 'body{color:red}');
+    expect(doc).toContain('<style id="__cs_style">body{color:red}</style>');
+  });
+
+  test('concatenates componentsJsx before appJsx in the transform source', () => {
+    const doc = buildReactSandboxDocument('const a = Shared;', 'const Shared = 1;', '');
+    // Both must appear, componentsJsx first, inside whatever script carries the source to Babel.transform.
+    expect(doc.indexOf('const Shared = 1;')).toBeLessThan(doc.indexOf('const a = Shared;'));
+  });
+
+  test('includes the existing BRIDGE_SCRIPT for console/REPL relay', () => {
+    const doc = buildReactSandboxDocument('function App(){return null;}', '', '');
+    expect(doc).toContain('console.log = wrap');
+  });
+
+  test('the catch block always wires both the visible #__cs_root error display and the runtime-error postMessage relay', () => {
+    const doc = buildReactSandboxDocument('function App(){return null;}', '', '');
+    const catchBlock = doc.slice(doc.indexOf('} catch (err) {'));
+    expect(catchBlock).toContain("getElementById('__cs_root')");
+    expect(catchBlock).toContain("type: 'runtime-error'");
   });
 });

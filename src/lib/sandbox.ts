@@ -155,3 +155,37 @@ export function buildSandboxDocument(html: string, css: string, js: string): str
   </body>
 </html>`;
 }
+
+export function buildReactSandboxDocument(appJsx: string, componentsJsx: string, css: string): string {
+  const userCode = JSON.stringify(`${componentsJsx}\n${appJsx}`);
+  return `<!DOCTYPE html>
+<html>
+  <head>
+    <style id="__cs_style">${css}</style>
+    <script src="https://unpkg.com/react@19.2.0/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@19.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+  </head>
+  <body>
+    <div id="__cs_root"></div>
+    <script>${BRIDGE_SCRIPT}</script>
+    <script>
+      (function () {
+        function escapeHtml(s) {
+          return String(s).replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; });
+        }
+        try {
+          var transformed = Babel.transform(${userCode}, { presets: ['react'] }).code;
+          var App = new Function('React', 'ReactDOM', transformed + '\\nreturn App;')(React, ReactDOM);
+          ReactDOM.createRoot(document.getElementById('__cs_root')).render(React.createElement(App));
+        } catch (err) {
+          var message = String((err && err.message) || err);
+          document.getElementById('__cs_root').innerHTML =
+            '<pre style="color:#e05252;white-space:pre-wrap;padding:1rem;font-family:monospace;">' + escapeHtml(message) + '</pre>';
+          parent.postMessage({ type: 'runtime-error', message: message }, '*');
+        }
+      })();
+    </script>
+  </body>
+</html>`;
+}
