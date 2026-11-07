@@ -1,3 +1,5 @@
+@use '../../styles/controls' as controls;
+
 // Room header, ported from the design handoff (`CodeShare v2.dc.html`,
 // ~lines 163-204): a fixed 56px bar holding the logo, the copy-room-link
 // chip, the centered pane-tab row, and the presence/theme/export/run
@@ -148,4 +150,26 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+// The "new session" control: an icon-only ghost button matching ThemeButton's
+// square variant, opening a small menu of "New Web/React Session" items --
+// each a fresh room opened in a new tab (see Header.tsx), never the current
+// one.
+.newSessionTrigger {
+  @include controls.room-control;
+
+  width: 36px;
+  padding: 0;
+  justify-content: center;
+}
+
+.newSessionContent {
+  @include controls.room-overlay-surface;
+
+  min-width: 10rem;
+}
+
+.newSessionItem {
+  @include controls.room-overlay-item;
 }

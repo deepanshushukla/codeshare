@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, fireEvent } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { createElement } from 'react';
 import type { ReactNode } from 'react';
@@ -103,5 +103,24 @@ describe('useReactTabsQueryParam', () => {
     // default tabs has appJsx+console open
     act(() => result.current.toggleTab('console'));
     expect(result.current.tabs.console).toBe(false);
+  });
+
+  // Equivalent of useTabsQueryParam's own relocated Alt+1-5 test (see Task
+  // 8): this hook registers its own window keydown listener against its own
+  // toggleTab/REACT_TAB_KEYS, independent of whichever header renders on top
+  // of it.
+  test('Alt+1-5 toggles the matching pane via a window keydown listener', () => {
+    const { result } = renderHook(() => useReactTabsQueryParam(), { wrapper: withRouter('/code/abc') });
+
+    // appJsx starts open (DEFAULT_REACT_TABS); Alt+2 opens componentsJsx.
+    act(() => {
+      fireEvent.keyDown(window, { code: 'Digit2', altKey: true });
+    });
+    expect(result.current.tabs.componentsJsx).toBe(true);
+
+    act(() => {
+      fireEvent.keyDown(window, { code: 'Digit5', altKey: true });
+    });
+    expect(result.current.tabs.output).toBe(true);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, fireEvent } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { createElement } from 'react';
 import type { ReactNode } from 'react';
@@ -79,5 +79,23 @@ describe('useTabsQueryParam', () => {
     // default tabs has js+console open
     act(() => result.current.toggleTab('console'));
     expect(result.current.tabs.console).toBe(false);
+  });
+
+  // Relocated from Header.test.tsx (see Task 8): Header no longer owns this
+  // shortcut -- each tabs hook now registers its own Alt+1-5 listener against
+  // its own toggleTab/TAB_KEYS, so the shortcut keeps working regardless of
+  // which header renders on top of it.
+  test('Alt+1-5 toggles the matching pane via a window keydown listener', () => {
+    const { result } = renderHook(() => useTabsQueryParam(), { wrapper: withRouter('/code/abc') });
+
+    act(() => {
+      fireEvent.keyDown(window, { code: 'Digit1', altKey: true });
+    });
+    expect(result.current.tabs.html).toBe(true);
+
+    act(() => {
+      fireEvent.keyDown(window, { code: 'Digit5', altKey: true });
+    });
+    expect(result.current.tabs.output).toBe(true);
   });
 });

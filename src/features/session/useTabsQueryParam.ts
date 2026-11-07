@@ -73,5 +73,23 @@ export function useTabsQueryParam(): {
     [tabs, setTabs],
   );
 
+  // --- Alt+1-5 pane shortcut ---------------------------------------------
+  // Global keydown listener mapping Alt+1 through Alt+5 to toggling the
+  // HTML/CSS/JS/Console/Output panes (in TAB_KEYS order). Relocated here from
+  // Header.tsx (see Task 8) so it lives alongside the toggleTab it drives,
+  // instead of depending on whichever header happens to render this hook's
+  // caller.
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.altKey && /^Digit[1-5]$/.test(e.code)) {
+        e.preventDefault();
+        toggleTab(TAB_KEYS[+e.code.slice(5) - 1]);
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleTab]);
+  // -------------------------------------------------------------------------
+
   return { tabs, setTabs, toggleTab };
 }

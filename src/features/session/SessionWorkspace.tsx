@@ -11,6 +11,7 @@ import OutputFrame from './OutputFrame';
 import OutputPane from './OutputPane';
 import ConsolePanel from './ConsolePanel';
 import Header from './Header';
+import TabBar from './TabBar';
 import MobileTabBar from './MobileTabBar';
 import ConnectionBanner from './ConnectionBanner';
 import StatusBar from './StatusBar';
@@ -151,16 +152,13 @@ export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
     <div className={styles.workspace}>
       <Header
         roomId={sessionId}
-        tabs={tabs}
-        toggleTab={toggleTab}
+        tabBar={<TabBar tabs={tabs} toggleTab={toggleTab} />}
         users={users}
         currentUserId={userId}
         name={name}
         onNameChange={setName}
         onRun={handleRun}
-        html={html}
-        css={css}
-        js={js}
+        exportContent={{ html, css, js }}
       />
       <ConnectionBanner status={bannerStatus} />
       {/* flex: 1 + min-height: 0 (see the stylesheet) rather than height:

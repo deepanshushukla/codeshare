@@ -81,5 +81,22 @@ export function useReactTabsQueryParam(): {
     [tabs, setTabs],
   );
 
+  // --- Alt+1-5 pane shortcut ---------------------------------------------
+  // Global keydown listener mapping Alt+1 through Alt+5 to toggling the
+  // App.jsx/Components.jsx/CSS/Console/Output panes (in REACT_TAB_KEYS
+  // order). Equivalent to useTabsQueryParam's own effect (see Task 8),
+  // parameterized on this hook's own toggleTab/REACT_TAB_KEYS.
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.altKey && /^Digit[1-5]$/.test(e.code)) {
+        e.preventDefault();
+        toggleTab(REACT_TAB_KEYS[+e.code.slice(5) - 1]);
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleTab]);
+  // -------------------------------------------------------------------------
+
   return { tabs, setTabs, toggleTab };
 }

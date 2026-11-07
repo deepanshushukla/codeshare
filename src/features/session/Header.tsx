@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Copy } from 'lucide-react';
-import { TAB_KEYS, type TabsState } from './useTabsQueryParam';
+import { Copy, Plus } from 'lucide-react';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import type { PresenceUser } from './usePresence';
-import TabBar from './TabBar';
 import UsersMenu from './UsersMenu';
 import ExportMenu from './ExportMenu';
 import RunControls from './RunControls';
@@ -12,6 +11,8 @@ import ThemeDrawer from '../theme/ThemeDrawer';
 import { Toast } from './Toast';
 import { useToast } from './useToast';
 import { useBreakpoint } from './useBreakpoint';
+import { generateSessionId } from '../../lib/randomId';
+import type { ExportContent, ReactExportContent } from '../../lib/export';
 import styles from './Header.module.scss';
 
 // How far off the bottom of the viewport the toast floats, per layout.
@@ -23,49 +24,61 @@ const TOAST_BOTTOM_OFFSET_MOBILE = 96;
 
 type Props = {
   roomId: string;
-  tabs: TabsState;
-  toggleTab: (key: keyof TabsState) => void;
+  tabBar: ReactNode;
   users: PresenceUser[];
   currentUserId: string | null;
   name: string;
   onNameChange: (n: string) => void;
   onRun: () => void;
-  html: string;
-  css: string;
-  js: string;
+  exportContent: ({ sessionType?: 'web' } & ExportContent) | ({ sessionType: 'react' } & ReactExportContent);
 };
+
+// Opens a brand-new session (Web or React) in a new tab, never touching the
+// current session's URL/state -- a quick "start something else" escape hatch
+// from inside an existing room, not a navigation of it. Lives in Header's own
+// `actions` cluster, reusing the same Radix DropdownMenu primitive ExportMenu
+// already uses (including the Portal -- see ExportMenu.tsx for why that's
+// required, not optional).
+function NewSessionMenu() {
+  function openNewSession(type: 'web' | 'react') {
+    const newId = generateSessionId();
+    const suffix = type === 'react' ? '?type=react' : '';
+    window.open(`${window.location.origin}/code/${newId}${suffix}`, '_blank');
+  }
+
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger className={styles.newSessionTrigger} aria-label="New session" title="New session">
+        <Plus size={15} />
+      </DropdownMenu.Trigger>
+      {/* Portal required for the same reason as ExportMenu's: without it this
+          renders inline in the header's own stacking context, behind the
+          resizable panes' CodeMirror instances instead of floating above the
+          page. */}
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content className={styles.newSessionContent} sideOffset={6} align="end">
+          <DropdownMenu.Item className={styles.newSessionItem} onSelect={() => openNewSession('web')}>
+            New Web Session
+          </DropdownMenu.Item>
+          <DropdownMenu.Item className={styles.newSessionItem} onSelect={() => openNewSession('react')}>
+            New React Session
+          </DropdownMenu.Item>
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  );
+}
 
 export default function Header({
   roomId,
-  tabs,
-  toggleTab,
+  tabBar,
   users,
   currentUserId,
   name,
   onNameChange,
   onRun,
-  html,
-  css,
-  js,
+  exportContent,
 }: Props) {
-  // --- Alt+1-5 pane shortcut ---------------------------------------------
-  // Global keydown listener mapping Alt+1 through Alt+5 to toggling the
-  // HTML/CSS/JS/Console/Output panes (in TAB_KEYS order). Kept as its own
-  // self-contained effect, separate from the rest of Header's logic, so a
-  // future header redesign (see Task 8) can lift the JSX around it without
-  // disturbing this listener.
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.altKey && /^Digit[1-5]$/.test(e.code)) {
-        e.preventDefault();
-        toggleTab(TAB_KEYS[+e.code.slice(5) - 1]);
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [toggleTab]);
-  // -------------------------------------------------------------------------
-
   // Header owns the one useToast() instance for this screen: both the
   // copy-link chip (below) and ExportMenu's onExported report through it.
   const { message: toast, showToast } = useToast();
@@ -111,9 +124,7 @@ export default function Header({
         <Copy size={13} aria-hidden="true" />
       </button>
 
-      <div className={styles.center}>
-        <TabBar tabs={tabs} toggleTab={toggleTab} />
-      </div>
+      <div className={styles.center}>{tabBar}</div>
 
       <div className={styles.actions}>
         <UsersMenu
@@ -124,12 +135,8 @@ export default function Header({
           isWide={isWide}
         />
         <ThemeButton variant="square" onOpenDrawer={() => setThemeDrawerOpen(true)} />
-        <ExportMenu
-          html={html}
-          css={css}
-          js={js}
-          onExported={(filename) => showToast(`Exported ${filename}`)}
-        />
+        <ExportMenu {...exportContent} onExported={(filename) => showToast(`Exported ${filename}`)} />
+        <NewSessionMenu />
         <RunControls onRun={onRun} />
       </div>
 

@@ -6,6 +6,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Header from './Header';
+import TabBar from './TabBar';
 import { ThemeProvider } from '../theme/ThemeProvider';
 import { DEFAULT_TABS } from './useTabsQueryParam';
 import type { PresenceUser } from './usePresence';
@@ -46,16 +47,13 @@ type HeaderProps = Parameters<typeof Header>[0];
 function renderHeader(overrides: Partial<HeaderProps> = {}) {
   const props: HeaderProps = {
     roomId: 'abcd-1234',
-    tabs: DEFAULT_TABS,
-    toggleTab: () => {},
+    tabBar: <TabBar tabs={DEFAULT_TABS} toggleTab={() => {}} />,
     users: [],
     currentUserId: null,
     name: '',
     onNameChange: () => {},
     onRun: () => {},
-    html: '',
-    css: '',
-    js: '',
+    exportContent: { html: '', css: '', js: '' },
     ...overrides,
   };
   return render(
@@ -201,19 +199,50 @@ describe('presence trigger', () => {
   });
 });
 
-test('Alt+1-5 still toggles the matching pane after the redesign', () => {
-  const toggleTab = vi.fn();
-  renderHeader({ toggleTab });
+test('renders whatever is passed as tabBar', () => {
+  renderHeader({ tabBar: <div data-testid="custom-tab-bar" /> });
+  expect(screen.getByTestId('custom-tab-bar')).toBeInTheDocument();
+});
 
-  fireEvent.keyDown(window, { code: 'Digit1', altKey: true });
-  fireEvent.keyDown(window, { code: 'Digit3', altKey: true });
-  fireEvent.keyDown(window, { code: 'Digit5', altKey: true });
+describe('new session control', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
-  expect(toggleTab.mock.calls.map(([key]) => key)).toEqual(['html', 'js', 'output']);
+  test('opens a new React session in a new tab without navigating the current one', async () => {
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
+    // MemoryRouter never touches the browser's real history/location (see
+    // useTabsQueryParam.test.ts), so the honest way to prove "the current tab
+    // didn't navigate" here is that jsdom's own window.location is untouched
+    // by the click -- not a particular path, which this render never sets.
+    const pathBefore = window.location.pathname;
+    renderHeader();
+
+    await userEvent.click(screen.getByRole('button', { name: /new session/i }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: /new react session/i }));
+
+    expect(openSpy).toHaveBeenCalledWith(expect.stringContaining('?type=react'), '_blank');
+    expect(openSpy).toHaveBeenCalledWith(expect.stringContaining(`${window.location.origin}/code/`), '_blank');
+    // Never the current tab/session.
+    expect(window.location.pathname).toBe(pathBefore);
+  });
+
+  test('opens a new Web session (no ?type=react) in a new tab', async () => {
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
+    renderHeader();
+
+    await userEvent.click(screen.getByRole('button', { name: /new session/i }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: /new web session/i }));
+
+    expect(openSpy).toHaveBeenCalledTimes(1);
+    const [url, target] = openSpy.mock.calls[0];
+    expect(url as string).not.toContain('?type=react');
+    expect(target).toBe('_blank');
+  });
 });
 
 test('shows a toast naming the exported file', async () => {
-  renderHeader({ html: '<p>hi</p>' });
+  renderHeader({ exportContent: { html: '<p>hi</p>', css: '', js: '' } });
 
   await userEvent.click(screen.getByRole('button', { name: /export/i }));
   await userEvent.click(await screen.findByText('HTML file'));
