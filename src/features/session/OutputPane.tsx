@@ -2,16 +2,12 @@ import { RotateCw } from 'lucide-react';
 import OutputFrame from './OutputFrame';
 import styles from './OutputPane.module.scss';
 
-type OutputFrameProps = {
-  html: string;
-  css: string;
-  js: string;
-  runToken: number;
-  onWindowReady: (win: Window | null) => void;
-};
+type OutputFrameProps =
+  | { sessionType?: 'web'; html: string; css: string; js: string; runToken: number; onWindowReady: (win: Window | null) => void }
+  | { sessionType: 'react'; appJsx: string; componentsJsx: string; reactCss: string; runToken: number; onWindowReady: (win: Window | null) => void };
 
-// Wraps the existing, unmodified OutputFrame (the sandboxed <iframe> -- see
-// OutputFrame.tsx for the security rationale) with the 36px pane header the
+// Wraps OutputFrame (the sandboxed <iframe> -- see OutputFrame.tsx for the
+// security rationale) with the 36px pane header the
 // design handoff gives every pane: a glyph, a label, and (here) a reload
 // button in place of the line-count/clear affordances the editor/console
 // panes show. `onRun` is the same callback RunControls' Run button already
@@ -40,8 +36,14 @@ export default function OutputPane({ onRun, ...frameProps }: OutputFrameProps & 
         <OutputFrame {...frameProps} />
         {frameProps.runToken === 0 && (
           <div className={styles.emptyState} aria-live="polite">
-            <div>// HTML/CSS update live as you type.</div>
-            <div>// Press Run or Ctrl + Enter to run your JS.</div>
+            {frameProps.sessionType === 'react' ? (
+              <div>// Press Run or Ctrl + Enter to render your app.</div>
+            ) : (
+              <>
+                <div>// HTML/CSS update live as you type.</div>
+                <div>// Press Run or Ctrl + Enter to run your JS.</div>
+              </>
+            )}
           </div>
         )}
       </div>
