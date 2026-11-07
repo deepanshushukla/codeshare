@@ -140,4 +140,25 @@ describe('buildReactSandboxDocument', () => {
     expect(catchBlock).toContain("getElementById('__cs_root')");
     expect(catchBlock).toContain("type: 'runtime-error'");
   });
+
+  test('escapes </script> in user code so it cannot prematurely close the user-code script block', () => {
+    // If user code contains "</script>", the HTML parser would close the script tag early
+    // unless we escape the forward slash, breaking the entire sandboxed document.
+    const appWithScript = 'function App(){return "text with </script> inside";}';
+    const doc = buildReactSandboxDocument(appWithScript, '', '');
+
+    // The most important check: the document must contain the escaped form <\/script
+    // inside the Babel.transform call to prevent premature script tag closure
+    expect(doc).toContain('<\\/script>');
+
+    // Verify the bridge script closing tags still exist (the document structure is intact)
+    expect(doc).toContain('</script>');
+
+    // Extract the Babel.transform call and verify the user code is properly escaped
+    const transformIndex = doc.indexOf('Babel.transform(');
+    expect(transformIndex).toBeGreaterThan(0);
+    const transformCall = doc.substring(transformIndex, doc.indexOf(';', transformIndex));
+    // The user code inside the transform call should have the escaped version
+    expect(transformCall).toContain('<\\/script>');
+  });
 });

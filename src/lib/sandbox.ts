@@ -157,7 +157,7 @@ export function buildSandboxDocument(html: string, css: string, js: string): str
 }
 
 export function buildReactSandboxDocument(appJsx: string, componentsJsx: string, css: string): string {
-  const userCode = JSON.stringify(`${componentsJsx}\n${appJsx}`);
+  const userCode = JSON.stringify(`${componentsJsx}\n${appJsx}`).replace(/<\/script/gi, '<\\/script');
   return `<!DOCTYPE html>
 <html>
   <head>
