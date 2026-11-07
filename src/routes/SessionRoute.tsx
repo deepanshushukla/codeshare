@@ -14,8 +14,14 @@ export default function SessionRoute() {
   // row's session_type once one exists. An absent or unrecognized value
   // defaults to 'web', the original (and only, pre-React-mode) session type.
   const typeHint: SessionType = rawType && isSessionType(rawType) ? rawType : 'web';
+  // Called unconditionally, before the `!sessionId` guard below, so this
+  // hook call can never be skipped on some renders and not others (Rules of
+  // Hooks). `sessionId` is always defined once this route actually matches
+  // (`/code/:sessionId`), so the `sessionId ?? ''` placeholder here is never
+  // real input to useSessionType -- the guard immediately below still
+  // short-circuits to <NotFound /> before this hook's result is ever used.
+  const { sessionType, loading } = useSessionType(sessionId ?? '', typeHint);
   if (!sessionId) return <NotFound />;
-  const { sessionType, loading } = useSessionType(sessionId, typeHint);
   if (loading || !sessionType) return null;
   return sessionType === 'react' ? (
     <ReactSessionWorkspace sessionId={sessionId} />

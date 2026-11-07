@@ -1,4 +1,4 @@
-import { expect, test, vi } from 'vitest';
+import { beforeEach, expect, test, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import SessionRoute from './SessionRoute';
@@ -23,6 +23,15 @@ vi.mock('../features/session/ReactSessionWorkspace', () => ({
 }));
 
 const mockedUseSessionType = vi.mocked(useSessionType);
+
+// Without this, test 4's `toHaveBeenCalledWith` assertion would see every
+// prior test's calls too (vi.mock's module-level mock persists call history
+// across tests in the same file) -- harmless today since the last call
+// always happens to be the one each test cares about, but a reorder or an
+// added call-count assertion would silently start reading stale calls.
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 function renderAt(path: string) {
   return render(
