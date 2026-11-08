@@ -36,6 +36,16 @@ describe('buildReactHtmlFile', () => {
     expect(file.indexOf('const Shared = 1;')).toBeLessThan(file.indexOf('const a = Shared;'));
   });
 
+  test('strips import/export syntax from appJsx/componentsJsx so real-world React snippets do not throw a bare SyntaxError', () => {
+    const file = buildReactHtmlFile({
+      appJsx: "import React, { useState } from 'react';\nfunction App() { const [n] = useState(0); return null; }",
+      componentsJsx: '',
+      reactCss: '',
+    });
+    expect(file).not.toContain('import React');
+    expect(file).toContain('const { useState } = React;');
+  });
+
   test('escapes a literal </script> inside embedded JSX source so it cannot close the mount script early', () => {
     const file = buildReactHtmlFile({
       appJsx: 'const a = "</script><script>alert(1)</script>";',

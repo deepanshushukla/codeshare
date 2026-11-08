@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { buildSandboxDocument, buildReactSandboxDocument, serializeForBridge } from './sandbox';
+import { buildSandboxDocument, buildReactSandboxDocument, serializeForBridge, stripReactModuleSyntax } from './sandbox';
 
 describe('buildSandboxDocument', () => {
   test('embeds the given html, css, and js', () => {
@@ -110,6 +110,47 @@ describe('serializeForBridge', () => {
   });
 });
 
+describe('stripReactModuleSyntax', () => {
+  test('removes a bare default React import', () => {
+    expect(stripReactModuleSyntax("import React from 'react';\nfunction App(){}")).toBe(
+      '\nfunction App(){}',
+    );
+  });
+
+  test('rewrites a default-plus-named React import into a destructure off the global', () => {
+    expect(stripReactModuleSyntax("import React, { useState } from 'react';\nconst [n] = useState(0);")).toBe(
+      'const { useState } = React;\nconst [n] = useState(0);',
+    );
+  });
+
+  test('rewrites a named-only React import into a destructure off the global', () => {
+    expect(stripReactModuleSyntax("import { useState, useEffect } from \"react\";")).toBe(
+      'const { useState, useEffect } = React;',
+    );
+  });
+
+  test('removes a ReactDOM import, with or without /client', () => {
+    expect(stripReactModuleSyntax("import ReactDOM from 'react-dom';\nx")).toBe('\nx');
+    expect(stripReactModuleSyntax("import ReactDOM from 'react-dom/client';\nx")).toBe('\nx');
+  });
+
+  test('strips "export default" from a function/const declaration, keeping the declaration', () => {
+    expect(stripReactModuleSyntax('export default function App() { return null; }')).toBe(
+      'function App() { return null; }',
+    );
+  });
+
+  test('strips a leading "export" from function/const/class declarations', () => {
+    expect(stripReactModuleSyntax('export function Shared() {}')).toBe('function Shared() {}');
+    expect(stripReactModuleSyntax('export const Shared = 1;')).toBe('const Shared = 1;');
+  });
+
+  test('leaves ordinary code with no import/export untouched', () => {
+    const code = 'function App() { return React.createElement("div"); }';
+    expect(stripReactModuleSyntax(code)).toBe(code);
+  });
+});
+
 describe('buildReactSandboxDocument', () => {
   // Everything from `var source = ...` onwards, i.e. the generated mount
   // script only -- never the BRIDGE_SCRIPT that precedes it in the document.
@@ -125,6 +166,14 @@ describe('buildReactSandboxDocument', () => {
   test('inlines css into the id="__cs_style" tag', () => {
     const doc = buildReactSandboxDocument('function App(){return null;}', '', 'body{color:red}');
     expect(doc).toContain('<style id="__cs_style">body{color:red}</style>');
+  });
+
+  test('strips import/export syntax from appJsx/componentsJsx before embedding, so real-world React snippets do not throw a bare SyntaxError', () => {
+    const appJsx = "import React, { useState } from 'react';\nfunction App() { const [n] = useState(0); return null; }";
+    const doc = buildReactSandboxDocument(appJsx, '', '');
+    const embedded = mountScript(doc);
+    expect(embedded).not.toContain('import React');
+    expect(embedded).toContain('const { useState } = React;');
   });
 
   test('concatenates componentsJsx before appJsx in the transform source', () => {

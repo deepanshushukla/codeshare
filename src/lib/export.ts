@@ -43,8 +43,25 @@ export async function buildZipBlob({ html, css, js }: ExportContent): Promise<Bl
 // Pinned to React 18.3.1, not 19.x -- see the matching comment in
 // src/lib/sandbox.ts: React 19's npm package ships no `umd/` build, so a
 // 19.x URL here 404s silently and the exported file never renders.
+//
+// stripReactModuleSyntax is the same rewrite as sandbox.ts's function of the
+// same name (duplicated, not imported, per this file's independence from
+// sandbox.ts noted above): real React snippets open with `import React from
+// 'react'` or `export default function App()`, which are invalid syntax
+// inside the `new Function(...)` body below -- there's no bundler here, only
+// the React/ReactDOM UMD globals the CDN scripts attach to `window`.
+function stripReactModuleSyntax(source: string): string {
+  return source
+    .replace(/import\s+React\s*,\s*\{([^}]*)\}\s*from\s*['"]react['"]\s*;?/g, 'const {$1} = React;')
+    .replace(/import\s+React\s*from\s*['"]react['"]\s*;?/g, '')
+    .replace(/import\s*\{([^}]*)\}\s*from\s*['"]react['"]\s*;?/g, 'const {$1} = React;')
+    .replace(/import\s+ReactDOM\s*from\s*['"]react-dom(?:\/client)?['"]\s*;?/g, '')
+    .replace(/export\s+default\s+/g, '')
+    .replace(/export\s+(?=function|const|let|var|class)/g, '');
+}
+
 function reactMountScript(appJsx: string, componentsJsx: string): string {
-  const userCode = JSON.stringify(`${componentsJsx}\n${appJsx}`).replace(/<\/script/gi, '<\\/script');
+  const userCode = JSON.stringify(stripReactModuleSyntax(`${componentsJsx}\n${appJsx}`)).replace(/<\/script/gi, '<\\/script');
   return `
     <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>

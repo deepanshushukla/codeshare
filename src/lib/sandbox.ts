@@ -156,6 +156,28 @@ export function buildSandboxDocument(html: string, css: string, js: string): str
 </html>`;
 }
 
+// Real-world React snippets almost always start with `import React from
+// 'react'` (or `import { useState } from 'react'`, or `export default
+// function App()`), but there is no bundler or module loader anywhere in
+// this sandbox -- only the React/ReactDOM UMD globals the CDN scripts
+// attach to `window`. A literal `import`/`export` statement is invalid
+// syntax inside the `new Function(...)` body the transformed code runs in
+// (import/export declarations are only legal at a module's top level), so
+// without this, pasting completely ordinary React code throws a bare
+// SyntaxError. This rewrites the common forms into equivalent global-scope
+// code instead of silently failing on them. Not a full module resolver --
+// this is a playground, not a bundler -- just the patterns real snippets
+// actually use.
+export function stripReactModuleSyntax(source: string): string {
+  return source
+    .replace(/import\s+React\s*,\s*\{([^}]*)\}\s*from\s*['"]react['"]\s*;?/g, 'const {$1} = React;')
+    .replace(/import\s+React\s*from\s*['"]react['"]\s*;?/g, '')
+    .replace(/import\s*\{([^}]*)\}\s*from\s*['"]react['"]\s*;?/g, 'const {$1} = React;')
+    .replace(/import\s+ReactDOM\s*from\s*['"]react-dom(?:\/client)?['"]\s*;?/g, '')
+    .replace(/export\s+default\s+/g, '')
+    .replace(/export\s+(?=function|const|let|var|class)/g, '');
+}
+
 // Pinned to React 18.3.1, not 19.x: React 19's npm package ships no `umd/`
 // build at all (confirmed via unpkg's ?meta listing), so a 19.x URL here
 // 404s silently -- a failed <script src> fires no catchable JS error, so
@@ -164,7 +186,7 @@ export function buildSandboxDocument(html: string, css: string, js: string): str
 // the last version with a UMD build and its createRoot API is what this file
 // uses, so it's a drop-in swap.
 export function buildReactSandboxDocument(appJsx: string, componentsJsx: string, css: string): string {
-  const userCode = JSON.stringify(`${componentsJsx}\n${appJsx}`).replace(/<\/script/gi, '<\\/script');
+  const userCode = JSON.stringify(stripReactModuleSyntax(`${componentsJsx}\n${appJsx}`)).replace(/<\/script/gi, '<\\/script');
   return `<!DOCTYPE html>
 <html>
   <head>
