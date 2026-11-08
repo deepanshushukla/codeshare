@@ -20,6 +20,24 @@
   font-variant-numeric: tabular-nums;
 }
 
+// Used instead of .trigger/.triggerAvatars when Header's MoreMenu nests this
+// component in its mobile panel (<760px) -- a full-width list row sharing
+// the panel's other rows' chrome (Theme, Export, New-session), not a
+// standalone bordered ghost-button or the avatar stack (which only makes
+// sense in the wide desktop header it's named for).
+.menuRowTrigger {
+  @include controls.room-overlay-item;
+
+  width: 100%;
+  gap: var(--space-2);
+  background: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 // Avatar-stack trigger (>=1100px): borderless, because the avatars are their
 // own affordance -- a box around them reads as a second, competing button.
 // (Design handoff `CodeShare v2.dc.html`, Room header, ~lines 182-190.)

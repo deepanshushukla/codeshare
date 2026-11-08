@@ -11,8 +11,14 @@ type Props = {
   onNameChange: (name: string) => void;
   // ≥1100px: show the overlapping avatar stack instead of the compact
   // icon+count. Only the TRIGGER's appearance changes -- see the note on
-  // the single shared Content below.
+  // the single shared Content below. Ignored when variant is 'menuRow'.
   isWide?: boolean;
+  // 'header': the compact icon+count or avatar-stack trigger that sits
+  // directly in the desktop `.actions` row (default, unchanged). 'menuRow':
+  // a full-width list row (icon + "Users" + count) -- used when Header's
+  // MoreMenu nests this component inside its mobile panel instead, where it
+  // needs to look like Theme/Export/New-session's plain rows.
+  variant?: 'header' | 'menuRow';
 };
 
 // Beyond this the stack stops being readable at 26px a piece; the remainder
@@ -79,24 +85,32 @@ function AvatarStack({ users, currentUserId, name }: AvatarStackProps) {
   );
 }
 
-export default function UsersMenu({ users, currentUserId, name, onNameChange, isWide = false }: Props) {
+export default function UsersMenu({ users, currentUserId, name, onNameChange, isWide = false, variant = 'header' }: Props) {
+  const isMenuRow = variant === 'menuRow';
   // An empty stack would render as a blank 36px button (presence is empty for
   // the first moments after mount), so the compact trigger also covers that.
-  const showAvatars = isWide && users.length > 0;
+  const showAvatars = !isMenuRow && isWide && users.length > 0;
 
   return (
     <DropdownMenu.Root>
-      {/* One Trigger with two appearances, never two Root/Content pairs: the
-          rename inputs below are the only copy of that logic, so the
-          ≥1100px avatar stack and the compact icon+count open the very same
-          menu and renaming is reachable at every width (a plan-level
-          requirement -- see the redesign plan's Global Constraints). */}
+      {/* One Trigger with three appearances (not three Root/Content pairs):
+          the rename inputs below are the only copy of that logic, so every
+          appearance -- the ≥1100px avatar stack, the compact icon+count,
+          and the menuRow list row -- opens the very same menu, and renaming
+          is reachable at every width (a plan-level requirement -- see the
+          redesign plan's Global Constraints). */}
       <DropdownMenu.Trigger
-        className={showAvatars ? styles.triggerAvatars : styles.trigger}
+        className={isMenuRow ? styles.menuRowTrigger : showAvatars ? styles.triggerAvatars : styles.trigger}
         aria-label="Users in this session"
         title={`${users.length} ${users.length === 1 ? 'person' : 'people'} here`}
       >
-        {showAvatars ? (
+        {isMenuRow ? (
+          <>
+            <Users size={16} />
+            <span>Users</span>
+            <span className={styles.count}>{users.length}</span>
+          </>
+        ) : showAvatars ? (
           <AvatarStack users={users} currentUserId={currentUserId} name={name} />
         ) : (
           <>

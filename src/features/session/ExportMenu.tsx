@@ -20,9 +20,16 @@ function timestampedName(extension: string): string {
 // component reports the filename up rather than rendering any feedback itself.
 type Props = (({ sessionType?: 'web' } & ExportContent) | ({ sessionType: 'react' } & ReactExportContent)) & {
   onExported?: (filename: string) => void;
+  // 'header': the ghost ring-button that sits directly in the desktop
+  // `.actions` row (default, unchanged). 'menuRow': a full-width list row
+  // with the label always visible -- used when Header's MoreMenu nests this
+  // component inside its mobile panel instead, where it needs to look like
+  // Theme/New-session's plain rows, not a standalone bordered button.
+  variant?: 'header' | 'menuRow';
 };
 
-export default function ExportMenu({ onExported, ...content }: Props) {
+export default function ExportMenu({ onExported, variant = 'header', ...content }: Props) {
+  const isMenuRow = variant === 'menuRow';
   async function exportHtml() {
     const filename = timestampedName('html');
     const file = content.sessionType === 'react' ? buildReactHtmlFile(content) : buildHtmlFile(content);
@@ -39,11 +46,14 @@ export default function ExportMenu({ onExported, ...content }: Props) {
 
   return (
     <DropdownMenu.Root>
-      <DropdownMenu.Trigger className={styles.trigger} aria-label="Export" title="Export">
+      <DropdownMenu.Trigger className={isMenuRow ? styles.menuRowTrigger : styles.trigger} aria-label="Export" title="Export">
         <Download size={15} />
-        {/* CSS-hidden below 760px (icon-only there) rather than conditionally
-            rendered, so crossing the breakpoint can't drop the label mid-open. */}
-        <span className={styles.label}>Export</span>
+        {/* CSS-hidden below 760px (icon-only there) in the 'header' variant
+            rather than conditionally rendered, so crossing the breakpoint
+            can't drop the label mid-open. The 'menuRow' variant has no such
+            hide -- it never renders in that cramped row, only inside
+            MoreMenu's panel, which always has room for the label. */}
+        <span className={isMenuRow ? undefined : styles.label}>Export</span>
       </DropdownMenu.Trigger>
       {/* Content must be explicitly placed in a Portal -- Radix does NOT do
           this on its own. Without it, Content renders inline in the header's

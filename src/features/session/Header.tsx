@@ -8,6 +8,7 @@ import ExportMenu from './ExportMenu';
 import RunControls from './RunControls';
 import ThemeButton from '../theme/ThemeButton';
 import ThemeDrawer from '../theme/ThemeDrawer';
+import { useTheme } from '../theme/ThemeProvider';
 import { Toast } from './Toast';
 import { useToast } from './useToast';
 import { useBreakpoint } from './useBreakpoint';
@@ -39,7 +40,16 @@ type Props = {
 // contextual action rather than a Web/React menu: inside a Web room this
 // offers React (and vice versa), since "start another one just like this"
 // is already one click away via the room link itself.
-function NewSessionButton({ currentType }: { currentType: SessionType }) {
+function NewSessionButton({
+  currentType,
+  variant = 'header',
+}: {
+  currentType: SessionType;
+  // 'header': the ghost ring-button in the desktop `.actions` row (default).
+  // 'menuRow': the full-width list-row chrome MoreMenu's other rows use --
+  // see ExportMenu/UsersMenu's own `variant` prop for the same split.
+  variant?: 'header' | 'menuRow';
+}) {
   const targetType: SessionType = currentType === 'react' ? 'web' : 'react';
 
   function openNewSession() {
@@ -51,7 +61,12 @@ function NewSessionButton({ currentType }: { currentType: SessionType }) {
   const label = targetType === 'react' ? 'Start React App' : 'Start a new JS App';
 
   return (
-    <button type="button" className={styles.newSessionTrigger} onClick={openNewSession} title={label}>
+    <button
+      type="button"
+      className={variant === 'menuRow' ? styles.morePlainAction : styles.newSessionTrigger}
+      onClick={openNewSession}
+      title={label}
+    >
       <Sparkles size={15} />
       <span className={styles.newSessionLabel}>{label}</span>
     </button>
@@ -63,8 +78,8 @@ type MoreMenuProps = {
   currentUserId: string | null;
   name: string;
   onNameChange: (n: string) => void;
-  isWide: boolean;
   onOpenTheme: () => void;
+  themeName: string;
   exportContent: Props['exportContent'];
   onExported: (filename: string) => void;
   currentType: SessionType;
@@ -88,8 +103,8 @@ function MoreMenu({
   currentUserId,
   name,
   onNameChange,
-  isWide,
   onOpenTheme,
+  themeName,
   exportContent,
   onExported,
   currentType,
@@ -134,20 +149,27 @@ function MoreMenu({
         <div className={styles.morePanel} role="menu">
           <button
             type="button"
-            className={styles.moreThemeAction}
+            className={styles.morePlainAction}
             role="menuitem"
             onClick={() => {
               onOpenTheme();
               setOpen(false);
             }}
           >
-            Theme
+            {/* Same conic-gradient swatch ThemeButton itself renders (its CSS
+                is theme-reactive via --acc/--text custom properties, so this
+                stays in sync without reading the theme's actual color here)
+                -- duplicated as a few lines of CSS rather than importing
+                ThemeButton's module.scss across a feature-folder boundary. */}
+            <span className={styles.moreThemeSwatch} aria-hidden="true" />
+            Theme: {themeName}
           </button>
           <div className={styles.morePanelItem}>
-            <UsersMenu users={users} currentUserId={currentUserId} name={name} onNameChange={onNameChange} isWide={isWide} />
+            <UsersMenu variant="menuRow" users={users} currentUserId={currentUserId} name={name} onNameChange={onNameChange} />
           </div>
           <div className={styles.morePanelItem}>
             <ExportMenu
+              variant="menuRow"
               {...exportContent}
               onExported={(filename) => {
                 onExported(filename);
@@ -156,7 +178,7 @@ function MoreMenu({
             />
           </div>
           <div className={styles.morePanelItem}>
-            <NewSessionButton currentType={currentType} />
+            <NewSessionButton variant="menuRow" currentType={currentType} />
           </div>
         </div>
       )}
@@ -184,6 +206,10 @@ export default function Header({
   // layout renders below -- below 760px, Theme/Users/Export/New-session
   // collapse into the MoreMenu panel (see its own comment for why).
   const { isWide, isMobile } = useBreakpoint();
+  // Only for MoreMenu's Theme row's "Theme: <name>" label, matching
+  // ThemeButton's own `aria-label="Theme: ${themeName}"` pattern -- the
+  // swatch's color comes from CSS custom properties, not this value.
+  const { themeName } = useTheme();
 
   const copyRoomLink = useCallback(async () => {
     // The chip shows the room's real route (`/code/:sessionId`) and copies the
@@ -229,8 +255,8 @@ export default function Header({
             currentUserId={currentUserId}
             name={name}
             onNameChange={onNameChange}
-            isWide={isWide}
             onOpenTheme={() => setThemeDrawerOpen(true)}
+            themeName={themeName}
             exportContent={exportContent}
             onExported={(filename) => showToast(`Exported ${filename}`)}
             currentType={exportContent.sessionType ?? 'web'}

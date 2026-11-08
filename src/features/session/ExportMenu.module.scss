@@ -23,6 +23,24 @@
   }
 }
 
+// Used instead of .trigger when Header's MoreMenu nests this component in
+// its mobile panel (<760px) -- a full-width list row sharing the panel's
+// other rows' chrome (Theme, New-session), not a standalone bordered
+// ghost-button. No icon-only collapse: this never renders in the cramped
+// desktop row that rule exists for.
+.menuRowTrigger {
+  @include controls.room-overlay-item;
+
+  width: 100%;
+  gap: 7px;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 .content {
   @include controls.room-overlay-surface;
 

@@ -208,27 +208,46 @@
   min-width: 11rem;
 }
 
-// Wraps each nested widget (UsersMenu/ExportMenu/NewSessionButton -- see
-// MoreMenu's comment) at that widget's own natural size, stacked vertically
-// instead of squeezed horizontally.
+// Wraps each nested widget (UsersMenu/ExportMenu, each rendered with
+// `variant="menuRow"` -- see MoreMenu's comment) at full width, stacked
+// vertically instead of squeezed horizontally. Those two components' own
+// `.menuRowTrigger` classes (in their own module.scss files) give them the
+// same `room-overlay-item` row chrome this file's `.morePlainAction` gives
+// Theme/New-session, so all four rows read as one consistent list instead
+// of two different "a bordered ghost-button" and "a borderless list item"
+// visual languages mixed in the same panel.
 .morePanelItem {
   display: flex;
   width: 100%;
 }
 
-// The Theme row is the one plain action in the panel (no nested widget of
-// its own, just Header's existing setThemeDrawerOpen), so it gets a real
-// button reset + the same row chrome `room-overlay-item` gives the
-// Export/New-session menus' own items, instead of relying on the nested
-// widgets' native square-icon-button styling the way the other rows do.
-.moreThemeAction {
+// Shared chrome for the panel's two genuinely plain actions -- Theme (just
+// Header's own setThemeDrawerOpen) and New-session's `variant="menuRow"`
+// (just a window.open call) -- neither opens a nested dropdown of its own,
+// unlike Users/Export, so a real `<button>` element with its own reset is
+// enough; it doesn't need a DropdownMenu.Trigger's class the way those two
+// do.
+.morePlainAction {
   @include controls.room-overlay-item;
 
   width: 100%;
+  gap: 7px;
   background: none;
   border: 0;
   font: inherit;
   color: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+// The same conic-gradient formula as ThemeButton.module.scss's `.swatch`
+// (duplicated rather than imported across the feature-folder boundary --
+// see Header.tsx's comment on the Theme row). Theme-reactive via the
+// --acc/--text custom properties alone; no JS color lookup needed.
+.moreThemeSwatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: conic-gradient(var(--acc) 0 50%, var(--text) 50% 100%);
+  flex-shrink: 0;
 }

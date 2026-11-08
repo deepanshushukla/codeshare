@@ -7,6 +7,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Header from './Header';
 import TabBar from './TabBar';
+import styles from './Header.module.scss';
 import { ThemeProvider } from '../theme/ThemeProvider';
 import { DEFAULT_TABS } from './useTabsQueryParam';
 import type { PresenceUser } from './usePresence';
@@ -372,6 +373,34 @@ describe('mobile "More" menu (<760px)', () => {
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     // The panel closed along with picking Theme, not left open underneath the drawer.
     expect(screen.queryByRole('menuitem', { name: /theme/i })).not.toBeInTheDocument();
+  });
+
+  test('every row in the open panel has both an icon and a visible label, not a mix of bare icons and bare text', async () => {
+    setMobile(true);
+    renderHeader();
+
+    await userEvent.click(screen.getByRole('button', { name: /^more$/i }));
+    const panel = screen.getByRole('menu');
+
+    // Theme's "icon" is the same conic-gradient color swatch ThemeButton
+    // itself renders (a <span>, not an svg) -- everything else here is a
+    // lucide svg icon. Theme is also `role="menuitem"` (a plain action, not
+    // a nested dropdown of its own); the other three keep their native
+    // `button` role (Users/Export are each a DropdownMenu.Trigger,
+    // New-session a plain <button>).
+    const themeRow = within(panel).getByRole('menuitem', { name: /theme/i });
+    expect(themeRow.querySelector(`.${styles.moreThemeSwatch}`)).toBeInTheDocument();
+    expect(themeRow.textContent?.trim()).not.toBe('');
+
+    const svgIconRows = [
+      within(panel).getByRole('button', { name: /users/i }),
+      within(panel).getByRole('button', { name: /^export$/i }),
+      within(panel).getByRole('button', { name: /start react app/i }),
+    ];
+    for (const row of svgIconRows) {
+      expect(row.querySelector('svg')).toBeInTheDocument();
+      expect(row.textContent?.trim()).not.toBe('');
+    }
   });
 
   test('clicking outside the open panel closes it', async () => {
