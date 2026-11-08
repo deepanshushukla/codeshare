@@ -229,24 +229,40 @@
 // tokens (--line2/--bg2/--acc/--acc-ink) as every other control on this page,
 // so it stays on-theme in both light and dark mode.
 
+.typeToggleLabel {
+  margin: 24px 0 8px;
+  font: 600 12px var(--font-sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 .typeToggle {
   display: inline-flex;
-  gap: 2px;
-  margin-top: 28px;
-  padding: 4px;
-  border: 1px solid var(--line2);
+  gap: 3px;
+  padding: 5px;
+  // A visibly thicker, --acc-tinted border (rather than the same --line2
+  // every other control on the page uses) is what makes this toggle read as
+  // "look at me, a choice" at a glance instead of blending into the rest of
+  // the page's borders -- the previous 1px --line2 version was correct but
+  // too quiet to notice unprompted.
+  border: 2px solid color-mix(in oklch, var(--acc) 45%, var(--line2));
   border-radius: var(--radius-pill);
   background: var(--bg2);
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--acc) 10%, transparent);
 }
 
 .typeOption {
-  height: 34px;
-  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 42px;
+  padding: 0 20px;
   border: 0;
   border-radius: var(--radius-pill);
   background: transparent;
   color: var(--muted);
-  font: 600 13px var(--font-sans);
+  font: 700 15px var(--font-sans);
   cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease;
 
@@ -268,6 +284,19 @@
     background: var(--acc);
     color: var(--acc-ink);
   }
+}
+
+.typeOptionBadge {
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  font: 700 10px var(--font-sans);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  // Sits on both the pressed (--acc background) and unpressed (transparent,
+  // over --bg2) states of its parent button, so it needs its own fixed
+  // contrast pair rather than inheriting --acc-ink/--text.
+  background: var(--acc-ink);
+  color: var(--acc);
 }
 
 // --- CTA + keyboard hint (handoff lines 83-86) ------------------------------

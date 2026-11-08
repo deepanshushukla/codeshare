@@ -63,7 +63,7 @@ const FEATURES = [
 // The ticker is rendered as this list twice back-to-back so @keyframes
 // marquee's -50% translate loops seamlessly. Every item -- including the last
 // of each half, i.e. the looping seam -- gets a trailing diamond separator.
-const TICKER_WORDS = ['HTML', 'CSS', 'JavaScript', 'Console', 'Output', 'One link'];
+const TICKER_WORDS = ['HTML', 'CSS', 'JavaScript', 'React', 'Console', 'Output', 'One link'];
 
 export default function Landing() {
   const newRoomId = useMemo(() => generateSessionId(), []);
@@ -164,16 +164,22 @@ export default function Landing() {
           </h1>
           <p className={styles.heroSubtitle}>
             Open a workspace, send the link, and start collaborating on HTML, CSS and
-            JavaScript together — live, in the browser.
+            JavaScript — or build it with React — together, live, in the browser.
           </p>
           {/*
             Styling lives in Landing.module.scss (.typeToggle/.typeOption) like
             every other control on this page -- including the :focus-visible
             ring the earlier inline-styled version had no way to express.
             The selected segment is painted off `aria-pressed`, so there is one
-            source of truth for which option is active.
+            source of truth for which option is active. A visible label above
+            the toggle (rather than just the aria-label) is what makes this
+            read as "a choice you're making" instead of decorative chrome --
+            the original bare pill was easy to miss entirely.
           */}
-          <div role="group" aria-label="Session type" className={styles.typeToggle}>
+          <p className={styles.typeToggleLabel} id="session-type-label">
+            Start with:
+          </p>
+          <div role="group" aria-labelledby="session-type-label" className={styles.typeToggle}>
             {(['web', 'react'] as const).map((option) => (
               <button
                 key={option}
@@ -183,6 +189,13 @@ export default function Landing() {
                 onClick={() => setSessionType(option)}
               >
                 {option === 'web' ? 'Web' : 'React'}
+                {/* aria-hidden: decorative emphasis only -- the button's accessible
+                    name must stay exactly "React", which existing tests query by. */}
+                {option === 'react' && (
+                  <span className={styles.typeOptionBadge} aria-hidden="true">
+                    New
+                  </span>
+                )}
               </button>
             ))}
           </div>

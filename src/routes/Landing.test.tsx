@@ -169,14 +169,14 @@ test('.page refuses to be flex-shrunk by #root, so overflow:hidden children keep
 
 test('renders the ticker words twice (seamless marquee loop), each followed by a diamond separator', () => {
   const { container } = renderLanding();
-  // Two back-to-back copies of the six-word list is what makes @keyframes
+  // Two back-to-back copies of the seven-word list is what makes @keyframes
   // marquee's -50% translate loop seamlessly.
   expect(screen.getAllByText('JavaScript').length).toBe(2);
   const items = container.querySelectorAll(`.${styles.tickerItem}`);
-  expect(items.length).toBe(12);
+  expect(items.length).toBe(14);
   // Every item gets a trailing diamond -- including the last of each half, so
   // the looping seam reads the same as every other gap.
-  expect(container.querySelectorAll(`.${styles.tickerDiamond}`).length).toBe(12);
+  expect(container.querySelectorAll(`.${styles.tickerDiamond}`).length).toBe(14);
 });
 
 test('renders each feature with its index and tag', () => {
