@@ -31,7 +31,7 @@ describe('buildZipBlob', () => {
 describe('buildReactHtmlFile', () => {
   test('embeds componentsJsx before appJsx and the pinned CDN scripts', () => {
     const file = buildReactHtmlFile({ appJsx: 'const a = Shared;', componentsJsx: 'const Shared = 1;', reactCss: '' });
-    expect(file).toContain('unpkg.com/react@19.2.0');
+    expect(file).toContain('unpkg.com/react@18.3.1');
     expect(file).toContain('unpkg.com/@babel/standalone@7.26.4');
     expect(file.indexOf('const Shared = 1;')).toBeLessThan(file.indexOf('const a = Shared;'));
   });

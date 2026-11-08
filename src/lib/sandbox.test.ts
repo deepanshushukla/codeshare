@@ -117,8 +117,8 @@ describe('buildReactSandboxDocument', () => {
 
   test('includes pinned CDN script tags for React, ReactDOM, and Babel Standalone', () => {
     const doc = buildReactSandboxDocument('function App(){return null;}', '', '');
-    expect(doc).toContain('https://unpkg.com/react@19.2.0/umd/react.production.min.js');
-    expect(doc).toContain('https://unpkg.com/react-dom@19.2.0/umd/react-dom.production.min.js');
+    expect(doc).toContain('https://unpkg.com/react@18.3.1/umd/react.production.min.js');
+    expect(doc).toContain('https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js');
     expect(doc).toContain('https://unpkg.com/@babel/standalone@7.26.4/babel.min.js');
   });
 

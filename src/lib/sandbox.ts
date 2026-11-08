@@ -156,14 +156,21 @@ export function buildSandboxDocument(html: string, css: string, js: string): str
 </html>`;
 }
 
+// Pinned to React 18.3.1, not 19.x: React 19's npm package ships no `umd/`
+// build at all (confirmed via unpkg's ?meta listing), so a 19.x URL here
+// 404s silently -- a failed <script src> fires no catchable JS error, so
+// window.React simply stays undefined and every mount throws "React is not
+// defined" with nothing in the console pointing at the real cause. 18.3.1 is
+// the last version with a UMD build and its createRoot API is what this file
+// uses, so it's a drop-in swap.
 export function buildReactSandboxDocument(appJsx: string, componentsJsx: string, css: string): string {
   const userCode = JSON.stringify(`${componentsJsx}\n${appJsx}`).replace(/<\/script/gi, '<\\/script');
   return `<!DOCTYPE html>
 <html>
   <head>
     <style id="__cs_style">${css}</style>
-    <script src="https://unpkg.com/react@19.2.0/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@19.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
   </head>
   <body>

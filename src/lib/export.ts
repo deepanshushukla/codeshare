@@ -40,11 +40,14 @@ export async function buildZipBlob({ html, css, js }: ExportContent): Promise<Bl
 // treat `</script` as closing the tag early, truncating the document. The
 // `.replace(...)` guards against that the same way buildReactSandboxDocument
 // does.
+// Pinned to React 18.3.1, not 19.x -- see the matching comment in
+// src/lib/sandbox.ts: React 19's npm package ships no `umd/` build, so a
+// 19.x URL here 404s silently and the exported file never renders.
 function reactMountScript(appJsx: string, componentsJsx: string): string {
   const userCode = JSON.stringify(`${componentsJsx}\n${appJsx}`).replace(/<\/script/gi, '<\\/script');
   return `
-    <script src="https://unpkg.com/react@19.2.0/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@19.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
     <script>
       (function () {
