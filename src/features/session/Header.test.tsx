@@ -324,6 +324,21 @@ describe('pane tabs in the header', () => {
     // direct child of `.center`.
     expect(center.indexOf('> *')).toBeLessThan(center.indexOf('@media (max-width: 759px)'));
   });
+
+  // jsdom computes no real layout, so the overflow this fixes (logo +
+  // room-link chip + five header controls genuinely do not fit a common
+  // ~375-390px phone width once Task 8 added a 5th control) cannot be
+  // reproduced here -- this pins the declaration that prevents it, in the
+  // same source-text style as the test above.
+  test('the new-session button is hidden entirely below 480px, not just icon-only', () => {
+    const scss = readFileSync(
+      path.join(path.dirname(fileURLToPath(import.meta.url)), 'Header.module.scss'),
+      'utf8',
+    );
+    const trigger = scss.slice(scss.indexOf('.newSessionTrigger {'), scss.indexOf('.newSessionLabel {'));
+    const narrow = trigger.slice(trigger.indexOf('@media (max-width: 480px)'));
+    expect(narrow).toContain('display: none;');
+  });
 });
 
 test('opens the theme drawer from the header theme button', async () => {

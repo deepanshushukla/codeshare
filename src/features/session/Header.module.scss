@@ -157,6 +157,19 @@
 // CURRENT room's type) that opens a fresh session of the other type in a
 // new tab, never the current one. Same icon+label/icon-only-below-760px
 // shape as ExportMenu's trigger.
+//
+// Hidden entirely below 480px (not just icon-only): the header has no
+// overflow/wrap handling of its own (`.actions` is `flex: none`, same as
+// every control in it, by design -- a ghost icon button squished below its
+// 36px square would be unreadable), so logo + room-link chip + five
+// 36px-ish controls genuinely do not fit a common ~375-390px phone width --
+// doing the arithmetic from each control's own CSS (room-control's 36px
+// square, Run's icon+label via room-control-accent, UsersMenu's
+// icon+count) comes to ~388px minimum, with zero slack, before this rule.
+// This is the newest, most dispensable control in that row -- a shortcut to
+// start ANOTHER session, not something needed to use the one you're in --
+// so it's what goes first rather than shrinking something load-bearing
+// (Run, Export, the room-link chip) down to illegibility.
 .newSessionTrigger {
   @include controls.room-control;
 
@@ -166,6 +179,10 @@
     width: 36px;
     padding: 0;
     justify-content: center;
+  }
+
+  @media (max-width: 480px) {
+    display: none;
   }
 }
 
