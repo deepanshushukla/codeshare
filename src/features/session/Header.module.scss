@@ -155,39 +155,80 @@
 // The "new session" control: a single contextual button (not a menu --
 // Header.tsx computes the one label/target that makes sense for the
 // CURRENT room's type) that opens a fresh session of the other type in a
-// new tab, never the current one. Same icon+label/icon-only-below-760px
-// shape as ExportMenu's trigger.
+// new tab, never the current one.
 //
-// Hidden entirely below 480px (not just icon-only): the header has no
-// overflow/wrap handling of its own (`.actions` is `flex: none`, same as
-// every control in it, by design -- a ghost icon button squished below its
-// 36px square would be unreadable), so logo + room-link chip + five
-// 36px-ish controls genuinely do not fit a common ~375-390px phone width --
-// doing the arithmetic from each control's own CSS (room-control's 36px
-// square, Run's icon+label via room-control-accent, UsersMenu's
-// icon+count) comes to ~388px minimum, with zero slack, before this rule.
-// This is the newest, most dispensable control in that row -- a shortcut to
-// start ANOTHER session, not something needed to use the one you're in --
-// so it's what goes first rather than shrinking something load-bearing
-// (Run, Export, the room-link chip) down to illegibility.
+// No icon-only/narrow-width collapsing here (there used to be some, plus a
+// below-480px `display: none` -- both removed): this component now only
+// ever renders in two places -- the desktop `.actions` row (>=760px, where
+// neither rule could ever fire) or inside MoreMenu's vertical panel
+// (<760px, see Header.tsx), which has room for the full label and no
+// overflow constraint to hide from. Collapsing it was a workaround for the
+// ORIGINAL problem (five ~36px controls not fitting a ~375-390px phone
+// width in one horizontal row) that MoreMenu now solves a different way --
+// by moving controls into a vertical list instead of shrinking them.
 .newSessionTrigger {
   @include controls.room-control;
 
   gap: 7px;
-
-  @media (max-width: 759px) {
-    width: 36px;
-    padding: 0;
-    justify-content: center;
-  }
-
-  @media (max-width: 480px) {
-    display: none;
-  }
 }
 
+// No @media hide on the label itself either, for the same reason as
+// .newSessionTrigger above.
 .newSessionLabel {
-  @media (max-width: 759px) {
-    display: none;
-  }
+  display: inline;
+}
+
+// --- Mobile "More" panel (<760px) -------------------------------------------
+//
+// Theme/Users/Export/New-session collapse into this single button below
+// 760px -- see MoreMenu's own comment in Header.tsx for why it's a plain
+// toggled panel rather than a nested Radix DropdownMenu.
+
+.moreWrap {
+  position: relative;
+}
+
+.moreTrigger {
+  @include controls.room-control;
+
+  width: 36px;
+  padding: 0;
+  justify-content: center;
+}
+
+.morePanel {
+  @include controls.room-overlay-surface;
+
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 11rem;
+}
+
+// Wraps each nested widget (UsersMenu/ExportMenu/NewSessionButton -- see
+// MoreMenu's comment) at that widget's own natural size, stacked vertically
+// instead of squeezed horizontally.
+.morePanelItem {
+  display: flex;
+  width: 100%;
+}
+
+// The Theme row is the one plain action in the panel (no nested widget of
+// its own, just Header's existing setThemeDrawerOpen), so it gets a real
+// button reset + the same row chrome `room-overlay-item` gives the
+// Export/New-session menus' own items, instead of relying on the nested
+// widgets' native square-icon-button styling the way the other rows do.
+.moreThemeAction {
+  @include controls.room-overlay-item;
+
+  width: 100%;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }

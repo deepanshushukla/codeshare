@@ -325,19 +325,75 @@ describe('pane tabs in the header', () => {
     expect(center.indexOf('> *')).toBeLessThan(center.indexOf('@media (max-width: 759px)'));
   });
 
-  // jsdom computes no real layout, so the overflow this fixes (logo +
-  // room-link chip + five header controls genuinely do not fit a common
-  // ~375-390px phone width once Task 8 added a 5th control) cannot be
-  // reproduced here -- this pins the declaration that prevents it, in the
-  // same source-text style as the test above.
-  test('the new-session button is hidden entirely below 480px, not just icon-only', () => {
-    const scss = readFileSync(
-      path.join(path.dirname(fileURLToPath(import.meta.url)), 'Header.module.scss'),
-      'utf8',
-    );
-    const trigger = scss.slice(scss.indexOf('.newSessionTrigger {'), scss.indexOf('.newSessionLabel {'));
-    const narrow = trigger.slice(trigger.indexOf('@media (max-width: 480px)'));
-    expect(narrow).toContain('display: none;');
+});
+
+// Below 760px, Theme/Users/Export/New-session collapse into a single "More"
+// button (MoreMenu in Header.tsx) -- the header has no overflow/wrap
+// handling, so logo + room-link chip + five ~36px controls genuinely don't
+// fit a common ~375-390px phone width in one horizontal row. Unlike the
+// `.center` tab-row test above, `isMobile` is a real `useBreakpoint()`
+// value this file already mocks via `matchMedia` (not pure CSS), so this
+// IS reproducible here -- a genuine conditional-render test, not a
+// source-text pin.
+describe('mobile "More" menu (<760px)', () => {
+  function setMobile(isMobile: boolean) {
+    mockMatchMedia((query) => (query.includes('max-width: 759px') ? isMobile : false));
+  }
+
+  test('at desktop width, Theme/Users/Export/New-session render directly and there is no More button', () => {
+    renderHeader();
+    expect(screen.queryByRole('button', { name: /^more$/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^theme:/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^export$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /start react app/i })).toBeInTheDocument();
+  });
+
+  test('at mobile width, Theme/Users/Export/New-session are not directly in the header -- only the More button is', () => {
+    setMobile(true);
+    renderHeader();
+    expect(screen.getByRole('button', { name: /^more$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^theme:/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^export$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /start react app/i })).not.toBeInTheDocument();
+    // Run stays a direct, always-reachable primary action, not folded in.
+    expect(screen.getByRole('button', { name: /^run/i })).toBeInTheDocument();
+  });
+
+  test('opening More reveals Theme/Users/Export/New-session; selecting Theme opens the drawer and closes the panel', async () => {
+    setMobile(true);
+    renderHeader();
+
+    await userEvent.click(screen.getByRole('button', { name: /^more$/i }));
+    expect(screen.getByRole('menuitem', { name: /theme/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^export$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /start react app/i })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('menuitem', { name: /theme/i }));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    // The panel closed along with picking Theme, not left open underneath the drawer.
+    expect(screen.queryByRole('menuitem', { name: /theme/i })).not.toBeInTheDocument();
+  });
+
+  test('clicking outside the open panel closes it', async () => {
+    setMobile(true);
+    renderHeader();
+
+    await userEvent.click(screen.getByRole('button', { name: /^more$/i }));
+    expect(screen.getByRole('menuitem', { name: /theme/i })).toBeInTheDocument();
+
+    await userEvent.click(document.body);
+    expect(screen.queryByRole('menuitem', { name: /theme/i })).not.toBeInTheDocument();
+  });
+
+  test('pressing Escape closes the open panel', async () => {
+    setMobile(true);
+    renderHeader();
+
+    await userEvent.click(screen.getByRole('button', { name: /^more$/i }));
+    expect(screen.getByRole('menuitem', { name: /theme/i })).toBeInTheDocument();
+
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('menuitem', { name: /theme/i })).not.toBeInTheDocument();
   });
 });
 
