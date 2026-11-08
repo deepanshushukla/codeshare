@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useMemo, useState, type MouseEvent } from 'react';
-import { ArrowRight, Plus } from 'lucide-react';
+import { ArrowRight, ChevronDown, Plus } from 'lucide-react';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { generateSessionId } from '../lib/randomId';
 import type { SessionType } from '../features/session/sessionType';
 import ThemeButton from '../features/theme/ThemeButton';
@@ -58,6 +59,12 @@ const FEATURES = [
     description: 'No timers, no cleanup job, no "session ended." Every room stays available permanently.',
     tag: 'perm',
   },
+  {
+    n: '09',
+    title: 'Build with React',
+    description: 'Switch a room to React mode for JSX, hooks and real component state — live preview, no setup, no build step.',
+    tag: 'react',
+  },
 ];
 
 // The ticker is rendered as this list twice back-to-back so @keyframes
@@ -77,13 +84,23 @@ export default function Landing() {
   const navigate = useNavigate();
   const { start } = useRoomTransition();
 
-  function enterRoom() {
+  // Shared by every entry point into a room: the hero/footer CTAs (which
+  // read the hero toggle's `sessionType` via `enterRoom()` below) and the
+  // header's own Web/React dropdown (which picks the type explicitly,
+  // independent of the toggle -- so the choice is available right at that
+  // click point without first scrolling to the hero).
+  function enterRoomAs(type: SessionType) {
     // Close the theme drawer first if it happens to be open -- the "N"
     // shortcut can fire while it is, and leaving it mounted mid-transition
     // would abandon it half-open over the iris wipe. Matches the design
     // handoff's own newRoom(), which sets `themeOpen: false`.
     setThemeDrawerOpen(false);
-    start(newRoomId, () => navigate(roomHref));
+    const href = `/code/${newRoomId}${type === 'react' ? '?type=react' : ''}`;
+    start(newRoomId, () => navigate(href));
+  }
+
+  function enterRoom() {
+    enterRoomAs(sessionType);
   }
 
   function handleCreateClick(event: MouseEvent<HTMLAnchorElement>) {
@@ -137,10 +154,28 @@ export default function Landing() {
 
           <ThemeButton variant="pill" onOpenDrawer={() => setThemeDrawerOpen(true)} />
 
-          <Link to={roomHref} className={styles.headerCta} onClick={handleCreateClick}>
-            <Plus size={14} />
-            New Room
-          </Link>
+          {/* A dropdown rather than a plain link: the choice of Web vs React
+              used to live only in the hero toggle further down the page, so
+              clicking this button before ever scrolling there silently
+              created a Web room. This puts the same choice right at the
+              click point -- see `enterRoomAs` above. */}
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger className={styles.headerCta}>
+              <Plus size={14} />
+              New Room
+              <ChevronDown size={13} aria-hidden="true" />
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content className={styles.headerCtaContent} sideOffset={6} align="end">
+                <DropdownMenu.Item className={styles.headerCtaItem} onSelect={() => enterRoomAs('web')}>
+                  New Web Room
+                </DropdownMenu.Item>
+                <DropdownMenu.Item className={styles.headerCtaItem} onSelect={() => enterRoomAs('react')}>
+                  New React Room
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
         </div>
       </header>
 
@@ -232,7 +267,7 @@ export default function Landing() {
       <section className={styles.features}>
         <div className={styles.featuresHeader}>
           <h2>Let&rsquo;s code together</h2>
-          <span className={styles.featuresCount}>08 use cases</span>
+          <span className={styles.featuresCount}>09 use cases</span>
         </div>
         <div className={styles.featureGrid}>
           {FEATURES.map(({ n, title, description, tag }) => (

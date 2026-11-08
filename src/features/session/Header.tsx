@@ -1,7 +1,7 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Copy, Plus } from 'lucide-react';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { Copy, Sparkles } from 'lucide-react';
+import type { SessionType } from './sessionType';
 import type { PresenceUser } from './usePresence';
 import UsersMenu from './UsersMenu';
 import ExportMenu from './ExportMenu';
@@ -33,39 +33,28 @@ type Props = {
   exportContent: ({ sessionType?: 'web' } & ExportContent) | ({ sessionType: 'react' } & ReactExportContent);
 };
 
-// Opens a brand-new session (Web or React) in a new tab, never touching the
-// current session's URL/state -- a quick "start something else" escape hatch
-// from inside an existing room, not a navigation of it. Lives in Header's own
-// `actions` cluster, reusing the same Radix DropdownMenu primitive ExportMenu
-// already uses (including the Portal -- see ExportMenu.tsx for why that's
-// required, not optional).
-function NewSessionMenu() {
-  function openNewSession(type: 'web' | 'react') {
+// Opens a brand-new session of the OTHER type in a new tab, never touching
+// the current session's URL/state -- a quick "start something else" escape
+// hatch from inside an existing room, not a navigation of it. Single
+// contextual action rather than a Web/React menu: inside a Web room this
+// offers React (and vice versa), since "start another one just like this"
+// is already one click away via the room link itself.
+function NewSessionButton({ currentType }: { currentType: SessionType }) {
+  const targetType: SessionType = currentType === 'react' ? 'web' : 'react';
+
+  function openNewSession() {
     const newId = generateSessionId();
-    const suffix = type === 'react' ? '?type=react' : '';
+    const suffix = targetType === 'react' ? '?type=react' : '';
     window.open(`${window.location.origin}/code/${newId}${suffix}`, '_blank');
   }
 
+  const label = targetType === 'react' ? 'Start React App' : 'Start a new JS App';
+
   return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger className={styles.newSessionTrigger} aria-label="New session" title="New session">
-        <Plus size={15} />
-      </DropdownMenu.Trigger>
-      {/* Portal required for the same reason as ExportMenu's: without it this
-          renders inline in the header's own stacking context, behind the
-          resizable panes' CodeMirror instances instead of floating above the
-          page. */}
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content className={styles.newSessionContent} sideOffset={6} align="end">
-          <DropdownMenu.Item className={styles.newSessionItem} onSelect={() => openNewSession('web')}>
-            New Web Session
-          </DropdownMenu.Item>
-          <DropdownMenu.Item className={styles.newSessionItem} onSelect={() => openNewSession('react')}>
-            New React Session
-          </DropdownMenu.Item>
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
+    <button type="button" className={styles.newSessionTrigger} onClick={openNewSession} title={label}>
+      <Sparkles size={15} />
+      <span className={styles.newSessionLabel}>{label}</span>
+    </button>
   );
 }
 
@@ -136,7 +125,7 @@ export default function Header({
         />
         <ThemeButton variant="square" onOpenDrawer={() => setThemeDrawerOpen(true)} />
         <ExportMenu {...exportContent} onExported={(filename) => showToast(`Exported ${filename}`)} />
-        <NewSessionMenu />
+        <NewSessionButton currentType={exportContent.sessionType ?? 'web'} />
         <RunControls onRun={onRun} />
       </div>
 

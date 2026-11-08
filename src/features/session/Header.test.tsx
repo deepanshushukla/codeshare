@@ -209,17 +209,16 @@ describe('new session control', () => {
     vi.restoreAllMocks();
   });
 
-  test('opens a new React session in a new tab without navigating the current one', async () => {
+  test('in a Web room, offers "Start React App" and opens a new React session in a new tab without navigating the current one', async () => {
     const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
     // MemoryRouter never touches the browser's real history/location (see
     // useTabsQueryParam.test.ts), so the honest way to prove "the current tab
     // didn't navigate" here is that jsdom's own window.location is untouched
     // by the click -- not a particular path, which this render never sets.
     const pathBefore = window.location.pathname;
-    renderHeader();
+    renderHeader({ exportContent: { html: '', css: '', js: '' } });
 
-    await userEvent.click(screen.getByRole('button', { name: /new session/i }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: /new react session/i }));
+    await userEvent.click(screen.getByRole('button', { name: /start react app/i }));
 
     expect(openSpy).toHaveBeenCalledWith(expect.stringContaining('?type=react'), '_blank');
     expect(openSpy).toHaveBeenCalledWith(expect.stringContaining(`${window.location.origin}/code/`), '_blank');
@@ -227,12 +226,11 @@ describe('new session control', () => {
     expect(window.location.pathname).toBe(pathBefore);
   });
 
-  test('opens a new Web session (no ?type=react) in a new tab', async () => {
+  test('in a React room, offers "Start a new JS App" and opens a new Web session (no ?type=react) in a new tab', async () => {
     const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
-    renderHeader();
+    renderHeader({ exportContent: { sessionType: 'react', appJsx: '', componentsJsx: '', reactCss: '' } });
 
-    await userEvent.click(screen.getByRole('button', { name: /new session/i }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: /new web session/i }));
+    await userEvent.click(screen.getByRole('button', { name: /start a new js app/i }));
 
     expect(openSpy).toHaveBeenCalledTimes(1);
     const [url, target] = openSpy.mock.calls[0];

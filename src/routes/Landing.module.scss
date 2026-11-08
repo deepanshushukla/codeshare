@@ -1,3 +1,5 @@
+@use '../styles/controls' as controls;
+
 .page {
   display: flex;
   flex-direction: column;
@@ -105,6 +107,18 @@
     outline: 2px solid var(--acc);
     outline-offset: 1px;
   }
+}
+
+// The Web/React menu under .headerCta -- same floating-panel tokens the
+// session header's own menus use (ExportMenu, Header's new-session button),
+// via controls.scss, so this reads as one design with the editor it leads
+// into rather than a one-off.
+.headerCtaContent {
+  @include controls.room-overlay-surface;
+}
+
+.headerCtaItem {
+  @include controls.room-overlay-item;
 }
 
 // --- Hero -----------------------------------------------------------------

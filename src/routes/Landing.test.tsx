@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { render, screen, fireEvent, createEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from '../features/theme/ThemeProvider';
 import { RoomTransitionProvider } from '../features/transition/RoomTransitionProvider';
@@ -96,9 +97,19 @@ test('pressing N starts the transition', () => {
   expect(screen.getByText(/\/r\//)).toBeInTheDocument();
 });
 
-test('the header "New Room" pill runs the same animated transition as the other two CTAs', () => {
+// The header pill is a Web/React dropdown (see Landing.tsx's `enterRoomAs`),
+// not a plain link -- opening it is a separate step from picking an option.
+test('the header "New Room" dropdown\'s Web option runs the same animated transition as the other two CTAs', async () => {
   renderLanding();
-  fireEvent.click(screen.getByRole('link', { name: /^new room$/i }));
+  await userEvent.click(screen.getByRole('button', { name: /^new room$/i }));
+  await userEvent.click(await screen.findByRole('menuitem', { name: /new web room/i }));
+  expect(screen.getByText(/\/r\//)).toBeInTheDocument();
+});
+
+test('the header "New Room" dropdown\'s React option also runs the transition', async () => {
+  renderLanding();
+  await userEvent.click(screen.getByRole('button', { name: /^new room$/i }));
+  await userEvent.click(await screen.findByRole('menuitem', { name: /new react room/i }));
   expect(screen.getByText(/\/r\//)).toBeInTheDocument();
 });
 
@@ -213,12 +224,16 @@ test('defaults to creating a Web session: the room href has no ?type= query stri
   expect(link.getAttribute('href')).not.toMatch(/\?type=/);
 });
 
-test('selecting React before creating updates every "Create New Room" / "New Room" link to ?type=react', () => {
+test('selecting React before creating updates every "Create New Room" link to ?type=react', () => {
   renderLanding();
   fireEvent.click(screen.getByRole('button', { name: /^react$/i }));
+  // The header "New Room" dropdown is deliberately NOT included here: unlike
+  // the hero/bottom links (which read the toggle's `sessionType` state), the
+  // header dropdown's two options are explicit and independent of the toggle
+  // -- see Landing.tsx's `enterRoomAs` -- so it has its own tests above
+  // rather than tracking the toggle.
   const heroAndBottomLinks = screen.getAllByRole('link', { name: /^create new room$/i });
-  const headerPill = screen.getByRole('link', { name: /^new room$/i });
-  for (const link of [...heroAndBottomLinks, headerPill]) {
+  for (const link of heroAndBottomLinks) {
     expect(link.getAttribute('href')).toMatch(/^\/code\/[a-z0-9]{10}\?type=react$/);
   }
 });

@@ -152,24 +152,25 @@
   gap: var(--space-2);
 }
 
-// The "new session" control: an icon-only ghost button matching ThemeButton's
-// square variant, opening a small menu of "New Web/React Session" items --
-// each a fresh room opened in a new tab (see Header.tsx), never the current
-// one.
+// The "new session" control: a single contextual button (not a menu --
+// Header.tsx computes the one label/target that makes sense for the
+// CURRENT room's type) that opens a fresh session of the other type in a
+// new tab, never the current one. Same icon+label/icon-only-below-760px
+// shape as ExportMenu's trigger.
 .newSessionTrigger {
   @include controls.room-control;
 
-  width: 36px;
-  padding: 0;
-  justify-content: center;
+  gap: 7px;
+
+  @media (max-width: 759px) {
+    width: 36px;
+    padding: 0;
+    justify-content: center;
+  }
 }
 
-.newSessionContent {
-  @include controls.room-overlay-surface;
-
-  min-width: 10rem;
-}
-
-.newSessionItem {
-  @include controls.room-overlay-item;
+.newSessionLabel {
+  @media (max-width: 759px) {
+    display: none;
+  }
 }
