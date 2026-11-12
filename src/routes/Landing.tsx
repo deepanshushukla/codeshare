@@ -297,6 +297,10 @@ export default function Landing() {
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
           <span>{'{CodeShare}'}</span>
+          <span className={styles.footerLinks}>
+            <Link to="/javascript-compiler">JavaScript Compiler</Link>
+            <Link to="/react-playground">React Playground</Link>
+          </span>
           <span>© 2026 CodeShare</span>
         </div>
       </footer>

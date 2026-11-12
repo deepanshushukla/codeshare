@@ -600,3 +600,17 @@
   font: 500 13px var(--font-mono);
   color: var(--faint);
 }
+
+.footerLinks {
+  display: flex;
+  gap: var(--space-3);
+
+  a {
+    color: var(--faint);
+    text-decoration: none;
+
+    &:hover {
+      color: var(--muted);
+    }
+  }
+}
