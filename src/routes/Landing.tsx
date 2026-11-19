@@ -8,7 +8,20 @@ import ThemeButton from '../features/theme/ThemeButton';
 import ThemeDrawer from '../features/theme/ThemeDrawer';
 import { useRoomTransition } from '../features/transition/RoomTransitionProvider';
 import OrbitVisual from './Landing/OrbitVisual';
+import PageSeo from '../lib/seo';
 import styles from './Landing.module.scss';
+
+const JSON_LD = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'CodeShare',
+  url: 'https://codeshare.in/',
+  description:
+    "Write and run HTML, CSS, and JavaScript together in real time. Share one link, see everyone's edits and the live output instantly.",
+  applicationCategory: 'DeveloperApplication',
+  operatingSystem: 'Any',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+};
 
 const FEATURES = [
   {
@@ -142,6 +155,12 @@ export default function Landing() {
 
   return (
     <div className={styles.page}>
+      <PageSeo
+        title="CodeShare — Real-Time Collaborative Code Editor Online"
+        description="Write and run HTML, CSS, and JavaScript together in real time. Share one link, see everyone's edits and the live output instantly — no sign-up required."
+        path="/"
+        jsonLd={JSON_LD}
+      />
       <div className={styles.gridBackground} aria-hidden="true" />
 
       <header className={styles.header}>
