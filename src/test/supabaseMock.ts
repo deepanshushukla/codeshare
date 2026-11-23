@@ -117,7 +117,7 @@ const DEFAULT_CONFIG = {
   signInUserId: 'user-1',
   signInError: null as Error | null,
   authSession: null as MockAuthSession,
-  rpcData: [{ exists_: false, is_private: false, owner_id: null, session_type: null }] as unknown[],
+  rpcData: [{ exists_: false, is_private: false, owner_id: null, session_type: null }] as unknown[] | null,
   rpcError: null as { message: string } | null,
   sessionList: [] as unknown[],
   listError: null as { message: string } | null,
