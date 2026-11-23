@@ -28,6 +28,7 @@ import { vi } from 'vitest';
 export type MockSessionRow = { id: string; html: string; css: string; js: string };
 export type MockPresenceMeta = { name: string; status: string };
 export type MockChannelParams = { config?: { presence?: { key?: string }; broadcast?: unknown } };
+export type MockAuthSession = { user: { id: string; email: string | null; is_anonymous: boolean } } | null;
 
 type MockBinding = {
   type: string;
@@ -115,6 +116,11 @@ const DEFAULT_CONFIG = {
   upsertResult: { error: null } as { error: { message: string } | null },
   signInUserId: 'user-1',
   signInError: null as Error | null,
+  authSession: null as MockAuthSession,
+  rpcData: [{ exists_: false, is_private: false, owner_id: null, session_type: null }] as unknown[],
+  rpcError: null as { message: string } | null,
+  sessionList: [] as unknown[],
+  listError: null as { message: string } | null,
 };
 
 /** Mutate this to steer the mock from a test. */
@@ -127,8 +133,35 @@ export const maybeSingle = vi.fn(async () => ({
 
 export const upsert = vi.fn(async (_row: Record<string, unknown>) => mockConfig.upsertResult);
 
+// Auth state change listeners
+const authListeners: ((event: string, session: MockAuthSession) => void)[] = [];
+
+export function emitAuthStateChange(event: string, session: MockAuthSession): void {
+  mockConfig.authSession = session;
+  for (const listener of authListeners) {
+    listener(event, session);
+  }
+}
+
+// Auth-related vi.fn() exports
+export const signUpWithEmail = vi.fn(async () => ({ error: null }));
+export const verifySignupOtp = vi.fn(async () => ({ error: null }));
+export const loginWithPassword = vi.fn(async () => ({ error: null }));
+export const requestPasswordReset = vi.fn(async () => ({ error: null }));
+export const verifyPasswordResetOtp = vi.fn(async () => ({ error: null }));
+export const setNewPassword = vi.fn(async () => ({ error: null }));
+export const logout = vi.fn(async () => undefined);
+
 export const from = vi.fn((_table: string) => ({
-  select: (_columns?: string) => ({ eq: (_column: string, _value: unknown) => ({ maybeSingle }) }),
+  select: (_columns?: string) => ({
+    eq: (_column: string, _value: unknown) => ({
+      maybeSingle,
+      order: (_col: string, _opts?: { ascending?: boolean }) => ({
+        data: mockConfig.sessionList,
+        error: mockConfig.listError,
+      }),
+    }),
+  }),
   upsert,
 }));
 
@@ -150,7 +183,34 @@ export const removeChannel = vi.fn((target: MockRealtimeChannel) => {
   return target.unsubscribe();
 });
 
-export const supabase = { from, channel, removeChannel };
+export const rpc = vi.fn(async (_fn: string, _args: unknown) => ({
+  data: mockConfig.rpcData,
+  error: mockConfig.rpcError,
+}));
+
+export const supabase = {
+  from,
+  channel,
+  removeChannel,
+  rpc,
+  auth: {
+    onAuthStateChange: vi.fn((callback: (event: string, session: MockAuthSession) => void) => {
+      authListeners.push(callback);
+      // Immediately invoke with current session
+      callback('INITIAL_SESSION', mockConfig.authSession);
+      return {
+        data: {
+          subscription: {
+            unsubscribe: vi.fn(() => {
+              const index = authListeners.indexOf(callback);
+              if (index > -1) authListeners.splice(index, 1);
+            }),
+          },
+        },
+      };
+    }),
+  },
+};
 
 export const ensureAnonymousSession = vi.fn(async () => {
   if (mockConfig.signInError) throw mockConfig.signInError;
@@ -175,6 +235,7 @@ export function soleChannel(): MockRealtimeChannel {
 
 export function resetSupabaseMock(): void {
   channels.clear();
+  authListeners.length = 0;
   Object.assign(mockConfig, DEFAULT_CONFIG, { upsertResult: { error: null } });
   maybeSingle.mockClear();
   upsert.mockClear();
@@ -182,4 +243,12 @@ export function resetSupabaseMock(): void {
   channel.mockClear();
   removeChannel.mockClear();
   ensureAnonymousSession.mockClear();
+  rpc.mockClear();
+  signUpWithEmail.mockClear();
+  verifySignupOtp.mockClear();
+  loginWithPassword.mockClear();
+  requestPasswordReset.mockClear();
+  verifyPasswordResetOtp.mockClear();
+  setNewPassword.mockClear();
+  logout.mockClear();
 }
