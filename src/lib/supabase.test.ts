@@ -93,4 +93,11 @@ describe('auth wrappers', () => {
     const { fetchSessionAccess } = await import('./supabase');
     expect(await fetchSessionAccess('room1')).toBe(null);
   });
+
+  test('fetchSessionAccess returns the non-existent shape (not null) when the room genuinely does not exist', async () => {
+    rpc.mockResolvedValueOnce({ data: [{ exists_: false, is_private: false, owner_id: null, session_type: null }], error: null });
+    const { fetchSessionAccess } = await import('./supabase');
+    const result = await fetchSessionAccess('no-such-room');
+    expect(result).toEqual({ exists: false, isPrivate: false, ownerId: null, sessionType: null });
+  });
 });
