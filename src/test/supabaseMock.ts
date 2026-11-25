@@ -1,4 +1,5 @@
 import { vi } from 'vitest';
+import { isSessionType } from '../features/session/sessionType';
 
 // A stand-in for `src/lib/supabase.ts` that models the parts of
 // `@supabase/supabase-js` whose *real* behaviour this app depends on. Use it
@@ -188,6 +189,29 @@ export const rpc = vi.fn(async (_fn: string, _args: unknown) => ({
   error: mockConfig.rpcError,
 }));
 
+// Mirrors `fetchSessionAccess` in `src/lib/supabase.ts`: a thin parse of the
+// `session_visibility` RPC response, driven by the same `rpc`/`mockConfig`
+// surface above so tests steer it via `mockConfig.rpcData`/`rpcError` exactly
+// like they steer the real function's underlying `supabase.rpc` call.
+export const fetchSessionAccess = vi.fn(async (sessionId: string) => {
+  const { data, error } = await rpc('session_visibility', { p_id: sessionId });
+
+  if (error || !data || !Array.isArray(data) || data.length === 0) {
+    return null;
+  }
+
+  const row = data[0] as Record<string, unknown>;
+  const rawSessionType = row.session_type;
+  const sessionType = typeof rawSessionType === 'string' && isSessionType(rawSessionType) ? rawSessionType : null;
+
+  return {
+    exists: (row.exists_ as boolean | undefined) ?? false,
+    isPrivate: (row.is_private as boolean | undefined) ?? false,
+    ownerId: (row.owner_id as string | null | undefined) ?? null,
+    sessionType,
+  };
+});
+
 export const supabase = {
   from,
   channel,
@@ -244,6 +268,7 @@ export function resetSupabaseMock(): void {
   removeChannel.mockClear();
   ensureAnonymousSession.mockClear();
   rpc.mockClear();
+  fetchSessionAccess.mockClear();
   signUpWithEmail.mockClear();
   verifySignupOtp.mockClear();
   loginWithPassword.mockClear();
