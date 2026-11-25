@@ -3,9 +3,10 @@ on realtime.messages
 for select
 to authenticated
 using (
-  exists (
+  realtime.topic() like 'session:%'
+  and exists (
     select 1 from public.sessions s
-    where s.id = replace(realtime.topic(), 'session:', '')
+    where s.id = substring(realtime.topic() from 9)   -- 'session:' is 8 characters
       and (not s.is_private or s.owner_id = auth.uid())
   )
 );
@@ -15,9 +16,10 @@ on realtime.messages
 for insert
 to authenticated
 with check (
-  exists (
+  realtime.topic() like 'session:%'
+  and exists (
     select 1 from public.sessions s
-    where s.id = replace(realtime.topic(), 'session:', '')
+    where s.id = substring(realtime.topic() from 9)   -- 'session:' is 8 characters
       and (not s.is_private or s.owner_id = auth.uid())
   )
 );

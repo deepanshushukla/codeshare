@@ -27,7 +27,7 @@ import { vi } from 'vitest';
 
 export type MockSessionRow = { id: string; html: string; css: string; js: string };
 export type MockPresenceMeta = { name: string; status: string };
-export type MockChannelParams = { config?: { presence?: { key?: string }; broadcast?: unknown } };
+export type MockChannelParams = { config?: { presence?: { key?: string }; broadcast?: unknown; private?: boolean } };
 export type MockAuthSession = { user: { id: string; email: string | null; is_anonymous: boolean } } | null;
 
 type MockBinding = {
