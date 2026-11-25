@@ -89,6 +89,13 @@ describe('useSessionChannel', () => {
     await waitFor(() => expect(getChannels()).toHaveLength(1));
     expect(soleChannel()).not.toBe(firstChannel);
   });
+
+  test('creates the channel as a private channel, so Realtime enforces the room-visibility policy on it', async () => {
+    renderHook(() => useSessionChannel('room', 'user-1'));
+    await waitFor(() => expect(getChannels()).toHaveLength(1));
+    const channel = soleChannel();
+    expect(channel.params.config?.private).toBe(true);
+  });
 });
 
 describe('useSession + usePresence on one shared channel', () => {

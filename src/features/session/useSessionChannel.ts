@@ -75,7 +75,7 @@ export function useSessionChannel(
     let lastTrackedMeta: PresenceMeta | null = null;
 
     const realtime = supabase.channel(`session:${sessionId}`, {
-      config: { presence: { key: userId } },
+      config: { presence: { key: userId }, private: true },
     });
 
     // Both bindings go on BEFORE subscribe() -- see SessionChannel's doc comment.
