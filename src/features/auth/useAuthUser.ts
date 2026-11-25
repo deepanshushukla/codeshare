@@ -25,10 +25,14 @@ const INITIAL_STATE: AuthUser = {
  * guarantees a session exists at all (anonymous if nothing else).
  *
  * These two are intentionally independent: `loading` flips to `false` as
- * soon as any auth state event has fired, regardless of whether
- * `ensureAnonymousSession()` has resolved yet -- it exists only to create a
- * session when none exists, and to surface `authFailed` if that's not
- * possible (e.g. anonymous sign-ins disabled on the project).
+ * soon as `onAuthStateChange` reports a confirmed session (anonymous or
+ * not), or as soon as `ensureAnonymousSession()` rejects -- whichever
+ * happens first. It does *not* flip false on the no-session replay that
+ * `onAuthStateChange` fires synchronously on subscribe, since that fires
+ * before `ensureAnonymousSession()` has had any chance to establish one.
+ * `ensureAnonymousSession()` itself exists only to create a session when
+ * none exists, and to surface `authFailed` if that's not possible (e.g.
+ * anonymous sign-ins disabled on the project).
  */
 export function useAuthUser(): AuthUser {
   const [state, setState] = useState<AuthUser>(INITIAL_STATE);
