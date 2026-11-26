@@ -313,6 +313,15 @@
   color: var(--acc);
 }
 
+// Caption under the Public/Private toggle -- same muted/small treatment as
+// .kbdHint below, so it reads as a secondary note rather than competing with
+// .heroSubtitle's primary copy.
+.visibilityHint {
+  margin: 10px 0 0;
+  font: 500 13px var(--font-sans);
+  color: var(--muted);
+}
+
 // --- CTA + keyboard hint (handoff lines 83-86) ------------------------------
 
 .heroActions {

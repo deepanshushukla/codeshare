@@ -4,6 +4,7 @@ import path from 'node:path';
 import { render, screen, fireEvent, createEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { vi, beforeEach } from 'vitest';
 import { ThemeProvider } from '../features/theme/ThemeProvider';
 import { RoomTransitionProvider } from '../features/transition/RoomTransitionProvider';
 import RoomTransitionOverlay from '../features/transition/RoomTransitionOverlay';
@@ -12,6 +13,17 @@ import Landing from './Landing';
 // key as its own class name -- the same value Landing renders into className,
 // which makes it safe to query the DOM with.
 import styles from './Landing.module.scss';
+import { emitAuthStateChange, resetSupabaseMock } from '../test/supabaseMock';
+
+// Landing now mounts AccountMenu and reads useAuthUser() for the Public/
+// Private toggle's default -- both go through lib/supabase, so every test in
+// this file (not just the new ones below) needs the same mock every other
+// auth-aware component's test uses.
+vi.mock('../lib/supabase', () => import('../test/supabaseMock'));
+
+beforeEach(() => {
+  resetSupabaseMock();
+});
 
 // Extracts the full declaration block for `selector` (e.g. ".riseSpan") from
 // a CSS/SCSS source string, counting braces so nested rules (like
@@ -59,10 +71,16 @@ function renderLanding() {
 // Task 9 added a second "Create New Room" link (the bottom CTA block), so
 // every query below takes [0] to keep targeting the hero CTA specifically --
 // otherwise getByRole throws on the now-ambiguous match.
+//
+// Task 13 made every roomHref always carry an explicit `?private=0|1` hint
+// (see the Public/Private toggle tests further down), so an anonymous
+// visitor's default link is now `/code/<id>?private=0`, not a bare path --
+// every pre-existing href assertion below that used to expect no query
+// string at all is updated to match.
 test('the Create New Room link points at /code/<id>', () => {
   renderLanding();
   const link = screen.getAllByRole('link', { name: /^create new room$/i })[0];
-  expect(link.getAttribute('href')).toMatch(/^\/code\/[a-z0-9]{10}$/);
+  expect(link.getAttribute('href')).toMatch(/^\/code\/[a-z0-9]{10}\?private=0$/);
 });
 
 test('renders the theme button and opens the theme drawer', () => {
@@ -74,7 +92,7 @@ test('renders the theme button and opens the theme drawer', () => {
 test('keeps the CTA a real link to the new room', () => {
   renderLanding();
   const link = screen.getAllByRole('link', { name: /^create new room$/i })[0];
-  expect(link.getAttribute('href')).toMatch(/^\/code\/[a-z0-9]{10}$/);
+  expect(link.getAttribute('href')).toMatch(/^\/code\/[a-z0-9]{10}\?private=0$/);
 });
 
 test('a plain click starts the transition instead of navigating immediately', () => {
@@ -220,8 +238,8 @@ test('the bottom CTA is also a real link, and the footer shows the 2026 copyrigh
 test('defaults to creating a Web session: the room href has no ?type= query string', () => {
   renderLanding();
   const link = screen.getAllByRole('link', { name: /^create new room$/i })[0];
-  expect(link.getAttribute('href')).toMatch(/^\/code\/[a-z0-9]{10}$/);
-  expect(link.getAttribute('href')).not.toMatch(/\?type=/);
+  expect(link.getAttribute('href')).toMatch(/^\/code\/[a-z0-9]{10}\?private=0$/);
+  expect(link.getAttribute('href')).not.toMatch(/type=/);
 });
 
 test('selecting React before creating updates every "Create New Room" link to ?type=react', () => {
@@ -234,7 +252,7 @@ test('selecting React before creating updates every "Create New Room" link to ?t
   // rather than tracking the toggle.
   const heroAndBottomLinks = screen.getAllByRole('link', { name: /^create new room$/i });
   for (const link of heroAndBottomLinks) {
-    expect(link.getAttribute('href')).toMatch(/^\/code\/[a-z0-9]{10}\?type=react$/);
+    expect(link.getAttribute('href')).toMatch(/^\/code\/[a-z0-9]{10}\?type=react&private=0$/);
   }
 });
 
@@ -243,7 +261,8 @@ test('switching back to Web after selecting React drops ?type= again', () => {
   fireEvent.click(screen.getByRole('button', { name: /^react$/i }));
   fireEvent.click(screen.getByRole('button', { name: /^web$/i }));
   const link = screen.getAllByRole('link', { name: /^create new room$/i })[0];
-  expect(link.getAttribute('href')).toMatch(/^\/code\/[a-z0-9]{10}$/);
+  expect(link.getAttribute('href')).toMatch(/^\/code\/[a-z0-9]{10}\?private=0$/);
+  expect(link.getAttribute('href')).not.toMatch(/type=/);
 });
 
 test('the Web/React toggle reflects the active selection via aria-pressed', () => {
@@ -255,4 +274,58 @@ test('the Web/React toggle reflects the active selection via aria-pressed', () =
   fireEvent.click(reactButton);
   expect(webButton).toHaveAttribute('aria-pressed', 'false');
   expect(reactButton).toHaveAttribute('aria-pressed', 'true');
+});
+
+// --- Public/Private room toggle (Task 13) -----------------------------------
+//
+// The brief's example tests render `<MemoryRouter><Landing /></MemoryRouter>`
+// directly and query `getByRole('link', { name: /create new room/i })`.
+// Neither translates as-is here: Landing also needs ThemeProvider/
+// RoomTransitionProvider (see renderLanding() above), and Task 9's bottom CTA
+// block means "Create New Room" always matches two links -- so every link
+// query below follows the rest of this file's convention of
+// `getAllByRole(...)[0]` to target the hero CTA specifically.
+
+test('logged-in: Public/Private toggle defaults to Private, and the create link includes ?private=1', async () => {
+  emitAuthStateChange('SIGNED_IN', { user: { id: 'real-1', email: 'a@b.com', is_anonymous: false } });
+  renderLanding();
+  const privateOption = await screen.findByRole('button', { name: /^private$/i });
+  expect(privateOption).toHaveAttribute('aria-pressed', 'true');
+  const link = screen.getAllByRole('link', { name: /^create new room$/i })[0];
+  expect(link.getAttribute('href')).toEqual(expect.stringContaining('private=1'));
+});
+
+test('logged-out: selecting Private opens AuthModal instead of changing the link', async () => {
+  renderLanding();
+  await userEvent.click(await screen.findByRole('button', { name: /^private$/i }));
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
+  // Radix Dialog marks the rest of the page aria-hidden while open (a real,
+  // intentional accessibility behavior -- hiding inert background content
+  // from assistive tech) -- `hidden: true` is what lets this query still see
+  // the hero CTA underneath it to check its href didn't change.
+  const link = screen.getAllByRole('link', { name: /^create new room$/i, hidden: true })[0];
+  expect(link.getAttribute('href')).toEqual(expect.stringContaining('private=0'));
+});
+
+test('logged-out: a successful login in the opened modal switches the toggle to Private', async () => {
+  renderLanding();
+  await userEvent.click(await screen.findByRole('button', { name: /^private$/i }));
+  // Drive the modal to success exactly as AuthModal.test.tsx's signup case
+  // does -- Landing opens AuthModal with initialMode="signup" (see the task
+  // brief's Step 3), so this reuses that already-covered flow (email+password
+  // -> OTP -> onSuccess) rather than re-deriving it here.
+  await userEvent.type(screen.getByLabelText(/email/i), 'new@b.com');
+  await userEvent.type(screen.getByLabelText(/password/i), 'secret123');
+  await userEvent.click(screen.getByRole('button', { name: /sign up/i }));
+  await userEvent.type(await screen.findByLabelText(/code/i), '123456');
+  await userEvent.click(screen.getByRole('button', { name: /verify/i }));
+
+  expect(await screen.findByRole('button', { name: /^private$/i })).toHaveAttribute('aria-pressed', 'true');
+  const link = screen.getAllByRole('link', { name: /^create new room$/i })[0];
+  expect(link.getAttribute('href')).toEqual(expect.stringContaining('private=1'));
+});
+
+test('mentions private rooms somewhere prominent on the page', () => {
+  renderLanding();
+  expect(screen.getByText(/private/i)).toBeInTheDocument();
 });

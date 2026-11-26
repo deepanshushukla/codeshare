@@ -7,6 +7,9 @@ import type { SessionType } from '../features/session/sessionType';
 import ThemeButton from '../features/theme/ThemeButton';
 import ThemeDrawer from '../features/theme/ThemeDrawer';
 import { useRoomTransition } from '../features/transition/RoomTransitionProvider';
+import { useAuthUser } from '../features/auth/useAuthUser';
+import AccountMenu from '../features/auth/AccountMenu';
+import AuthModal from '../features/auth/AuthModal';
 import OrbitVisual from './Landing/OrbitVisual';
 import PageSeo from '../lib/seo';
 import styles from './Landing.module.scss';
@@ -85,6 +88,17 @@ const FEATURES = [
 // of each half, i.e. the looping seam -- gets a trailing diamond separator.
 const TICKER_WORDS = ['HTML', 'CSS', 'JavaScript', 'React', 'Console', 'Output', 'One link'];
 
+// `?private=0|1` is always present (not just when private) -- SessionRoute
+// reads it as an explicit hint for a room that doesn't exist yet (see its
+// `rawPrivate` parsing), so a brand-new anonymous-visitor room needs the
+// explicit "0" rather than an absent param that could be read as "unknown."
+function buildRoomPath(roomId: string, type: SessionType, isPrivateRoom: boolean): string {
+  const params = [];
+  if (type === 'react') params.push('type=react');
+  params.push(`private=${isPrivateRoom ? 1 : 0}`);
+  return `/code/${roomId}?${params.join('&')}`;
+}
+
 export default function Landing() {
   const newRoomId = useMemo(() => generateSessionId(), []);
   // Plain derived const, not memoized -- cheap to recompute, and every
@@ -92,7 +106,17 @@ export default function Landing() {
   // enterRoom's `navigate(roomHref)`) just reads this one variable, so it
   // automatically picks up a sessionType change on the next render.
   const [sessionType, setSessionType] = useState<SessionType>('web');
-  const roomHref = `/code/${newRoomId}${sessionType === 'react' ? '?type=react' : ''}`;
+  const { isAnonymous } = useAuthUser();
+  // `null` until the visitor explicitly picks a segment -- lets a logged-in
+  // visitor's default ("Private", via `!isAnonymous` below) flip back to
+  // "Public" without needing a third state just to represent "untouched".
+  const [privacyOverride, setPrivacyOverride] = useState<boolean | null>(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  // A real account defaults the toggle to Private; anonymous visitors default
+  // to Public. Either can override via the toggle below (selecting Private
+  // while anonymous opens AuthModal instead, see handleVisibilitySelect).
+  const isPrivate = privacyOverride ?? !isAnonymous;
+  const roomHref = buildRoomPath(newRoomId, sessionType, isPrivate);
   const [themeDrawerOpen, setThemeDrawerOpen] = useState(false);
   const navigate = useNavigate();
   const { start } = useRoomTransition();
@@ -108,12 +132,28 @@ export default function Landing() {
     // would abandon it half-open over the iris wipe. Matches the design
     // handoff's own newRoom(), which sets `themeOpen: false`.
     setThemeDrawerOpen(false);
-    const href = `/code/${newRoomId}${type === 'react' ? '?type=react' : ''}`;
+    const href = buildRoomPath(newRoomId, type, isPrivate);
     start(newRoomId, () => navigate(href));
   }
 
   function enterRoom() {
     enterRoomAs(sessionType);
+  }
+
+  // Public always just sets the override. Private either sets it directly
+  // (a real account) or, for an anonymous visitor, opens AuthModal instead of
+  // changing any state -- the link keeps carrying `private=0` until a login
+  // actually succeeds (see the AuthModal `onSuccess` below).
+  function handleVisibilitySelect(option: 'public' | 'private') {
+    if (option === 'public') {
+      setPrivacyOverride(false);
+      return;
+    }
+    if (isAnonymous) {
+      setAuthModalOpen(true);
+      return;
+    }
+    setPrivacyOverride(true);
   }
 
   function handleCreateClick(event: MouseEvent<HTMLAnchorElement>) {
@@ -173,6 +213,9 @@ export default function Landing() {
 
           <ThemeButton variant="pill" onOpenDrawer={() => setThemeDrawerOpen(true)} />
 
+          {/* Self-contained -- reads useAuthUser() itself, no props to wire. */}
+          <AccountMenu />
+
           {/* A dropdown rather than a plain link: the choice of Web vs React
               used to live only in the hero toggle further down the page, so
               clicking this button before ever scrolling there silently
@@ -199,6 +242,22 @@ export default function Landing() {
       </header>
 
       <ThemeDrawer open={themeDrawerOpen} onClose={() => setThemeDrawerOpen(false)} />
+
+      {/*
+        Opened only by selecting "Private" while anonymous (see
+        handleVisibilitySelect above) -- not AccountMenu's own login modal.
+        `initialMode="signup"` since the common case here is a first-time
+        visitor who wants a private room, not an existing account holder
+        already covered by the header's AccountMenu. `onSuccess` is what
+        actually flips the toggle: until a login genuinely succeeds, the
+        link keeps carrying `private=0`.
+      */}
+      <AuthModal
+        open={authModalOpen}
+        onOpenChange={setAuthModalOpen}
+        initialMode="signup"
+        onSuccess={() => setPrivacyOverride(true)}
+      />
 
       <section className={styles.hero}>
         <div className={styles.heroCopy}>
@@ -253,6 +312,35 @@ export default function Landing() {
               </button>
             ))}
           </div>
+
+          {/*
+            Second, independent segmented toggle, same pattern as the Web/
+            React one above (role="group" + aria-pressed is the one source of
+            truth). `isPrivate` already folds in both the logged-in default
+            and any explicit override -- see its computation above -- so this
+            just renders off that one boolean plus `isAnonymous` to decide
+            whether picking "Private" can take effect directly or has to go
+            through AuthModal first.
+          */}
+          <p className={styles.typeToggleLabel} id="visibility-label">
+            Room visibility:
+          </p>
+          <div role="group" aria-labelledby="visibility-label" className={styles.typeToggle}>
+            {(['public', 'private'] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                className={styles.typeOption}
+                aria-pressed={isPrivate === (option === 'private')}
+                onClick={() => handleVisibilitySelect(option)}
+              >
+                {option === 'public' ? 'Public' : 'Private'}
+              </button>
+            ))}
+          </div>
+          <p className={styles.visibilityHint}>
+            Signed in, your rooms default to members-only — no extra setup.
+          </p>
 
           <div className={styles.heroActions}>
             <Link to={roomHref} className={styles.ctaButton} onClick={handleCreateClick}>
