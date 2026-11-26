@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import AuthModal from '../auth/AuthModal';
 import { useAuthUser } from '../auth/useAuthUser';
 import styles from './AccessDenied.module.scss';
@@ -32,9 +33,9 @@ export default function AccessDenied() {
           <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} initialMode="login" />
         </>
       )}
-      <a href="/" className={styles.link}>
+      <Link to="/" className={styles.link}>
         Back to home
-      </a>
+      </Link>
     </div>
   );
 }
