@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { debounce } from '../../lib/debounce';
+import { titleFromCode } from '../../lib/titleFromCode';
 import type { ChannelStatus, EditField, SessionChannel } from './useSessionChannel';
 import { isSessionType, type SessionType } from './sessionType';
 
@@ -21,6 +22,13 @@ type UseSessionResult = SessionContent & {
   connectionStatus: ConnectionStatus;
   updateField: (field: EditField, value: string) => void;
   sessionType: SessionType;
+};
+
+// The structural field whose content a session's title is derived from, per
+// session type. js/css/components_jsx/react_css never affect the title.
+const TITLE_SOURCE_TYPE: Partial<Record<EditField, SessionType>> = {
+  html: 'web',
+  app_jsx: 'react',
 };
 
 const UPSERT_DEBOUNCE_MS = 400;
@@ -59,13 +67,18 @@ const STARTER_CONTENT_REACT: SessionContent = {
 export function useSession(
   sessionId: string,
   userId: string | null,
+  isAnonymous: boolean,
   channel: SessionChannel | null,
   channelStatus: ChannelStatus,
   typeHint: SessionType,
-): UseSessionResult {
+  privacyHint: boolean | null,
+): UseSessionResult & { isPrivate: boolean; ownerId: string | null; title: string; setPrivacy: (next: boolean) => Promise<void> } {
   const [content, setContent] = useState<SessionContent>(BLANK_CONTENT);
   const [loading, setLoading] = useState(true);
   const [sessionType, setSessionType] = useState<SessionType>(typeHint);
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
+  const [title, setTitle] = useState('');
   // Set when Postgres rejects a write (RLS, the char_length constraint, a
   // dropped connection). Without this the user sees their edit applied locally
   // and broadcast to everyone else while it silently never lands in the row --
@@ -80,6 +93,17 @@ export function useSession(
   useEffect(() => {
     sessionIdRef.current = sessionId;
   }, [sessionId]);
+
+  // Mirrors `content` so the persister closures below (created once, see the
+  // lazy useState initializer further down) can read the LATEST full content
+  // -- not whatever was in scope when the closure was created -- when
+  // recomputing a title alongside a structural-field write. Same discipline
+  // as `sessionIdRef` above, for the same reason: a once-created closure
+  // over `content` directly would go stale the moment content changes again.
+  const contentRef = useRef(content);
+  useEffect(() => {
+    contentRef.current = content;
+  }, [content]);
 
   useEffect(() => {
     // Don't read/create the row until real auth exists. Without this guard,
@@ -114,14 +138,31 @@ export function useSession(
           components_jsx: data.components_jsx ?? '',
           react_css: data.react_css ?? '',
         });
+        setIsPrivate(Boolean(data.is_private));
+        setOwnerId(data.owner_id ?? null);
+        setTitle(data.title ?? '');
       } else if (!error) {
         // Only create a blank row when we positively know none exists. On a
         // transient read error, `data` is also falsy — don't treat that as
         // "no row yet" and upsert blanks over an existing session's content.
         const starter = typeHint === 'react' ? STARTER_CONTENT_REACT : STARTER_CONTENT_WEB;
-        const { error: writeError } = await supabase
-          .from('sessions')
-          .upsert({ id: sessionId, session_type: typeHint, ...starter });
+        // A room's privacy defaults from who created it: a real (non-
+        // anonymous) user's rooms default to private, an anonymous user's
+        // default to public -- unless the creation URL carried an explicit
+        // choice (privacyHint), which always wins. Only a real user can own
+        // a room; an anonymous creator leaves owner_id null (there is no
+        // durable identity to attach it to across browser sessions).
+        const newIsPrivate = privacyHint ?? !isAnonymous;
+        const newOwnerId = isAnonymous ? null : userId;
+        const newTitle = titleFromCode(typeHint, starter);
+        const { error: writeError } = await supabase.from('sessions').upsert({
+          id: sessionId,
+          session_type: typeHint,
+          is_private: newIsPrivate,
+          owner_id: newOwnerId,
+          title: newTitle,
+          ...starter,
+        });
         if (!active) return;
         if (writeError) {
           console.error('codeshare: creating the session row failed', writeError);
@@ -129,6 +170,9 @@ export function useSession(
         } else {
           setSessionType(typeHint);
           setContent(starter);
+          setIsPrivate(newIsPrivate);
+          setOwnerId(newOwnerId);
+          setTitle(newTitle);
         }
       }
       if (active) setLoading(false);
@@ -162,13 +206,30 @@ export function useSession(
     const makePersister = (field: EditField) =>
       debounce((value: string) => {
         void (async () => {
-          const { error } = await supabase.from('sessions').upsert({
+          const row: Record<string, unknown> = {
             id: sessionIdRef.current,
             [field]: value,
             updated_at: new Date().toISOString(),
-          });
+          };
+          // Only html (web) and app_jsx (react) are "structural" -- the
+          // fields titleFromCode actually reads. js/css/components_jsx/
+          // react_css edits never touch the title. Reads `contentRef.current`
+          // (not the `content` closed over when this persister was created
+          // -- see the comment on contentRef above) merged with this write's
+          // own `value`, so the title is always derived from the LATEST full
+          // content, not a stale snapshot from whenever this once-created
+          // debounced closure happened to be built.
+          const titleType = TITLE_SOURCE_TYPE[field];
+          let nextTitle: string | undefined;
+          if (titleType) {
+            nextTitle = titleFromCode(titleType, { ...contentRef.current, [field]: value });
+            row.title = nextTitle;
+          }
+          const { error } = await supabase.from('sessions').upsert(row);
           if (error) {
             console.error(`codeshare: persisting ${field} failed`, error);
+          } else if (nextTitle !== undefined) {
+            setTitle(nextTitle);
           }
           // `setWriteFailed` is a stable useState setter, so capturing it in
           // this once-created closure is safe. Clearing it on a successful
@@ -195,9 +256,20 @@ export function useSession(
     [channel, persisters, userId],
   );
 
+  // Flips a room's visibility later (vs. the create-time default above). No
+  // client-side "am I the owner" guard needed: the migration enforces
+  // ownership server-side via RLS plus a trigger, so a non-owner's upsert is
+  // simply rejected by Postgres and surfaced the same way every other
+  // rejected write in this file already is -- via `writeFailed`.
+  const setPrivacy = useCallback(async (next: boolean) => {
+    const { error } = await supabase.from('sessions').upsert({ id: sessionIdRef.current, is_private: next });
+    setIsPrivate((prev) => (error ? prev : next));
+    setWriteFailed(Boolean(error));
+  }, []);
+
   // A failing write is more urgent for the user to know about than a
   // reconnecting socket (which recovers on its own), so it wins the banner.
   const connectionStatus: ConnectionStatus = writeFailed ? 'write-failed' : channelStatus;
 
-  return { ...content, loading, connectionStatus, updateField, sessionType };
+  return { ...content, loading, connectionStatus, updateField, sessionType, isPrivate, ownerId, title, setPrivacy };
 }

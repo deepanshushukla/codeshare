@@ -64,7 +64,21 @@ export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
   // useSession (broadcast edits) and usePresence (presence tracking). See
   // useSessionChannel.ts for why creating it in each hook is broken.
   const { channel, status: channelStatus } = useSessionChannel(sessionId, userId);
-  const { html, css, js, connectionStatus, updateField } = useSession(sessionId, userId, channel, channelStatus, 'web');
+  // isAnonymous=true, privacyHint=null: this component only ever creates
+  // anonymous identities today (via ensureAnonymousSession above) -- real
+  // auth and an explicit privacy choice from the creation URL are wired in
+  // by Task 12, which repoints this call through useAuthUser. Until then
+  // this preserves today's behavior exactly (every room created here stays
+  // public with no owner).
+  const { html, css, js, connectionStatus, updateField } = useSession(
+    sessionId,
+    userId,
+    true,
+    channel,
+    channelStatus,
+    'web',
+    null,
+  );
   const { users, name, setName } = usePresence(userId, channel);
 
   // `runToken` only changes when the user explicitly hits Run (button or

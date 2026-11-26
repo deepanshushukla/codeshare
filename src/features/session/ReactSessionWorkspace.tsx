@@ -58,13 +58,15 @@ export default function ReactSessionWorkspace({ sessionId }: { sessionId: string
   // Exactly one Realtime channel per session, shared by useSession (broadcast
   // edits) and usePresence (presence tracking) -- see useSessionChannel.ts.
   const { channel, status: channelStatus } = useSessionChannel(sessionId, userId);
+  // isAnonymous=true, privacyHint=null: see SessionWorkspace.tsx's identical
+  // comment -- real auth/privacy-choice wiring lands in Task 12.
   const {
     app_jsx,
     components_jsx,
     react_css,
     connectionStatus,
     updateField,
-  } = useSession(sessionId, userId, channel, channelStatus, 'react');
+  } = useSession(sessionId, userId, true, channel, channelStatus, 'react', null);
   const { users, name, setName } = usePresence(userId, channel);
 
   // See SessionWorkspace.tsx's identical comment: `runToken` only changes on
