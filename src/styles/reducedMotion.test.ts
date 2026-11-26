@@ -34,7 +34,7 @@ const srcDir = path.resolve(stylesDir, '..');
 // `opacity: 0` with fill-mode `forwards`, so it is a one-shot: under reduced
 // motion it must collapse to that settled, invisible end state, not freeze on
 // its opaque first keyframe.
-const ONE_SHOT_KEYFRAMES = ['rise', 'fade', 'mark', 'paneIn', 'drawerIn', 'toastIn', 'iris', 'irisOut', 'runFlash'];
+const ONE_SHOT_KEYFRAMES = ['rise', 'fade', 'mark', 'paneIn', 'drawerIn', 'toastIn', 'iris', 'irisOut', 'runFlash', 'scaleIn'];
 
 // Continuous/looping decorative keyframes: every frame of the loop is a
 // visually sane resting state, so freezing them mid-cycle via

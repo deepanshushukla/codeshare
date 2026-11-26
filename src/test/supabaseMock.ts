@@ -145,12 +145,17 @@ export function emitAuthStateChange(event: string, session: MockAuthSession): vo
 }
 
 // Auth-related vi.fn() exports
-export const signUpWithEmail = vi.fn(async () => ({ error: null }));
-export const verifySignupOtp = vi.fn(async () => ({ error: null }));
-export const loginWithPassword = vi.fn(async () => ({ error: null }));
-export const requestPasswordReset = vi.fn(async () => ({ error: null }));
-export const verifyPasswordResetOtp = vi.fn(async () => ({ error: null }));
-export const setNewPassword = vi.fn(async () => ({ error: null }));
+// Typed `Promise<{ error: { message: string } | null }>` (not bare `null`,
+// which `() => ({ error: null })` would otherwise infer) so a consuming
+// test's `mockResolvedValueOnce({ error: { message: '...' } })` -- the
+// AuthModal error-path tests' whole mechanism for simulating a failed
+// auth call -- type-checks under `tsc -b`.
+export const signUpWithEmail = vi.fn(async (): Promise<{ error: { message: string } | null }> => ({ error: null }));
+export const verifySignupOtp = vi.fn(async (): Promise<{ error: { message: string } | null }> => ({ error: null }));
+export const loginWithPassword = vi.fn(async (): Promise<{ error: { message: string } | null }> => ({ error: null }));
+export const requestPasswordReset = vi.fn(async (): Promise<{ error: { message: string } | null }> => ({ error: null }));
+export const verifyPasswordResetOtp = vi.fn(async (): Promise<{ error: { message: string } | null }> => ({ error: null }));
+export const setNewPassword = vi.fn(async (): Promise<{ error: { message: string } | null }> => ({ error: null }));
 export const logout = vi.fn(async () => undefined);
 
 export const from = vi.fn((_table: string) => ({
