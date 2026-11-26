@@ -88,6 +88,35 @@
   color: var(--faint);
 }
 
+// Owner-only visibility toggle, next to the room-link chip. Solid border (vs
+// roomChip's dashed "take it with you" styling) since this is a state
+// control, not a copyable link.
+.privacyPill {
+  box-sizing: border-box;
+  height: 32px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 11px;
+  border: 1px solid var(--line2);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: 600 12px var(--font-sans);
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+
+  &:hover {
+    border-color: var(--acc);
+    color: var(--text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 1px;
+  }
+}
+
 // Takes the slack between the chip and the right-hand controls, and scrolls
 // rather than squeezing the tab row when the header gets tight.
 //

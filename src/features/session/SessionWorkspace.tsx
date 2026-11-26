@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 import { useSession, type ConnectionStatus } from './useSession';
 import { useSessionChannel } from './useSessionChannel';
 import { TAB_KEYS, useTabsQueryParam, type TabsState } from './useTabsQueryParam';
 import { usePresence } from './usePresence';
 import { useBreakpoint } from './useBreakpoint';
-import { ensureAnonymousSession } from '../../lib/supabase';
 import EditorPane from './EditorPane';
 import OutputFrame from './OutputFrame';
 import OutputPane from './OutputPane';
@@ -30,27 +29,25 @@ const MOBILE_EDITOR_TABS: (keyof TabsState)[] = ['html', 'css', 'js'];
 
 // react-resizable-panels v4 renamed the old PanelGroup/Panel/PanelResizeHandle
 // trio to Group/Panel/Separator, with `orientation` replacing `direction`.
-export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [authFailed, setAuthFailed] = useState(false);
-  useEffect(() => {
-    let active = true;
-    ensureAnonymousSession()
-      .then((id) => {
-        if (active) setUserId(id);
-      })
-      .catch((error: unknown) => {
-        // Without this, a project with anonymous sign-ins disabled leaves
-        // `userId` null forever: no channel, no presence, no identity for the
-        // self-echo guard -- and no hint to the user that anything is wrong.
-        console.error('codeshare: anonymous sign-in failed', error);
-        if (active) setAuthFailed(true);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
+//
+// userId/isAnonymous/privacyHint arrive as props from SessionRoute, which
+// already resolves real identity via useAuthUser() -- this component used to
+// call ensureAnonymousSession() itself and hardcode isAnonymous=true/
+// privacyHint=null into useSession, which is why every room created here
+// used to stay public with no owner regardless of who was actually signed
+// in. Identity resolution lives one level up now; this component only
+// consumes it.
+export default function SessionWorkspace({
+  sessionId,
+  userId,
+  isAnonymous,
+  privacyHint,
+}: {
+  sessionId: string;
+  userId: string | null;
+  isAnonymous: boolean;
+  privacyHint: boolean | null;
+}) {
   const { tabs, toggleTab } = useTabsQueryParam();
   // Below 760px the multi-pane layout has no room to be multi-pane, so the
   // workspace shows exactly one pane at a time, chosen by `mobileTab` and the
@@ -64,20 +61,14 @@ export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
   // useSession (broadcast edits) and usePresence (presence tracking). See
   // useSessionChannel.ts for why creating it in each hook is broken.
   const { channel, status: channelStatus } = useSessionChannel(sessionId, userId);
-  // isAnonymous=true, privacyHint=null: this component only ever creates
-  // anonymous identities today (via ensureAnonymousSession above) -- real
-  // auth and an explicit privacy choice from the creation URL are wired in
-  // by Task 12, which repoints this call through useAuthUser. Until then
-  // this preserves today's behavior exactly (every room created here stays
-  // public with no owner).
-  const { html, css, js, connectionStatus, updateField } = useSession(
+  const { html, css, js, connectionStatus, updateField, isPrivate, ownerId, title, setPrivacy } = useSession(
     sessionId,
     userId,
-    true,
+    isAnonymous,
     channel,
     channelStatus,
     'web',
-    null,
+    privacyHint,
   );
   const { users, name, setName } = usePresence(userId, channel);
 
@@ -154,7 +145,10 @@ export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
     ) : null;
   // -----------------------------------------------------------------------
 
-  const bannerStatus: ConnectionStatus = authFailed ? 'auth-failed' : connectionStatus;
+  const bannerStatus: ConnectionStatus = connectionStatus;
+  // (The 'auth-failed' status this type still allows is set by the removed
+  // local sign-in effect's replacement, useAuthUser, one level up in
+  // SessionRoute -- nothing here sets it anymore.)
 
   // Desktop pane count for the StatusBar footer -- counts from `tabs` (the
   // desktop multi-select), not `mobileTab`, since StatusBar only ever renders
@@ -164,6 +158,11 @@ export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
 
   return (
     <div className={styles.workspace}>
+      {/* React 19 head-hoisting (same mechanism PageSeo uses): rendering a
+          bare <title> anywhere in the tree moves it into <head>, keeping the
+          browser tab/history entry in sync with this room's actual content
+          instead of the app-wide static index.html default. */}
+      <title>{title || 'CodeShare'}</title>
       <Header
         roomId={sessionId}
         tabBar={<TabBar tabs={tabs} toggleTab={toggleTab} />}
@@ -173,6 +172,9 @@ export default function SessionWorkspace({ sessionId }: { sessionId: string }) {
         onNameChange={setName}
         onRun={handleRun}
         exportContent={{ html, css, js }}
+        isPrivate={isPrivate}
+        isOwner={ownerId !== null && ownerId === userId}
+        onTogglePrivacy={() => setPrivacy(!isPrivate)}
       />
       <ConnectionBanner status={bannerStatus} />
       {/* flex: 1 + min-height: 0 (see the stylesheet) rather than height:

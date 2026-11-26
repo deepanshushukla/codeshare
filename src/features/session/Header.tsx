@@ -9,6 +9,7 @@ import RunControls from './RunControls';
 import ThemeButton from '../theme/ThemeButton';
 import ThemeDrawer from '../theme/ThemeDrawer';
 import { useTheme } from '../theme/ThemeProvider';
+import AccountMenu from '../auth/AccountMenu';
 import { Toast } from './Toast';
 import { useToast } from './useToast';
 import { useBreakpoint } from './useBreakpoint';
@@ -32,6 +33,14 @@ type Props = {
   onNameChange: (n: string) => void;
   onRun: () => void;
   exportContent: ({ sessionType?: 'web' } & ExportContent) | ({ sessionType: 'react' } & ReactExportContent);
+  // Owner-only privacy toggle. `isOwner` is already resolved by the caller
+  // (ownerId === currentUserId, computed in SessionWorkspace/
+  // ReactSessionWorkspace) -- Header itself does no ownership comparison, so
+  // a null ownerId (an anonymously-created room) can never read as "owned"
+  // here just because it also renders false-y against some other id.
+  isPrivate: boolean;
+  isOwner: boolean;
+  onTogglePrivacy: () => void;
 };
 
 // Opens a brand-new session of the OTHER type in a new tab, never touching
@@ -180,6 +189,9 @@ function MoreMenu({
           <div className={styles.morePanelItem}>
             <NewSessionButton variant="menuRow" currentType={currentType} />
           </div>
+          <div className={styles.morePanelItem} data-testid="account-menu-slot">
+            <AccountMenu />
+          </div>
         </div>
       )}
     </div>
@@ -195,6 +207,9 @@ export default function Header({
   onNameChange,
   onRun,
   exportContent,
+  isPrivate,
+  isOwner,
+  onTogglePrivacy,
 }: Props) {
   // Header owns the one useToast() instance for this screen: both the
   // copy-link chip (below) and ExportMenu's onExported report through it.
@@ -246,6 +261,23 @@ export default function Header({
         <Copy size={13} aria-hidden="true" />
       </button>
 
+      {/* Server-enforced too (RLS + a trigger on `sessions`, see useSession's
+          setPrivacy) -- this is just the affordance, not the only guard. Only
+          the owner ever sees it; a room with no owner (owner_id null, made
+          anonymously) has isOwner permanently false for everyone, including
+          whoever happens to be viewing it while logged in. */}
+      {isOwner && (
+        <button
+          type="button"
+          className={styles.privacyPill}
+          onClick={onTogglePrivacy}
+          aria-pressed={isPrivate}
+          title={isPrivate ? 'Private room — click to make public' : 'Public room — click to make private'}
+        >
+          {isPrivate ? 'Private' : 'Public'}
+        </button>
+      )}
+
       <div className={styles.center}>{tabBar}</div>
 
       <div className={styles.actions}>
@@ -273,6 +305,9 @@ export default function Header({
             <ThemeButton variant="square" onOpenDrawer={() => setThemeDrawerOpen(true)} />
             <ExportMenu {...exportContent} onExported={(filename) => showToast(`Exported ${filename}`)} />
             <NewSessionButton currentType={exportContent.sessionType ?? 'web'} />
+            <div data-testid="account-menu-slot">
+              <AccountMenu />
+            </div>
           </>
         )}
         <RunControls onRun={onRun} />

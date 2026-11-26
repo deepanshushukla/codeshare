@@ -45,25 +45,37 @@ function setWide(isWide: boolean) {
 
 type HeaderProps = Parameters<typeof Header>[0];
 
-function renderHeader(overrides: Partial<HeaderProps> = {}) {
-  const props: HeaderProps = {
-    roomId: 'abcd-1234',
-    tabBar: <TabBar tabs={DEFAULT_TABS} toggleTab={() => {}} />,
-    users: [],
-    currentUserId: null,
-    name: '',
-    onNameChange: () => {},
-    onRun: () => {},
-    exportContent: { html: '', css: '', js: '' },
-    ...overrides,
-  };
-  return render(
+// Shared defaults, extended (not redefined) by the privacy/account tests
+// below -- isPrivate/isOwner/onTogglePrivacy default to the "nothing new to
+// see" shape (not the owner, not private) so every pre-existing test in this
+// file keeps rendering exactly what it did before those props existed.
+const baseProps: HeaderProps = {
+  roomId: 'abcd-1234',
+  tabBar: <TabBar tabs={DEFAULT_TABS} toggleTab={() => {}} />,
+  users: [],
+  currentUserId: null,
+  name: '',
+  onNameChange: () => {},
+  onRun: () => {},
+  exportContent: { html: '', css: '', js: '' },
+  isPrivate: false,
+  isOwner: false,
+  onTogglePrivacy: () => {},
+};
+
+function buildTree(overrides: Partial<HeaderProps> = {}) {
+  const props: HeaderProps = { ...baseProps, ...overrides };
+  return (
     <MemoryRouter initialEntries={['/code/abcd-1234']}>
       <ThemeProvider>
         <Header {...props} />
       </ThemeProvider>
-    </MemoryRouter>,
+    </MemoryRouter>
   );
+}
+
+function renderHeader(overrides: Partial<HeaderProps> = {}) {
+  return render(buildTree(overrides));
 }
 
 const USERS: PresenceUser[] = [
@@ -432,4 +444,33 @@ test('opens the theme drawer from the header theme button', async () => {
   await userEvent.click(screen.getByRole('button', { name: /^theme:/i }));
 
   expect(await screen.findByRole('dialog')).toBeInTheDocument();
+});
+
+describe('owner-only privacy toggle', () => {
+  test('shows the privacy toggle pill only when isOwner is true', () => {
+    const { rerender } = renderHeader({ isPrivate: true, isOwner: false, onTogglePrivacy: vi.fn() });
+    expect(screen.queryByRole('button', { name: /private/i })).not.toBeInTheDocument();
+
+    rerender(buildTree({ isPrivate: true, isOwner: true, onTogglePrivacy: vi.fn() }));
+    expect(screen.getByRole('button', { name: /private/i })).toBeInTheDocument();
+  });
+
+  test('clicking the privacy toggle calls onTogglePrivacy', async () => {
+    const onTogglePrivacy = vi.fn();
+    renderHeader({ isPrivate: true, isOwner: true, onTogglePrivacy });
+
+    await userEvent.click(screen.getByRole('button', { name: /private/i }));
+
+    expect(onTogglePrivacy).toHaveBeenCalledOnce();
+  });
+});
+
+test('renders AccountMenu', () => {
+  renderHeader({ isPrivate: false, isOwner: false, onTogglePrivacy: vi.fn() });
+  // AccountMenu is self-contained and calls useAuthUser() itself, which stays
+  // `loading` forever in this file's unmocked real-supabase setup (no network
+  // in jsdom actually resolves) -- so AccountMenu renders null here, same as
+  // its own tests document. The mount point itself, not AccountMenu's
+  // internal content, is what Header is responsible for.
+  expect(screen.getByTestId('account-menu-slot')).toBeInTheDocument();
 });

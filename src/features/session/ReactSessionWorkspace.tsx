@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 import { useSession, type ConnectionStatus } from './useSession';
 import { useSessionChannel } from './useSessionChannel';
 import { REACT_TAB_KEYS, useReactTabsQueryParam, type ReactTabsState } from './useReactTabsQueryParam';
 import { usePresence } from './usePresence';
 import { useBreakpoint } from './useBreakpoint';
-import { ensureAnonymousSession } from '../../lib/supabase';
 import EditorPane from './EditorPane';
 import OutputFrame from './OutputFrame';
 import OutputPane from './OutputPane';
@@ -34,39 +33,38 @@ const MOBILE_EDITOR_TABS: (keyof ReactTabsState)[] = ['appJsx', 'componentsJsx',
 // column names), while OutputFrame/OutputPane/ExportMenu/ReactTabBar/
 // ReactMobileTabBar all use camelCase (`appJsx`/`componentsJsx`/`reactCss`).
 // The rename happens explicitly at each boundary below -- never implicitly.
-export default function ReactSessionWorkspace({ sessionId }: { sessionId: string }) {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [authFailed, setAuthFailed] = useState(false);
-  useEffect(() => {
-    let active = true;
-    ensureAnonymousSession()
-      .then((id) => {
-        if (active) setUserId(id);
-      })
-      .catch((error: unknown) => {
-        console.error('codeshare: anonymous sign-in failed', error);
-        if (active) setAuthFailed(true);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
+//
+// userId/isAnonymous/privacyHint arrive as props from SessionRoute -- see
+// SessionWorkspace.tsx's identical comment for why the local
+// ensureAnonymousSession()-based effect this used to have is gone.
+export default function ReactSessionWorkspace({
+  sessionId,
+  userId,
+  isAnonymous,
+  privacyHint,
+}: {
+  sessionId: string;
+  userId: string | null;
+  isAnonymous: boolean;
+  privacyHint: boolean | null;
+}) {
   const { tabs, toggleTab } = useReactTabsQueryParam();
   const { isMobile } = useBreakpoint();
   const [mobileTab, setMobileTab] = useState<keyof ReactTabsState>('appJsx');
   // Exactly one Realtime channel per session, shared by useSession (broadcast
   // edits) and usePresence (presence tracking) -- see useSessionChannel.ts.
   const { channel, status: channelStatus } = useSessionChannel(sessionId, userId);
-  // isAnonymous=true, privacyHint=null: see SessionWorkspace.tsx's identical
-  // comment -- real auth/privacy-choice wiring lands in Task 12.
   const {
     app_jsx,
     components_jsx,
     react_css,
     connectionStatus,
     updateField,
-  } = useSession(sessionId, userId, true, channel, channelStatus, 'react', null);
+    isPrivate,
+    ownerId,
+    title,
+    setPrivacy,
+  } = useSession(sessionId, userId, isAnonymous, channel, channelStatus, 'react', privacyHint);
   const { users, name, setName } = usePresence(userId, channel);
 
   // See SessionWorkspace.tsx's identical comment: `runToken` only changes on
@@ -116,7 +114,9 @@ export default function ReactSessionWorkspace({ sessionId }: { sessionId: string
     ) : null;
   // -----------------------------------------------------------------------
 
-  const bannerStatus: ConnectionStatus = authFailed ? 'auth-failed' : connectionStatus;
+  const bannerStatus: ConnectionStatus = connectionStatus;
+  // (See SessionWorkspace.tsx's identical comment: nothing here sets
+  // 'auth-failed' anymore -- that lives in useAuthUser, one level up.)
 
   // Desktop pane count for the StatusBar footer -- counts from `tabs` (the
   // desktop multi-select), not `mobileTab`, same as SessionWorkspace.tsx.
@@ -124,6 +124,8 @@ export default function ReactSessionWorkspace({ sessionId }: { sessionId: string
 
   return (
     <div className={styles.workspace}>
+      {/* See SessionWorkspace.tsx's identical comment: React 19 head-hoisting. */}
+      <title>{title || 'CodeShare'}</title>
       <Header
         roomId={sessionId}
         tabBar={<ReactTabBar tabs={tabs} toggleTab={toggleTab} />}
@@ -133,6 +135,9 @@ export default function ReactSessionWorkspace({ sessionId }: { sessionId: string
         onNameChange={setName}
         onRun={handleRun}
         exportContent={{ sessionType: 'react', appJsx: app_jsx, componentsJsx: components_jsx, reactCss: react_css }}
+        isPrivate={isPrivate}
+        isOwner={ownerId !== null && ownerId === userId}
+        onTogglePrivacy={() => setPrivacy(!isPrivate)}
       />
       <ConnectionBanner status={bannerStatus} />
       {isMobile ? (
