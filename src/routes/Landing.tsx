@@ -339,7 +339,7 @@ export default function Landing() {
             ))}
           </div>
           <p className={styles.visibilityHint}>
-            Signed in, your rooms default to members-only — no extra setup.
+            Signed in, you get private rooms by default — no extra setup.
           </p>
 
           <div className={styles.heroActions}>

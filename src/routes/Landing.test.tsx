@@ -327,5 +327,11 @@ test('logged-out: a successful login in the opened modal switches the toggle to 
 
 test('mentions private rooms somewhere prominent on the page', () => {
   renderLanding();
-  expect(screen.getByText(/private/i)).toBeInTheDocument();
+  // Tightened to the two-word phrase "private rooms" rather than a bare
+  // /private/i: the Public/Private toggle's own accessible name is exactly
+  // the one word "Private" (required by the tests above), so a bare
+  // /private/i would also match that button and throw on multiple matches.
+  // The two-word phrase only matches the dedicated highlight sentence below,
+  // which is the thing this test actually wants to verify exists.
+  expect(screen.getByText(/private rooms/i)).toBeInTheDocument();
 });
