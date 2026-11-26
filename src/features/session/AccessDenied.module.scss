@@ -1,0 +1,34 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+  padding: var(--space-3);
+}
+.hint {
+  color: var(--muted);
+}
+.loginButton {
+  display: inline-block;
+  text-decoration: none;
+  color: var(--acc-ink);
+  background: var(--acc);
+  border: none;
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+  font: inherit;
+}
+.link {
+  display: inline-block;
+  text-decoration: none;
+  color: var(--acc-ink);
+  background: var(--acc);
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-2);
+}
