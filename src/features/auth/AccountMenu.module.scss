@@ -1,0 +1,44 @@
+@use '../../styles/controls' as controls;
+
+.loginButton {
+  @include controls.room-control;
+
+  padding: 0 var(--space-2);
+  font: 500 13px var(--font-mono);
+  color: var(--text);
+}
+
+.trigger {
+  @include controls.room-control;
+
+  padding: 0 var(--space-2);
+  gap: var(--space-1);
+  font: 500 13px var(--font-mono);
+  color: var(--text);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.content {
+  @include controls.room-overlay-surface;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.item {
+  @include controls.room-overlay-item;
+
+  display: block;
+  width: 100%;
+  background: none;
+  border: 0;
+  text-align: left;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  font: inherit;
+}
