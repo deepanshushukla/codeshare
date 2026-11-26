@@ -1,0 +1,113 @@
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  padding: var(--space-5) var(--space-3);
+  max-width: 48rem;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
+.heading {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.homeLink,
+.loginButton {
+  display: inline-block;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: var(--acc-ink);
+  background: var(--acc);
+  border-radius: var(--radius-btn);
+  padding: var(--space-1) var(--space-3);
+}
+
+.notice {
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+
+  p {
+    margin: 0;
+  }
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pane);
+  background: var(--bg2);
+  color: var(--text);
+  text-decoration: none;
+  box-shadow: var(--shadow-card);
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--line2);
+    background: var(--bg3);
+  }
+}
+
+.title {
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.badge,
+.badgePrivate {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  border-radius: var(--radius-badge);
+  padding: 0.1rem var(--space-2);
+  border: 1px solid var(--line2);
+  color: var(--muted);
+}
+
+.badgePrivate {
+  color: var(--acc-t);
+  background: var(--acc-soft);
+}
+
+.time {
+  font-size: 0.8rem;
+  color: var(--faint);
+}

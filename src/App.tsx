@@ -5,6 +5,7 @@ import JavaScriptCompiler from './routes/JavaScriptCompiler';
 import ReactPlayground from './routes/ReactPlayground';
 import NotFound from './routes/NotFound';
 import SessionRoute from './routes/SessionRoute';
+import MyRooms from './routes/MyRooms';
 import { ThemeProvider } from './features/theme/ThemeProvider';
 import ScanlineOverlay from './features/theme/ScanlineOverlay';
 import { RoomTransitionProvider } from './features/transition/RoomTransitionProvider';
@@ -21,6 +22,7 @@ export default function App() {
             <Route path="/javascript-compiler" element={<JavaScriptCompiler />} />
             <Route path="/react-playground" element={<ReactPlayground />} />
             <Route path="/code/:sessionId" element={<SessionRoute />} />
+            <Route path="/my-rooms" element={<MyRooms />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <RoomTransitionOverlay />
