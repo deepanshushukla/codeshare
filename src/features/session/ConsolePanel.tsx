@@ -1,4 +1,5 @@
 import { useEffect, useState, type KeyboardEvent } from 'react';
+import { Ban } from 'lucide-react';
 import type { ConsoleEntry, SandboxMessage } from '../../lib/sandbox';
 import { runShortcutLabel } from '../../lib/platform';
 import styles from './ConsolePanel.module.scss';
@@ -125,8 +126,15 @@ export default function ConsolePanel({ onRepl }: { onRepl: (code: string) => voi
     <div className={styles.console}>
       <div className={styles.title}>
         <span className={styles.titleLabel}>❯_ console {entries.length}</span>
-        <button type="button" className={styles.clearButton} onClick={() => setEntries([])}>
-          clear
+        <button
+          type="button"
+          className={styles.clearButton}
+          onClick={() => setEntries([])}
+          disabled={entries.length === 0}
+          title="Clear console"
+        >
+          <Ban size={12} aria-hidden="true" />
+          Clear
         </button>
       </div>
       <div className={styles.entries}>
