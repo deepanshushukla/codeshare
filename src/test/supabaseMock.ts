@@ -26,7 +26,15 @@ import { isSessionType } from '../features/session/sessionType';
 //
 // Keep both in place: they are the regression guard for C1.
 
-export type MockSessionRow = { id: string; html: string; css: string; js: string };
+export type MockSessionRow = {
+  id: string;
+  html: string;
+  css: string;
+  js: string;
+  is_private?: boolean;
+  owner_id?: string | null;
+  title?: string;
+};
 export type MockPresenceMeta = { name: string; status: string };
 export type MockChannelParams = { config?: { presence?: { key?: string }; broadcast?: unknown; private?: boolean } };
 export type MockAuthSession = { user: { id: string; email: string | null; is_anonymous: boolean } } | null;
@@ -161,7 +169,14 @@ export function emitAuthStateChange(event: string, session: MockAuthSession): vo
 // auth call -- type-checks under `tsc -b`.
 export const signUpWithEmail = vi.fn(async (): Promise<{ error: { message: string } | null }> => ({ error: null }));
 export const verifySignupOtp = vi.fn(async (): Promise<{ error: { message: string } | null }> => ({ error: null }));
-export const loginWithPassword = vi.fn(async (): Promise<{ error: { message: string } | null }> => ({ error: null }));
+export const loginWithPassword = vi.fn(
+  async (..._args: unknown[]): Promise<{ error: { message: string } | null; claimedRoomIds: string[] }> => ({
+    error: null,
+    claimedRoomIds: [],
+  }),
+);
+export const ROOMS_CLAIMED_EVENT = 'codeshare:rooms-claimed';
+export type RoomsClaimedDetail = { roomIds: string[] };
 export const requestPasswordReset = vi.fn(async (): Promise<{ error: { message: string } | null }> => ({ error: null }));
 export const verifyPasswordResetOtp = vi.fn(async (): Promise<{ error: { message: string } | null }> => ({ error: null }));
 export const setNewPassword = vi.fn(async (): Promise<{ error: { message: string } | null }> => ({ error: null }));

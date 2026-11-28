@@ -202,14 +202,20 @@ export default function Header({
           if (!open) setAuthMode(null);
         }}
         initialMode={authMode ?? 'login'}
-        onSuccess={(how) => {
+        // Opened from the Private switch: if they log in to an existing
+        // account instead of signing up, this room moves to that account and
+        // goes private in the same step (see loginWithPassword).
+        makePrivateRoomId={authMode === 'signup' ? roomId : undefined}
+        onSuccess={(how, details) => {
           if (authMode !== 'signup') return;
           if (how === 'signup') {
             onMakePrivate();
             showToast('Account created — this room is now private');
+          } else if (details?.claimedRoomIds.includes(roomId)) {
+            showToast('Logged in — this room is now private');
           } else {
-            // Logging in to a different, existing account: that account didn't
-            // create this room, so it can't make it private.
+            // Not a room this browser created anonymously, so the account
+            // that just logged in doesn't own it.
             showToast('Logged in. Only the account that created a room can make it private');
           }
         }}

@@ -21,12 +21,23 @@ describe('AuthModal', () => {
     await userEvent.type(screen.getByLabelText(/email/i), 'a@b.com');
     await userEvent.type(screen.getByLabelText(/password/i), 'secret123');
     await userEvent.click(screen.getByRole('button', { name: /log in/i }));
-    expect(loginWithPassword).toHaveBeenCalledWith('a@b.com', 'secret123');
+    expect(loginWithPassword).toHaveBeenCalledWith('a@b.com', 'secret123', { makePrivateRoomId: undefined });
     expect(onSuccess).toHaveBeenCalled();
   });
 
+  test('login from a room\'s Private switch hands that room over and reports which rooms moved', async () => {
+    loginWithPassword.mockResolvedValueOnce({ error: null, claimedRoomIds: ['room1'] });
+    const onSuccess = vi.fn();
+    render(<AuthModal open onOpenChange={() => {}} initialMode="login" onSuccess={onSuccess} makePrivateRoomId="room1" />);
+    await userEvent.type(screen.getByLabelText(/email/i), 'a@b.com');
+    await userEvent.type(screen.getByLabelText(/password/i), 'secret123');
+    await userEvent.click(screen.getByRole('button', { name: /log in/i }));
+    expect(loginWithPassword).toHaveBeenCalledWith('a@b.com', 'secret123', { makePrivateRoomId: 'room1' });
+    expect(onSuccess).toHaveBeenCalledWith('login', { claimedRoomIds: ['room1'] });
+  });
+
   test('login: a rejected loginWithPassword shows its error message and does not call onSuccess', async () => {
-    loginWithPassword.mockResolvedValueOnce({ error: { message: 'Invalid login credentials' } });
+    loginWithPassword.mockResolvedValueOnce({ error: { message: 'Invalid login credentials' }, claimedRoomIds: [] });
     const onSuccess = vi.fn();
     render(<AuthModal open onOpenChange={() => {}} initialMode="login" onSuccess={onSuccess} />);
     await userEvent.type(screen.getByLabelText(/email/i), 'a@b.com');
@@ -98,7 +109,7 @@ describe('AuthModal', () => {
     await userEvent.type(screen.getByLabelText(/email/i), 'a@b.com');
     await userEvent.type(screen.getByLabelText(/password/i), 'secret123');
     await userEvent.click(screen.getByRole('button', { name: /^log in$/i }));
-    expect(onSuccess).toHaveBeenLastCalledWith('login');
+    expect(onSuccess).toHaveBeenLastCalledWith('login', { claimedRoomIds: [] });
   });
   test('signup code step: "Resend code" sends a fresh code and says so', async () => {
     render(<AuthModal open onOpenChange={() => {}} initialMode="signup" />);

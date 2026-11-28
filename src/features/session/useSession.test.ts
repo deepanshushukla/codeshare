@@ -333,6 +333,34 @@ describe('useSession', () => {
     expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ title: expect.any(String) }));
   });
 
+  test('re-reads the row after a login moved this room to the new account', async () => {
+    mockConfig.sessionRow = { id: 'claimed-room', html: '', css: '', js: '', is_private: false, owner_id: 'anon-1' };
+    const { result } = renderSession('claimed-room', 'real-1');
+    await waitFor(() => expect(result.current.ownerId).toBe('anon-1'));
+
+    // The handover committed: the row now belongs to the account, private.
+    mockConfig.sessionRow = { id: 'claimed-room', html: '', css: '', js: '', is_private: true, owner_id: 'real-1' };
+    act(() => {
+      window.dispatchEvent(new CustomEvent('codeshare:rooms-claimed', { detail: { roomIds: ['claimed-room'] } }));
+    });
+
+    await waitFor(() => expect(result.current.ownerId).toBe('real-1'));
+    expect(result.current.isPrivate).toBe(true);
+  });
+
+  test('ignores a handover that did not include this room', async () => {
+    mockConfig.sessionRow = { id: 'other-room', html: '', css: '', js: '', owner_id: 'someone' };
+    const { result } = renderSession('other-room', 'real-1');
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const reads = maybeSingle.mock.calls.length;
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent('codeshare:rooms-claimed', { detail: { roomIds: ['claimed-room'] } }));
+    });
+
+    expect(maybeSingle.mock.calls.length).toBe(reads);
+  });
+
   test('loading an existing row surfaces isPrivate/ownerId/title from it', async () => {
     mockConfig.sessionRow = { id: 'room1', html: '<h1>Hi</h1>', css: '', js: '', is_private: true, owner_id: 'u1', title: 'Hi' } as any;
     const { result } = renderHook(() => useSession('room1', 'u1', false, null, 'connected', 'web', null));

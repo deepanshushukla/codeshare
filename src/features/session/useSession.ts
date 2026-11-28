@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { supabase } from '../../lib/supabase';
+import { ROOMS_CLAIMED_EVENT, supabase, type RoomsClaimedDetail } from '../../lib/supabase';
 import { debounce } from '../../lib/debounce';
 import { titleFromCode } from '../../lib/titleFromCode';
 import type { ChannelStatus, EditField, SessionChannel } from './useSessionChannel';
@@ -91,6 +91,12 @@ export function useSession(
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [accessRevoked, setAccessRevoked] = useState(false);
+  // Bumped when a login moved this room to the new account (loginWithPassword
+  // redeems the anonymous user's room claim). The login itself changes
+  // `userId`, which already reloads the row -- but that read can land before
+  // the handover commits and come back with the old owner. Reloading after
+  // the claim guarantees the row (owner, privacy) is read fresh.
+  const [reloadKey, setReloadKey] = useState(0);
   // Set when Postgres rejects a write (RLS, the char_length constraint, a
   // dropped connection). Without this the user sees their edit applied locally
   // and broadcast to everyone else while it silently never lands in the row --
@@ -194,7 +200,16 @@ export function useSession(
     return () => {
       active = false;
     };
-  }, [sessionId, userId]);
+  }, [sessionId, userId, reloadKey]);
+
+  useEffect(() => {
+    function handleClaimed(event: Event) {
+      const { roomIds } = (event as CustomEvent<RoomsClaimedDetail>).detail;
+      if (roomIds.includes(sessionId)) setReloadKey((k) => k + 1);
+    }
+    window.addEventListener(ROOMS_CLAIMED_EVENT, handleClaimed);
+    return () => window.removeEventListener(ROOMS_CLAIMED_EVENT, handleClaimed);
+  }, [sessionId]);
 
   // Apply edits from other clients. The channel-level binding itself is
   // registered once in useSessionChannel; this only adds/removes a listener,

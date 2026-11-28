@@ -25,10 +25,13 @@ export type AuthModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialMode?: 'login' | 'signup';
-  // Which flow finished. A caller acting on behalf of the *current* identity
-  // (Header's "Make private") must only do so after 'signup': signup converts
-  // the anonymous user in place, while 'login' switches to another account.
-  onSuccess?: (how: 'login' | 'signup' | 'reset') => void;
+  // Which flow finished. Signup converts the anonymous user in place; login
+  // switches to another account, moving the anonymous user's rooms over (see
+  // loginWithPassword) -- `claimedRoomIds` says which rooms moved.
+  onSuccess?: (how: 'login' | 'signup' | 'reset', details?: { claimedRoomIds: string[] }) => void;
+  // The room whose Private switch opened this modal. If the visitor logs in
+  // instead of signing up, that room goes private as part of the handover.
+  makePrivateRoomId?: string;
 };
 
 /**
@@ -47,7 +50,7 @@ export type AuthModalProps = {
  * `mode`/`step` untouched, so the user retries in place rather than bouncing
  * back to the first step.
  */
-export default function AuthModal({ open, onOpenChange, initialMode = 'login', onSuccess }: AuthModalProps) {
+export default function AuthModal({ open, onOpenChange, initialMode = 'login', onSuccess, makePrivateRoomId }: AuthModalProps) {
   const [mode, setMode] = useState<Mode>(initialMode);
   const [step, setStep] = useState<Step>('form');
   const [email, setEmail] = useState('');
@@ -105,13 +108,13 @@ export default function AuthModal({ open, onOpenChange, initialMode = 'login', o
     setErrorMessage(null);
     setNotice(null);
     setSubmitting(true);
-    const { error } = await loginWithPassword(email, password);
+    const { error, claimedRoomIds } = await loginWithPassword(email, password, { makePrivateRoomId });
     setSubmitting(false);
     if (error) {
       setErrorMessage(error.message);
       return;
     }
-    onSuccess?.('login');
+    onSuccess?.('login', { claimedRoomIds });
     onOpenChange(false);
   }
 
