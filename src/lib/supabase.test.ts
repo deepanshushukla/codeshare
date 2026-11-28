@@ -70,6 +70,51 @@ describe('auth wrappers', () => {
     const { loginWithPassword } = await import('./supabase');
     await loginWithPassword('a@b.com', 'secret123');
     expect(signInWithPassword).toHaveBeenCalledWith({ email: 'a@b.com', password: 'secret123' });
+    // Not anonymous beforehand, so there is nothing to hand over.
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  test('loginWithPassword from an anonymous session moves its rooms to the account and announces it', async () => {
+    getSession.mockResolvedValueOnce({ data: { session: { user: { id: 'anon-1', is_anonymous: true } } } });
+    rpc
+      .mockResolvedValueOnce({ data: 'claim-token', error: null })
+      .mockResolvedValueOnce({ data: ['room1', 'room2'], error: null });
+    const heard = vi.fn();
+    window.addEventListener('codeshare:rooms-claimed', heard);
+    const { loginWithPassword } = await import('./supabase');
+
+    const result = await loginWithPassword('a@b.com', 'secret123', { makePrivateRoomId: 'room1' });
+
+    window.removeEventListener('codeshare:rooms-claimed', heard);
+    // The claim is minted while still anonymous, and redeemed only after login.
+    expect(rpc.mock.calls[0]).toEqual(['create_room_claim']);
+    expect(rpc.mock.invocationCallOrder[0]).toBeLessThan(signInWithPassword.mock.invocationCallOrder[0]);
+    expect(rpc).toHaveBeenLastCalledWith('claim_anonymous_rooms', { p_token: 'claim-token', p_make_private: 'room1' });
+    expect(result).toEqual({ error: null, claimedRoomIds: ['room1', 'room2'] });
+    expect((heard.mock.calls[0][0] as CustomEvent).detail).toEqual({ roomIds: ['room1', 'room2'] });
+  });
+
+  test('a failed login does not redeem the claim', async () => {
+    getSession.mockResolvedValueOnce({ data: { session: { user: { id: 'anon-1', is_anonymous: true } } } });
+    rpc.mockResolvedValueOnce({ data: 'claim-token', error: null });
+    signInWithPassword.mockResolvedValueOnce({ error: { message: 'Invalid login credentials' } });
+    const { loginWithPassword } = await import('./supabase');
+
+    const result = await loginWithPassword('a@b.com', 'wrong');
+
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(result.error).toEqual({ message: 'Invalid login credentials' });
+  });
+
+  test('a failed handover never fails the login itself', async () => {
+    getSession.mockResolvedValueOnce({ data: { session: { user: { id: 'anon-1', is_anonymous: true } } } });
+    rpc
+      .mockResolvedValueOnce({ data: 'claim-token', error: null })
+      .mockResolvedValueOnce({ data: null, error: { message: 'boom' } });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { loginWithPassword } = await import('./supabase');
+
+    expect(await loginWithPassword('a@b.com', 'secret123')).toEqual({ error: null, claimedRoomIds: [] });
   });
 
   test('requestPasswordReset calls resetPasswordForEmail', async () => {

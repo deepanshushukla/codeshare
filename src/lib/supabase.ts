@@ -47,9 +47,47 @@ export async function verifySignupOtp(email: string, token: string): Promise<{ e
   return { error };
 }
 
-export async function loginWithPassword(email: string, password: string): Promise<{ error: Error | null }> {
+/** Fired on `window` after a login moved an anonymous user's rooms to the account. */
+export const ROOMS_CLAIMED_EVENT = 'codeshare:rooms-claimed';
+export type RoomsClaimedDetail = { roomIds: string[] };
+
+// Logging in to an EXISTING account switches to a different user id, which
+// would orphan every room the visitor created while anonymous (and take away
+// their privacy switch). So, while still anonymous, get a one-time claim token
+// for this anonymous user; once logged in, redeem it to move those rooms to
+// the account (see 0007_claim_anonymous_rooms.sql). `makePrivateRoomId` is the
+// room whose "Private" switch started the login: it goes private in the same
+// transaction. The claim is best-effort -- a failure never fails the login.
+export async function loginWithPassword(
+  email: string,
+  password: string,
+  options: { makePrivateRoomId?: string } = {},
+): Promise<{ error: Error | null; claimedRoomIds: string[] }> {
+  let claimToken: string | null = null;
+  if (await isAnonymousSession()) {
+    const { data, error } = await supabase.rpc('create_room_claim');
+    if (error) console.error('codeshare: could not prepare room handover', error);
+    else claimToken = (data as string | null) ?? null;
+  }
+
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  return { error };
+  if (error || !claimToken) return { error, claimedRoomIds: [] };
+
+  const { data, error: claimError } = await supabase.rpc('claim_anonymous_rooms', {
+    p_token: claimToken,
+    p_make_private: options.makePrivateRoomId ?? null,
+  });
+  if (claimError) {
+    console.error('codeshare: moving your rooms to this account failed', claimError);
+    return { error: null, claimedRoomIds: [] };
+  }
+  const claimedRoomIds = ((data as string[] | null) ?? []).map(String);
+  if (claimedRoomIds.length > 0) {
+    window.dispatchEvent(
+      new CustomEvent<RoomsClaimedDetail>(ROOMS_CLAIMED_EVENT, { detail: { roomIds: claimedRoomIds } }),
+    );
+  }
+  return { error: null, claimedRoomIds };
 }
 
 export async function requestPasswordReset(email: string): Promise<{ error: Error | null }> {
