@@ -42,6 +42,7 @@ export default function ReactSessionWorkspace({
   userId,
   isAnonymous,
   privacyHint,
+  nameHint = null,
   initialIsPrivate = false,
   onAccessRevoked = () => {},
 }: {
@@ -49,6 +50,7 @@ export default function ReactSessionWorkspace({
   userId: string | null;
   isAnonymous: boolean;
   privacyHint: boolean | null;
+  nameHint?: string | null;
   // Whether the room is private as of SessionRoute's access check, so a
   // private room's owner joins the owner-only Realtime topic straight away
   // instead of passing through the public one first.
@@ -80,7 +82,7 @@ export default function ReactSessionWorkspace({
     setPrivacy,
     loading,
     accessRevoked,
-  } = useSession(sessionId, userId, isAnonymous, channel, channelStatus, 'react', privacyHint);
+  } = useSession(sessionId, userId, isAnonymous, channel, channelStatus, 'react', privacyHint, nameHint);
   const { users, name, setName } = usePresence(userId, channel);
   useEffect(() => {
     if (!loading) setChannelPrivate(isPrivate);

@@ -34,6 +34,7 @@ export type MockSessionRow = {
   is_private?: boolean;
   owner_id?: string | null;
   title?: string;
+  name?: string;
 };
 export type MockPresenceMeta = { name: string; status: string };
 export type MockChannelParams = { config?: { presence?: { key?: string }; broadcast?: unknown; private?: boolean } };

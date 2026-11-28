@@ -378,6 +378,29 @@ describe('useSession', () => {
     await waitFor(() => expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ html: '<title>New Title</title>', title: 'New Title' })));
   });
 
+  test('a name chosen at creation is saved and wins over the generated title', async () => {
+    mockConfig.sessionRow = null;
+    const { result } = renderHook(() => useSession('room1', 'u1', false, null, 'connected', 'web', null, '  Snake game '));
+    await waitFor(() => expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ name: 'Snake game' })));
+    await waitFor(() => expect(result.current.title).toBe('Snake game'));
+  });
+
+  test('a room created without a name never sends the name column', async () => {
+    mockConfig.sessionRow = null;
+    renderHook(() => useSession('room1', 'u1', false, null, 'connected', 'web', null));
+    await waitFor(() => expect(upsert).toHaveBeenCalled());
+    expect(upsert.mock.calls[0][0]).not.toHaveProperty('name');
+  });
+
+  test('a stored name stays the title when code edits recompute the derived title', async () => {
+    mockConfig.sessionRow = { id: 'room1', html: '', css: '', js: '', is_private: false, owner_id: 'u1', title: '', name: 'My Name' } as any;
+    const { result } = renderHook(() => useSession('room1', 'u1', false, null, 'connected', 'web', null));
+    await waitFor(() => expect(result.current.title).toBe('My Name'));
+    result.current.updateField('html', '<h1>Other</h1>');
+    await waitFor(() => expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ title: 'Other' })));
+    expect(result.current.title).toBe('My Name');
+  });
+
   test('setPrivacy updates (not upserts) is_private', async () => {
     // An upsert of { id, is_private } is checked by Postgres against the
     // INSERT policy with owner_id unset, which rejects every private flip.

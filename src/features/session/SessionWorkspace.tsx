@@ -42,6 +42,7 @@ export default function SessionWorkspace({
   userId,
   isAnonymous,
   privacyHint,
+  nameHint = null,
   initialIsPrivate = false,
   onAccessRevoked = () => {},
 }: {
@@ -49,6 +50,8 @@ export default function SessionWorkspace({
   userId: string | null;
   isAnonymous: boolean;
   privacyHint: boolean | null;
+  // Optional name from My Rooms' New room panel; see useSession.
+  nameHint?: string | null;
   // Whether the room is private as of SessionRoute's access check, so a
   // private room's owner joins the owner-only Realtime topic straight away
   // instead of passing through the public one first.
@@ -83,6 +86,7 @@ export default function SessionWorkspace({
     channelStatus,
     'web',
     privacyHint,
+    nameHint,
   );
   const { users, name, setName } = usePresence(userId, channel);
   useEffect(() => {

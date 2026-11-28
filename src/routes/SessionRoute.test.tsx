@@ -18,8 +18,8 @@ import { mockConfig, resetSupabaseMock } from '../test/supabaseMock';
 // useAuthUser.test.ts and useSessionAccess.test.ts drive them individually.
 vi.mock('../lib/supabase', () => import('../test/supabaseMock'));
 vi.mock('../features/session/SessionWorkspace', () => ({
-  default: ({ sessionId }: { sessionId: string }) => (
-    <div data-testid="web-workspace">index.html ({sessionId})</div>
+  default: ({ sessionId, nameHint }: { sessionId: string; nameHint?: string | null }) => (
+    <div data-testid="web-workspace" data-name-hint={nameHint ?? ''}>index.html ({sessionId})</div>
   ),
 }));
 vi.mock('../features/session/ReactSessionWorkspace', () => ({
@@ -39,9 +39,9 @@ beforeEach(() => {
   mockConfig.authSession = { user: { id: 'u1', email: null, is_anonymous: true } };
 });
 
-function renderAt(path: string) {
+function renderAt(path: string, state?: unknown) {
   return render(
-    <MemoryRouter initialEntries={[path]}>
+    <MemoryRouter initialEntries={[state === undefined ? path : { pathname: path, state }]}>
       <Routes>
         <Route path="/code/:sessionId" element={<SessionRoute />} />
       </Routes>
@@ -109,4 +109,9 @@ test('renders the normal workspace once access resolves to ready', async () => {
       .catch(() => null),
   ).toBeNull();
   expect(screen.getByTestId('web-workspace')).toBeInTheDocument();
+});
+
+test('passes a room name from router state to the workspace as a creation hint', async () => {
+  renderAt('/code/new1', { roomName: ' Snake game ' });
+  expect(await screen.findByTestId('web-workspace')).toHaveAttribute('data-name-hint', 'Snake game');
 });

@@ -25,10 +25,13 @@ type UseSessionResult = SessionContent & {
 };
 
 // The structural field whose content a session's title is derived from, per
-// session type. js/css/components_jsx/react_css never affect the title.
+// session type (titleFromCode falls back to JS comments and function names,
+// so js and components_jsx count too). css/react_css never affect the title.
 const TITLE_SOURCE_TYPE: Partial<Record<EditField, SessionType>> = {
   html: 'web',
+  js: 'web',
   app_jsx: 'react',
+  components_jsx: 'react',
 };
 
 const UPSERT_DEBOUNCE_MS = 400;
@@ -75,6 +78,9 @@ export function useSession(
   channelStatus: ChannelStatus,
   typeHint: SessionType,
   privacyHint: boolean | null,
+  // Optional name chosen when creating the room (My Rooms' New room panel).
+  // Only used when this visit creates the row, like the other hints.
+  nameHint: string | null = null,
 ): UseSessionResult & {
   isPrivate: boolean;
   ownerId: string | null;
@@ -90,6 +96,9 @@ export function useSession(
   const [isPrivate, setIsPrivate] = useState(false);
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
+  // A name the creator gave the room wins over the code-derived title, so the
+  // title persister below must not replace it in state.
+  const customNameRef = useRef('');
   const [accessRevoked, setAccessRevoked] = useState(false);
   // Bumped when a login moved this room to the new account (loginWithPassword
   // redeems the anonymous user's room claim). The login itself changes
@@ -158,7 +167,8 @@ export function useSession(
         });
         setIsPrivate(Boolean(data.is_private));
         setOwnerId(data.owner_id ?? null);
-        setTitle(data.title ?? '');
+        customNameRef.current = (data.name ?? '').trim();
+        setTitle(customNameRef.current || (data.title ?? ''));
       } else if (!error) {
         // Only create a blank row when we positively know none exists. On a
         // transient read error, `data` is also falsy — don't treat that as
@@ -173,12 +183,16 @@ export function useSession(
         const newIsPrivate = privacyHint ?? false;
         const newOwnerId = userId;
         const newTitle = titleFromCode(typeHint, starter);
+        const newName = (nameHint ?? '').trim().slice(0, 80);
         const { error: writeError } = await supabase.from('sessions').upsert({
           id: sessionId,
           session_type: typeHint,
           is_private: newIsPrivate,
           owner_id: newOwnerId,
           title: newTitle,
+          // Only sent when given, so a room made without a name never depends
+          // on the `name` column (0008) existing.
+          ...(newName ? { name: newName } : {}),
           ...starter,
         });
         if (!active) return;
@@ -190,7 +204,8 @@ export function useSession(
           setContent(starter);
           setIsPrivate(newIsPrivate);
           setOwnerId(newOwnerId);
-          setTitle(newTitle);
+          customNameRef.current = newName;
+          setTitle(newName || newTitle);
         }
       }
       if (active) setLoading(false);
@@ -245,9 +260,8 @@ export function useSession(
             [field]: value,
             updated_at: new Date().toISOString(),
           };
-          // Only html (web) and app_jsx (react) are "structural" -- the
-          // fields titleFromCode actually reads. js/css/components_jsx/
-          // react_css edits never touch the title. Reads `contentRef.current`
+          // Only the fields titleFromCode actually reads (TITLE_SOURCE_TYPE)
+          // recompute the title; css/react_css edits never touch it. Reads `contentRef.current`
           // (not the `content` closed over when this persister was created
           // -- see the comment on contentRef above) merged with this write's
           // own `value`, so the title is always derived from the LATEST full
@@ -262,7 +276,7 @@ export function useSession(
           const { error } = await supabase.from('sessions').upsert(row);
           if (error) {
             console.error(`codeshare: persisting ${field} failed`, error);
-          } else if (nextTitle !== undefined) {
+          } else if (nextTitle !== undefined && !customNameRef.current) {
             setTitle(nextTitle);
           }
           // `setWriteFailed` is a stable useState setter, so capturing it in
