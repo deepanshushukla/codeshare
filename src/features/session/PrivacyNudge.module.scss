@@ -1,0 +1,170 @@
+// Slides down out of the control it points at, then gently bobs so it is
+// noticed without being loud. The two live on different elements on purpose
+// (see src/styles/motion.scss and reducedMotion.test.ts): the looping bob on
+// .nudge wires `animation-play-state: var(--play)` so reduced motion freezes
+// it, while the one-shot entrance on .card must NOT -- paused before it
+// starts, it would sit on its invisible first keyframe forever.
+@keyframes nudgeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes nudgeBob {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 4px;
+  }
+}
+
+@keyframes iconPulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--glow);
+  }
+  100% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+.nudge {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  z-index: 30;
+  width: min(280px, calc(100vw - 24px));
+  // Three bobs to catch the eye, then it settles -- a button that never stops
+  // moving is hard to click. It also holds still while hovered or focused.
+  animation: nudgeBob 2.4s 0.6s ease-in-out 3;
+  animation-play-state: var(--play);
+
+  &:hover,
+  &:focus-within {
+    animation-play-state: paused;
+  }
+}
+
+.card {
+  position: relative;
+  box-sizing: border-box;
+  padding: 14px 14px 12px;
+  border: 1px solid var(--acc);
+  border-radius: var(--radius-pane);
+  background: var(--bg2);
+  color: var(--text);
+  box-shadow: var(--shadow-overlay), 0 0 0 4px var(--acc-soft);
+  text-align: left;
+  white-space: normal;
+  animation: nudgeIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.arrow {
+  position: absolute;
+  top: -7px;
+  right: 22px;
+  width: 12px;
+  height: 12px;
+  border-top: 1px solid var(--acc);
+  border-left: 1px solid var(--acc);
+  background: var(--bg2);
+  transform: rotate(45deg);
+}
+
+.alignLeft {
+  right: auto;
+  left: 0;
+
+  .arrow {
+    right: auto;
+    left: 22px;
+  }
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--acc);
+  color: var(--acc-ink);
+  animation: iconPulse 1.6s ease-out infinite;
+  animation-play-state: var(--play);
+}
+
+.title {
+  flex: 1;
+  margin: 0;
+  font: 700 14px var(--font-sans);
+}
+
+.badge {
+  margin-right: 4px;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--acc-soft);
+  color: var(--acc-t);
+  font: 700 10px var(--font-sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
+
+.close {
+  all: unset;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--acc);
+  }
+}
+
+.body {
+  margin: 8px 0 12px;
+  font: 400 13px / 1.5 var(--font-sans);
+  color: var(--muted);
+}
+
+.gotIt {
+  all: unset;
+  box-sizing: border-box;
+  padding: 6px 14px;
+  border-radius: var(--radius-btn);
+  background: var(--acc);
+  color: var(--acc-ink);
+  font: 700 13px var(--font-sans);
+  cursor: pointer;
+
+  &:hover {
+    filter: brightness(1.05);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 2px;
+  }
+}

@@ -1,5 +1,6 @@
 import { RotateCw } from 'lucide-react';
 import OutputFrame from './OutputFrame';
+import { runShortcutLabel } from '../../lib/platform';
 import styles from './OutputPane.module.scss';
 
 type OutputFrameProps =
@@ -37,11 +38,11 @@ export default function OutputPane({ onRun, ...frameProps }: OutputFrameProps & 
         {frameProps.runToken === 0 && (
           <div className={styles.emptyState} aria-live="polite">
             {frameProps.sessionType === 'react' ? (
-              <div>// Press Run or Ctrl + Enter to render your app.</div>
+              <div>// Press Run or {runShortcutLabel().text} to render your app.</div>
             ) : (
               <>
                 <div>// HTML/CSS update live as you type.</div>
-                <div>// Press Run or Ctrl + Enter to run your JS.</div>
+                <div>// Press Run or {runShortcutLabel().text} to run your JS.</div>
               </>
             )}
           </div>

@@ -115,10 +115,27 @@ const BRIDGE_SCRIPT = `
   console.warn = wrap('warn', console.warn);
   console.error = wrap('error', console.error);
   console.info = wrap('info', console.info);
+  // React's development build replays a render error so it is reported as
+  // "uncaught" twice in a row; relaying both would double every error in the
+  // Console. Only an identical message within a moment of the last is dropped.
+  var lastError = { message: null, at: 0 };
   window.onerror = function (message) {
-    parent.postMessage({ type: 'runtime-error', message: String(message) }, '*');
+    var text = String(message);
+    var now = Date.now();
+    if (text === lastError.message && now - lastError.at < 1000) return true;
+    lastError = { message: text, at: now };
+    parent.postMessage({ type: 'runtime-error', message: text }, '*');
     return true;
   };
+  // Keys pressed while the preview has focus stay inside this document, so
+  // the parent's Cmd/Ctrl+Enter Run listener would never see them. Forward
+  // just that one shortcut (RunControls accepts it only from its own frames).
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      parent.postMessage({ type: 'run-shortcut' }, '*');
+    }
+  });
   window.addEventListener('message', function (event) {
     if (event.data && event.data.type === 'repl') {
       try {
@@ -157,25 +174,68 @@ export function buildSandboxDocument(html: string, css: string, js: string): str
 }
 
 // Real-world React snippets almost always start with `import React from
-// 'react'` (or `import { useState } from 'react'`, or `export default
-// function App()`), but there is no bundler or module loader anywhere in
-// this sandbox -- only the React/ReactDOM UMD globals the CDN scripts
-// attach to `window`. A literal `import`/`export` statement is invalid
-// syntax inside the `new Function(...)` body the transformed code runs in
-// (import/export declarations are only legal at a module's top level), so
-// without this, pasting completely ordinary React code throws a bare
-// SyntaxError. This rewrites the common forms into equivalent global-scope
-// code instead of silently failing on them. Not a full module resolver --
-// this is a playground, not a bundler -- just the patterns real snippets
-// actually use.
+// 'react'` (or `import * as React from 'react'`, `import { useState } from
+// 'react'`, `export default function App()`), but there is no bundler or
+// module loader anywhere in this sandbox -- only the React/ReactDOM UMD
+// globals the CDN scripts attach to `window`. A literal `import`/`export`
+// statement is invalid syntax inside the `new Function(...)` body the
+// transformed code runs in, so without this, pasting completely ordinary
+// React code throws a bare SyntaxError. This rewrites every import form
+// (default, namespace, named, aliased, combined, multi-line) from 'react' /
+// 'react-dom' / 'react-dom/client' into equivalent reads off the globals.
+// CSS side-effect imports are dropped (the CSS tab already applies). An
+// import from any other package becomes a `throw` naming that package, so
+// the user gets "Can't import "lodash"" instead of "Cannot use import
+// statement outside a module". Not a full module resolver -- this is a
+// playground, not a bundler.
+const MODULE_GLOBALS: Record<string, string> = {
+  react: 'React',
+  'react-dom': 'ReactDOM',
+  'react-dom/client': 'ReactDOM',
+};
+
+function rewriteImportClause(clause: string, globalName: string): string {
+  const statements: string[] = [];
+  // Default and/or namespace bindings come before any `{...}` part.
+  const braceIndex = clause.indexOf('{');
+  const head = braceIndex === -1 ? clause : clause.slice(0, braceIndex);
+  for (const part of head.split(',').map((p) => p.trim()).filter(Boolean)) {
+    const name = part.replace(/^\*\s*as\s+/, '').trim();
+    // Same-name bindings are already in scope (they are the parameters of the
+    // `new Function` the code runs in); `const React = React` would be a TDZ error.
+    if (name && name !== globalName) statements.push(`const ${name} = ${globalName};`);
+  }
+  if (braceIndex !== -1) {
+    const inner = clause.slice(braceIndex + 1, clause.lastIndexOf('}')).replace(/\b([\w$]+)\s+as\s+([\w$]+)/g, '$1: $2');
+    statements.push(`const {${inner}} = ${globalName};`);
+  }
+  return statements.join(' ');
+}
+
 export function stripReactModuleSyntax(source: string): string {
-  return source
-    .replace(/import\s+React\s*,\s*\{([^}]*)\}\s*from\s*['"]react['"]\s*;?/g, 'const {$1} = React;')
-    .replace(/import\s+React\s*from\s*['"]react['"]\s*;?/g, '')
-    .replace(/import\s*\{([^}]*)\}\s*from\s*['"]react['"]\s*;?/g, 'const {$1} = React;')
-    .replace(/import\s+ReactDOM\s*from\s*['"]react-dom(?:\/client)?['"]\s*;?/g, '')
-    .replace(/export\s+default\s+/g, '')
-    .replace(/export\s+(?=function|const|let|var|class)/g, '');
+  return (
+    source
+      // `import <clause> from '<module>';` (clause may span lines)
+      .replace(/\bimport\s+(type\s+)?([\w$*{][^;'"]*?)\s+from\s*['"]([^'"]+)['"]\s*;?/g, (_m, typeOnly, clause: string, mod: string) => {
+        if (typeOnly) return '';
+        const globalName = MODULE_GLOBALS[mod];
+        if (!globalName) {
+          return `throw new Error(${JSON.stringify(
+            `Can't import "${mod}": only "react" and "react-dom" are available in this playground. Define it in the Components tab instead.`,
+          )});`;
+        }
+        return rewriteImportClause(clause, globalName);
+      })
+      // Side-effect imports: `import './styles.css';`
+      .replace(/\bimport\s*['"]([^'"]+)['"]\s*;?/g, (_m, mod: string) =>
+        /\.(css|scss|sass|less)$/.test(mod) || MODULE_GLOBALS[mod]
+          ? ''
+          : `throw new Error(${JSON.stringify(`Can't import "${mod}": only "react" and "react-dom" are available in this playground.`)});`,
+      )
+      .replace(/export\s+default\s+/g, '')
+      .replace(/export\s+(?=function|const|let|var|class|async\s+function)/g, '')
+      .replace(/export\s*\{[^}]*\}\s*;?/g, '')
+  );
 }
 
 // Pinned to React 18.3.1, not 19.x: React 19's npm package ships no `umd/`
@@ -185,15 +245,25 @@ export function stripReactModuleSyntax(source: string): string {
 // defined" with nothing in the console pointing at the real cause. 18.3.1 is
 // the last version with a UMD build and its createRoot API is what this file
 // uses, so it's a drop-in swap.
+//
+// Development builds + crossorigin, on purpose:
+// - A React render error is rethrown from *inside* react-dom's own script.
+//   Without `crossorigin`, that script is cross-origin to this document, so
+//   the browser masks every such error as a bare "Script error." with no
+//   message -- the user never learns which variable was undefined. unpkg
+//   serves `Access-Control-Allow-Origin: *`, which satisfies the sandbox's
+//   opaque (null) origin.
+// - The production build replaces React's own messages with "Minified React
+//   error #130"; the development build gives the full text.
 export function buildReactSandboxDocument(appJsx: string, componentsJsx: string, css: string): string {
   const userCode = JSON.stringify(stripReactModuleSyntax(`${componentsJsx}\n${appJsx}`)).replace(/<\/script/gi, '<\\/script');
   return `<!DOCTYPE html>
 <html>
   <head>
     <style id="__cs_style">${css}</style>
-    <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+    <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js" crossorigin="anonymous"></script>
   </head>
   <body>
     <div id="__cs_root"></div>
@@ -227,9 +297,58 @@ export function buildReactSandboxDocument(appJsx: string, componentsJsx: string,
         // one deliberately does not postMessage the error itself either:
         // the bridge already relays every window error to the parent, so
         // doing it here too would double-log it in the Console.
+        // "ReferenceError: count is not defined", not just "count is not
+        // defined" -- the error type is half the explanation.
+        function describeError(err) {
+          if (!err) return 'Unknown error';
+          if (typeof err !== 'object') return String(err);
+          var text = (err.name ? err.name + ': ' : '') + (err.message || String(err));
+          var missing = /^(\\S+) is not defined$/.exec(err.message || '');
+          if (err.name === 'ReferenceError' && missing) {
+            text += '\\n\\nHint: "' + missing[1] + '" is used but never declared. Check the spelling, or declare/import it' +
+              ' (only React and ReactDOM are available as globals).';
+          }
+          return text;
+        }
         window.addEventListener('error', function (event) {
-          showError(String((event.error && event.error.message) || event.message));
+          showError(event.error ? describeError(event.error) : String(event.message));
         });
+        // Catches errors thrown while rendering, so the output names the
+        // component chain they came from ("in <Counter> <- <App>") instead of
+        // leaving a blank pane. componentStack frames look like
+        // "at Counter (eval at ...)"; only the component names are kept.
+        function ErrorBoundary(props) {
+          React.Component.call(this, props);
+          this.state = { error: null, components: '' };
+        }
+        ErrorBoundary.prototype = Object.create(React.Component.prototype);
+        ErrorBoundary.prototype.constructor = ErrorBoundary;
+        ErrorBoundary.getDerivedStateFromError = function (error) {
+          return { error: error };
+        };
+        ErrorBoundary.prototype.componentDidCatch = function (error, info) {
+          var names = [];
+          var re = /(?:at|in) ([A-Z][\\w$]*)/g;
+          var match;
+          var stack = (info && info.componentStack) || '';
+          while ((match = re.exec(stack))) {
+            if (match[1] !== 'ErrorBoundary' && names.indexOf(match[1]) === -1) names.push(match[1]);
+          }
+          var components = names.length ? '<' + names.join('> <- <') + '>' : '';
+          this.setState({ components: components });
+          parent.postMessage({
+            type: 'runtime-error',
+            message: describeError(error) + (components ? '\\n    in ' + components : ''),
+          }, '*');
+        };
+        ErrorBoundary.prototype.render = function () {
+          if (!this.state.error) return this.props.children;
+          return React.createElement(
+            'pre',
+            { style: { color: '#e05252', whiteSpace: 'pre-wrap', padding: '1rem', fontFamily: 'monospace' } },
+            describeError(this.state.error) + (this.state.components ? '\\n\\n    in ' + this.state.components : '')
+          );
+        };
         // Nothing authored yet (a brand-new React room before its first Run):
         // skip the transform/construct/render entirely. Running them on blank
         // source made Babel emit an empty module and the constructed function
@@ -238,10 +357,23 @@ export function buildReactSandboxDocument(appJsx: string, componentsJsx: string,
         if (!source.trim()) return;
         try {
           var transformed = Babel.transform(source, { presets: ['react'] }).code;
-          var App = new Function('React', 'ReactDOM', transformed + '\\nreturn App;')(React, ReactDOM);
-          ReactDOM.createRoot(document.getElementById('__cs_root')).render(React.createElement(App));
+          var App = new Function(
+            'React',
+            'ReactDOM',
+            transformed + "\\nreturn typeof App === 'undefined' ? undefined : App;"
+          )(React, ReactDOM);
+          if (typeof App !== 'function' && !(App && typeof App === 'object' && App.$$typeof)) {
+            throw new Error(
+              App === undefined
+                ? 'No component named App was found. Define one, e.g. "function App() { return <h1>Hi</h1>; }" -- it is what gets rendered.'
+                : 'App must be a React component (a function or class), but it is ' + typeof App + '.'
+            );
+          }
+          ReactDOM.createRoot(document.getElementById('__cs_root')).render(
+            React.createElement(ErrorBoundary, null, React.createElement(App))
+          );
         } catch (err) {
-          var message = String((err && err.message) || err);
+          var message = describeError(err);
           showError(message);
           parent.postMessage({ type: 'runtime-error', message: message }, '*');
         }

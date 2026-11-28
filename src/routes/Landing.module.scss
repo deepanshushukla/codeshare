@@ -313,6 +313,15 @@
   color: var(--acc);
 }
 
+// Caption under the Public/Private toggle -- same muted/small treatment as
+// .kbdHint below, so it reads as a secondary note rather than competing with
+// .heroSubtitle's primary copy.
+.visibilityHint {
+  margin: 10px 0 0;
+  font: 500 13px var(--font-sans);
+  color: var(--muted);
+}
+
 // --- CTA + keyboard hint (handoff lines 83-86) ------------------------------
 
 .heroActions {
@@ -425,6 +434,283 @@
   height: 8px;
   transform: rotate(45deg);
   background: var(--acc);
+}
+
+// --- Private mode highlight -------------------------------------------------
+// Its own band between the ticker and the feature grid: copy on the left, an
+// animated "locked room" card on the right. Looping animations (the lock's
+// pulse rings, the card's float) wire `animation-play-state: var(--play)` so
+// they freeze under reduced motion, per src/styles/motion.scss.
+
+@keyframes lockRing {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+@keyframes lockFloat {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -8px;
+  }
+}
+
+@keyframes shimmer {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.privateMode {
+  position: relative;
+  z-index: 1;
+  padding: clamp(64px, 8vw, 110px) 20px 0;
+}
+
+.privateModeInner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+  gap: clamp(32px, 5vw, 72px);
+  align-items: center;
+  padding: clamp(28px, 4vw, 56px);
+  border: 1px solid var(--line2);
+  border-radius: var(--radius-block);
+  background:
+    radial-gradient(circle at 85% 30%, var(--acc-soft), transparent 55%),
+    var(--bg2);
+}
+
+.privateModeCopy h2 {
+  margin: 14px 0 16px;
+  font: 800 clamp(28px, 3.8vw, 48px) / 1.05 var(--font-display);
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.privateModeAccent {
+  color: var(--acc);
+}
+
+.privateModeEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font: 600 13px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--acc-t);
+}
+
+.privateModeBadge {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--acc);
+  color: var(--acc-ink);
+  font: 700 11px var(--font-sans);
+  letter-spacing: 0.04em;
+}
+
+.privateModeLead {
+  margin: 0 0 24px;
+  max-width: 560px;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.privateModeList {
+  display: grid;
+  gap: 14px;
+  margin: 0 0 32px;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.55;
+  }
+
+  svg {
+    flex: none;
+    margin-top: 1px;
+    color: var(--acc);
+  }
+
+  strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+}
+
+.privateModeActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+}
+
+.privateModeCta {
+  gap: 10px;
+  height: 54px;
+  padding: 0 26px;
+  font-size: 16px;
+}
+
+.privateModeVisual {
+  display: grid;
+  place-items: center;
+  min-height: 320px;
+}
+
+.lockCard {
+  position: relative;
+  width: min(100%, 420px);
+  border: 1px solid var(--line2);
+  border-radius: var(--radius-pane);
+  background: var(--bg);
+  box-shadow: 0 30px 80px -30px var(--glow);
+  overflow: hidden;
+  animation: lockFloat 5s ease-in-out infinite;
+  animation-play-state: var(--play);
+}
+
+.lockCardBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  font: 500 12px var(--font-mono);
+  color: var(--faint);
+}
+
+.lockCardDots {
+  display: inline-flex;
+  gap: 5px;
+
+  i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--line2);
+  }
+}
+
+.lockCardPath {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lockCardPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--acc);
+  border-radius: var(--radius-pill);
+  color: var(--acc-t);
+  font: 600 11px var(--font-sans);
+}
+
+.lockCardCode {
+  display: grid;
+  gap: 12px;
+  padding: 28px 24px 84px;
+  filter: blur(3px);
+
+  span {
+    height: 10px;
+    border-radius: 5px;
+    background: var(--line2);
+    animation: shimmer 3s ease-in-out infinite;
+    animation-play-state: var(--play);
+  }
+}
+
+.lockBadge {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 76px;
+  height: 76px;
+  translate: -50% -50%;
+  display: grid;
+  place-items: center;
+}
+
+.lockRing {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--acc);
+  border-radius: 50%;
+  animation: lockRing 2.4s ease-out infinite;
+  animation-play-state: var(--play);
+}
+
+.lockRingDelayed {
+  animation-delay: 1.2s;
+}
+
+.lockCore {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--acc);
+  color: var(--acc-ink);
+  box-shadow: 0 0 40px var(--glow);
+}
+
+.lockViewers {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  gap: 8px;
+  font: 600 11px var(--font-sans);
+
+  span {
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--line2);
+  }
+}
+
+.viewerOwner {
+  background: var(--acc-soft);
+  border-color: var(--acc) !important;
+  color: var(--acc-t);
+}
+
+.viewerBlocked {
+  color: var(--faint);
+  text-decoration: line-through;
+  opacity: 0.7;
 }
 
 // --- Feature grid (handoff lines 124-140) -----------------------------------

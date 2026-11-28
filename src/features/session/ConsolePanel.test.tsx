@@ -39,6 +39,16 @@ describe('ConsolePanel', () => {
     expect(onRepl).toHaveBeenCalledWith('1 + 1');
   });
 
+  test('Cmd/Ctrl+Enter is left to the Run shortcut instead of also submitting the REPL line', async () => {
+    const onRepl = vi.fn();
+    render(<ConsolePanel onRepl={onRepl} />);
+    const input = screen.getByRole('textbox');
+    await userEvent.type(input, '1 + 1');
+    await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
+    await userEvent.keyboard('{Control>}{Enter}{/Control}');
+    expect(onRepl).not.toHaveBeenCalled();
+  });
+
   test('Shift+Enter inserts a newline instead of submitting, like DevTools', async () => {
     const onRepl = vi.fn();
     render(<ConsolePanel onRepl={onRepl} />);

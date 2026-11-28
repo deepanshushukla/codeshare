@@ -5,7 +5,6 @@ import { useSessionChannel } from './useSessionChannel';
 import { REACT_TAB_KEYS, useReactTabsQueryParam, type ReactTabsState } from './useReactTabsQueryParam';
 import { usePresence } from './usePresence';
 import { useBreakpoint } from './useBreakpoint';
-import { ensureAnonymousSession } from '../../lib/supabase';
 import EditorPane from './EditorPane';
 import OutputFrame from './OutputFrame';
 import OutputPane from './OutputPane';
@@ -34,38 +33,61 @@ const MOBILE_EDITOR_TABS: (keyof ReactTabsState)[] = ['appJsx', 'componentsJsx',
 // column names), while OutputFrame/OutputPane/ExportMenu/ReactTabBar/
 // ReactMobileTabBar all use camelCase (`appJsx`/`componentsJsx`/`reactCss`).
 // The rename happens explicitly at each boundary below -- never implicitly.
-export default function ReactSessionWorkspace({ sessionId }: { sessionId: string }) {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [authFailed, setAuthFailed] = useState(false);
-  useEffect(() => {
-    let active = true;
-    ensureAnonymousSession()
-      .then((id) => {
-        if (active) setUserId(id);
-      })
-      .catch((error: unknown) => {
-        console.error('codeshare: anonymous sign-in failed', error);
-        if (active) setAuthFailed(true);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
+//
+// userId/isAnonymous/privacyHint arrive as props from SessionRoute -- see
+// SessionWorkspace.tsx's identical comment for why the local
+// ensureAnonymousSession()-based effect this used to have is gone.
+export default function ReactSessionWorkspace({
+  sessionId,
+  userId,
+  isAnonymous,
+  privacyHint,
+  initialIsPrivate = false,
+  onAccessRevoked = () => {},
+}: {
+  sessionId: string;
+  userId: string | null;
+  isAnonymous: boolean;
+  privacyHint: boolean | null;
+  // Whether the room is private as of SessionRoute's access check, so a
+  // private room's owner joins the owner-only Realtime topic straight away
+  // instead of passing through the public one first.
+  initialIsPrivate?: boolean;
+  // Called when the owner makes the room private while this (non-owner)
+  // visitor has it open; SessionRoute re-checks access and shows AccessDenied.
+  onAccessRevoked?: () => void;
+}) {
   const { tabs, toggleTab } = useReactTabsQueryParam();
   const { isMobile } = useBreakpoint();
   const [mobileTab, setMobileTab] = useState<keyof ReactTabsState>('appJsx');
   // Exactly one Realtime channel per session, shared by useSession (broadcast
   // edits) and usePresence (presence tracking) -- see useSessionChannel.ts.
-  const { channel, status: channelStatus } = useSessionChannel(sessionId, userId);
+  // Which Realtime topic to sit on: the public one, or the owner-only private
+  // one (see useSessionChannel). Seeded from the access check, then follows
+  // the row's is_private once it has loaded -- so making the room private
+  // moves this client off the topic other viewers are still subscribed to.
+  const [channelPrivate, setChannelPrivate] = useState(initialIsPrivate);
+  const { channel, status: channelStatus } = useSessionChannel(sessionId, userId, channelPrivate);
   const {
     app_jsx,
     components_jsx,
     react_css,
     connectionStatus,
     updateField,
-  } = useSession(sessionId, userId, channel, channelStatus, 'react');
+    isPrivate,
+    ownerId,
+    title,
+    setPrivacy,
+    loading,
+    accessRevoked,
+  } = useSession(sessionId, userId, isAnonymous, channel, channelStatus, 'react', privacyHint);
   const { users, name, setName } = usePresence(userId, channel);
+  useEffect(() => {
+    if (!loading) setChannelPrivate(isPrivate);
+  }, [loading, isPrivate]);
+  useEffect(() => {
+    if (accessRevoked) onAccessRevoked();
+  }, [accessRevoked, onAccessRevoked]);
 
   // See SessionWorkspace.tsx's identical comment: `runToken` only changes on
   // an explicit Run, so typing (which updates app_jsx/components_jsx/
@@ -114,7 +136,9 @@ export default function ReactSessionWorkspace({ sessionId }: { sessionId: string
     ) : null;
   // -----------------------------------------------------------------------
 
-  const bannerStatus: ConnectionStatus = authFailed ? 'auth-failed' : connectionStatus;
+  const bannerStatus: ConnectionStatus = connectionStatus;
+  // (See SessionWorkspace.tsx's identical comment: nothing here sets
+  // 'auth-failed' anymore -- that lives in useAuthUser, one level up.)
 
   // Desktop pane count for the StatusBar footer -- counts from `tabs` (the
   // desktop multi-select), not `mobileTab`, same as SessionWorkspace.tsx.
@@ -122,6 +146,8 @@ export default function ReactSessionWorkspace({ sessionId }: { sessionId: string
 
   return (
     <div className={styles.workspace}>
+      {/* See SessionWorkspace.tsx's identical comment: React 19 head-hoisting. */}
+      <title>{title || 'CodeShare'}</title>
       <Header
         roomId={sessionId}
         tabBar={<ReactTabBar tabs={tabs} toggleTab={toggleTab} />}
@@ -131,6 +157,11 @@ export default function ReactSessionWorkspace({ sessionId }: { sessionId: string
         onNameChange={setName}
         onRun={handleRun}
         exportContent={{ sessionType: 'react', appJsx: app_jsx, componentsJsx: components_jsx, reactCss: react_css }}
+        isPrivate={isPrivate}
+        isOwner={ownerId !== null && ownerId === userId}
+        isAnonymous={isAnonymous}
+        onTogglePrivacy={() => setPrivacy(!isPrivate)}
+        onMakePrivate={() => setPrivacy(true)}
       />
       <ConnectionBanner status={bannerStatus} />
       {isMobile ? (

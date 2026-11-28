@@ -1,12 +1,15 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useMemo, useState, type MouseEvent } from 'react';
-import { ArrowRight, ChevronDown, Plus } from 'lucide-react';
+import { ArrowRight, ChevronDown, Lock, Plus, RefreshCw, ShieldCheck, UserX } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { generateSessionId } from '../lib/randomId';
 import type { SessionType } from '../features/session/sessionType';
 import ThemeButton from '../features/theme/ThemeButton';
 import ThemeDrawer from '../features/theme/ThemeDrawer';
 import { useRoomTransition } from '../features/transition/RoomTransitionProvider';
+import { useAuthUser } from '../features/auth/useAuthUser';
+import AccountMenu from '../features/auth/AccountMenu';
+import AuthModal from '../features/auth/AuthModal';
 import OrbitVisual from './Landing/OrbitVisual';
 import PageSeo from '../lib/seo';
 import styles from './Landing.module.scss';
@@ -85,6 +88,17 @@ const FEATURES = [
 // of each half, i.e. the looping seam -- gets a trailing diamond separator.
 const TICKER_WORDS = ['HTML', 'CSS', 'JavaScript', 'React', 'Console', 'Output', 'One link'];
 
+// `?private=0|1` is always present (not just when private) -- SessionRoute
+// reads it as an explicit hint for a room that doesn't exist yet (see its
+// `rawPrivate` parsing), so a brand-new anonymous-visitor room needs the
+// explicit "0" rather than an absent param that could be read as "unknown."
+function buildRoomPath(roomId: string, type: SessionType, isPrivateRoom: boolean): string {
+  const params = [];
+  if (type === 'react') params.push('type=react');
+  params.push(`private=${isPrivateRoom ? 1 : 0}`);
+  return `/code/${roomId}?${params.join('&')}`;
+}
+
 export default function Landing() {
   const newRoomId = useMemo(() => generateSessionId(), []);
   // Plain derived const, not memoized -- cheap to recompute, and every
@@ -92,7 +106,15 @@ export default function Landing() {
   // enterRoom's `navigate(roomHref)`) just reads this one variable, so it
   // automatically picks up a sessionType change on the next render.
   const [sessionType, setSessionType] = useState<SessionType>('web');
-  const roomHref = `/code/${newRoomId}${sessionType === 'react' ? '?type=react' : ''}`;
+  const { isAnonymous } = useAuthUser();
+  // `null` until the visitor explicitly picks a segment.
+  const [privacyOverride, setPrivacyOverride] = useState<boolean | null>(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  // Every room starts Public, logged in or not; choosing Private is always an
+  // explicit act (and, while anonymous, opens AuthModal first -- see
+  // handleVisibilitySelect).
+  const isPrivate = privacyOverride ?? false;
+  const roomHref = buildRoomPath(newRoomId, sessionType, isPrivate);
   const [themeDrawerOpen, setThemeDrawerOpen] = useState(false);
   const navigate = useNavigate();
   const { start } = useRoomTransition();
@@ -102,18 +124,51 @@ export default function Landing() {
   // header's own Web/React dropdown (which picks the type explicitly,
   // independent of the toggle -- so the choice is available right at that
   // click point without first scrolling to the hero).
-  function enterRoomAs(type: SessionType) {
+  function enterRoomAs(type: SessionType, privateRoom: boolean = isPrivate) {
     // Close the theme drawer first if it happens to be open -- the "N"
     // shortcut can fire while it is, and leaving it mounted mid-transition
     // would abandon it half-open over the iris wipe. Matches the design
     // handoff's own newRoom(), which sets `themeOpen: false`.
     setThemeDrawerOpen(false);
-    const href = `/code/${newRoomId}${type === 'react' ? '?type=react' : ''}`;
+    const href = buildRoomPath(newRoomId, type, privateRoom);
     start(newRoomId, () => navigate(href));
+  }
+
+  // The Private mode section's CTA. A real account goes straight into a new
+  // private room. An anonymous visitor needs an account first, so it opens
+  // signup and remembers the intent: once signup succeeds they land in the
+  // private room they asked for, not back on this page.
+  const [privateRoomPending, setPrivateRoomPending] = useState(false);
+  const privateRoomHref = buildRoomPath(newRoomId, sessionType, true);
+  function handlePrivateRoomClick(event: MouseEvent<HTMLAnchorElement>) {
+    if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    enterRoomAs(sessionType, true);
+  }
+  function startPrivateRoomSignup() {
+    setPrivateRoomPending(true);
+    setAuthModalOpen(true);
   }
 
   function enterRoom() {
     enterRoomAs(sessionType);
+  }
+
+  // Public always just sets the override. Private either sets it directly
+  // (a real account) or, for an anonymous visitor, opens AuthModal instead of
+  // changing any state -- the link keeps carrying `private=0` until a login
+  // actually succeeds (see the AuthModal `onSuccess` below).
+  function handleVisibilitySelect(option: 'public' | 'private') {
+    if (option === 'public') {
+      setPrivacyOverride(false);
+      return;
+    }
+    if (isAnonymous) {
+      setPrivateRoomPending(false);
+      setAuthModalOpen(true);
+      return;
+    }
+    setPrivacyOverride(true);
   }
 
   function handleCreateClick(event: MouseEvent<HTMLAnchorElement>) {
@@ -173,6 +228,9 @@ export default function Landing() {
 
           <ThemeButton variant="pill" onOpenDrawer={() => setThemeDrawerOpen(true)} />
 
+          {/* Self-contained -- reads useAuthUser() itself, no props to wire. */}
+          <AccountMenu />
+
           {/* A dropdown rather than a plain link: the choice of Web vs React
               used to live only in the hero toggle further down the page, so
               clicking this button before ever scrolling there silently
@@ -199,6 +257,28 @@ export default function Landing() {
       </header>
 
       <ThemeDrawer open={themeDrawerOpen} onClose={() => setThemeDrawerOpen(false)} />
+
+      {/*
+        Opened only by selecting "Private" while anonymous (see
+        handleVisibilitySelect above) -- not AccountMenu's own login modal.
+        `initialMode="signup"` since the common case here is a first-time
+        visitor who wants a private room, not an existing account holder
+        already covered by the header's AccountMenu. `onSuccess` is what
+        actually flips the toggle: until a login genuinely succeeds, the
+        link keeps carrying `private=0`.
+      */}
+      <AuthModal
+        open={authModalOpen}
+        onOpenChange={setAuthModalOpen}
+        initialMode="signup"
+        onSuccess={() => {
+          setPrivacyOverride(true);
+          if (privateRoomPending) {
+            setPrivateRoomPending(false);
+            enterRoomAs(sessionType, true);
+          }
+        }}
+      />
 
       <section className={styles.hero}>
         <div className={styles.heroCopy}>
@@ -254,6 +334,43 @@ export default function Landing() {
             ))}
           </div>
 
+          {/*
+            Second, independent segmented toggle, same pattern as the Web/
+            React one above (role="group" + aria-pressed is the one source of
+            truth). `isPrivate` already folds in both the logged-in default
+            and any explicit override -- see its computation above -- so this
+            just renders off that one boolean plus `isAnonymous` to decide
+            whether picking "Private" can take effect directly or has to go
+            through AuthModal first.
+          */}
+          <p className={styles.typeToggleLabel} id="visibility-label">
+            Room visibility:
+          </p>
+          <div role="group" aria-labelledby="visibility-label" className={styles.typeToggle}>
+            {(['public', 'private'] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                className={styles.typeOption}
+                aria-pressed={isPrivate === (option === 'private')}
+                onClick={() => handleVisibilitySelect(option)}
+              >
+                {option === 'private' && <Lock size={14} aria-hidden="true" />}
+                {option === 'public' ? 'Public' : 'Private'}
+                {/* aria-hidden for the same reason as the React badge above:
+                    the accessible name must stay exactly "Private". */}
+                {option === 'private' && (
+                  <span className={styles.typeOptionBadge} aria-hidden="true">
+                    New
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+          <p className={styles.visibilityHint}>
+            Rooms start public. Choose Private and only you can open it.
+          </p>
+
           <div className={styles.heroActions}>
             <Link to={roomHref} className={styles.ctaButton} onClick={handleCreateClick}>
               Create New Room
@@ -282,6 +399,96 @@ export default function Landing() {
           ))}
         </div>
       </div>
+
+      <section className={styles.privateMode} aria-labelledby="private-mode-title">
+        <div className={styles.privateModeInner}>
+          <div className={styles.privateModeCopy}>
+            <p className={styles.privateModeEyebrow}>
+              <span className={styles.privateModeBadge}>New</span>
+              Private mode
+            </p>
+            <h2 id="private-mode-title">
+              Private mode. <span className={styles.privateModeAccent}>Your code, your eyes only.</span>
+            </h2>
+            <p className={styles.privateModeLead}>
+              Every room begins public, so sharing is just a link. When you&rsquo;d rather keep one to yourself, make it
+              private &mdash; here, or with one click inside the room.
+            </p>
+            <ul className={styles.privateModeList}>
+              <li>
+                <ShieldCheck size={20} aria-hidden="true" />
+                <span>
+                  <strong>Only you can open it.</strong> Anyone else with the link sees &ldquo;This room is
+                  private&rdquo;.
+                </span>
+              </li>
+              <li>
+                <UserX size={20} aria-hidden="true" />
+                <span>
+                  <strong>Viewers lose access instantly.</strong> People already in the room stop seeing your changes
+                  the moment you switch.
+                </span>
+              </li>
+              <li>
+                <RefreshCw size={20} aria-hidden="true" />
+                <span>
+                  <strong>Back to public anytime.</strong> Flip the Public/Private toggle in the room.
+                </span>
+              </li>
+            </ul>
+            <div className={styles.privateModeActions}>
+              {isAnonymous ? (
+                <button type="button" className={`${styles.ctaButton} ${styles.privateModeCta}`} onClick={startPrivateRoomSignup}>
+                  <Lock size={18} aria-hidden="true" />
+                  Create a private room
+                </button>
+              ) : (
+                <Link to={privateRoomHref} className={`${styles.ctaButton} ${styles.privateModeCta}`} onClick={handlePrivateRoomClick}>
+                  <Lock size={18} aria-hidden="true" />
+                  Create a private room
+                </Link>
+              )}
+              {isAnonymous && <span className={styles.kbdHint}>Free account &mdash; just an email.</span>}
+            </div>
+          </div>
+
+          <div className={styles.privateModeVisual} aria-hidden="true">
+            <div className={styles.lockCard}>
+              <div className={styles.lockCardBar}>
+                <span className={styles.lockCardDots}>
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                <span className={styles.lockCardPath}>/code/{newRoomId}</span>
+                <span className={styles.lockCardPill}>
+                  <Lock size={11} />
+                  Private
+                </span>
+              </div>
+              <div className={styles.lockCardCode}>
+                <span style={{ width: '62%' }} />
+                <span style={{ width: '44%' }} />
+                <span style={{ width: '78%' }} />
+                <span style={{ width: '36%' }} />
+                <span style={{ width: '55%' }} />
+              </div>
+              <div className={styles.lockBadge}>
+                <span className={styles.lockRing} />
+                <span className={`${styles.lockRing} ${styles.lockRingDelayed}`} />
+                <span className={styles.lockCore}>
+                  <Lock size={30} />
+                </span>
+              </div>
+              <div className={styles.lockViewers}>
+                <span className={styles.viewerOwner}>You</span>
+                <span className={styles.viewerBlocked}>Guest</span>
+                <span className={styles.viewerBlocked}>Guest</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section className={styles.features}>
         <div className={styles.featuresHeader}>

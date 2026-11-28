@@ -67,8 +67,20 @@ function setMobileResizable(initial: boolean) {
   };
 }
 
+// A blank-but-already-existing Web row, so content starts predictably empty
+// instead of racing the create-branch's non-empty starter content
+// (STARTER_CONTENT_WEB in useSession.ts) against a test's own typing. This
+// race only became reachable with Task 12: `userId` now arrives as a prop
+// already resolved on the very first render, instead of appearing a tick
+// later via this component's own now-removed ensureAnonymousSession()
+// effect -- so useSession's load effect fires a beat earlier than before,
+// occasionally winning a race it never used to be in. Mirrors
+// ReactSessionWorkspace.test.tsx's BLANK_REACT_ROW for the same reason.
+const BLANK_WEB_ROW = { id: 'abc', html: '', css: '', js: '', is_private: false, owner_id: null, title: '' };
+
 beforeEach(() => {
   resetSupabaseMock();
+  mockConfig.sessionRow = BLANK_WEB_ROW as any;
 });
 
 afterEach(() => {
@@ -86,11 +98,19 @@ function mobileTabBar() {
 // ThemeProvider is required, not decorative: the redesigned Header renders
 // ThemeButton/ThemeDrawer, and useTheme() throws outside a provider (App.tsx
 // wraps every route in one).
-function renderWorkspace() {
+//
+// userId/isAnonymous/privacyHint default to today's pre-Task-12 behaviour
+// (an anonymous visitor, no privacy hint) -- identity resolution now happens
+// one level up in SessionRoute, so this helper's overrides are how a test
+// stands in for whatever SessionRoute would have passed down.
+function renderWorkspace(
+  overrides: Partial<{ userId: string | null; isAnonymous: boolean; privacyHint: boolean | null }> = {},
+) {
+  const { userId = 'user-1', isAnonymous = true, privacyHint = null } = overrides;
   return render(
     <MemoryRouter initialEntries={['/code/abc']}>
       <ThemeProvider>
-        <SessionWorkspace sessionId="abc" />
+        <SessionWorkspace sessionId="abc" userId={userId} isAnonymous={isAnonymous} privacyHint={privacyHint} />
       </ThemeProvider>
     </MemoryRouter>,
   );
@@ -129,7 +149,7 @@ test('subscribes to exactly one realtime channel for the session', async () => {
   // Both concerns live on the one channel; reaching this line also proves the
   // presence binding was registered before subscribe() (the mock throws
   // otherwise, exactly like the real SDK).
-  expect(channel.bindingsOfType('broadcast')).toHaveLength(1);
+  expect(channel.bindingsOfType('broadcast')).toHaveLength(2); // 'edit' + 'privacy'
   expect(channel.bindingsOfType('presence')).toHaveLength(1);
 });
 
@@ -293,17 +313,30 @@ test('resizing from mobile up to desktop restores the untouched multi-pane layou
   expect(screen.queryByRole('navigation', { name: 'Panes' })).not.toBeInTheDocument();
 });
 
-test('surfaces a failed anonymous sign-in instead of silently staying signed out', async () => {
-  mockConfig.signInError = new Error('anonymous sign-in failed: Anonymous sign-ins are disabled');
-  const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-  try {
-    renderWorkspace();
-    expect(await screen.findByRole('status')).toHaveTextContent(/Couldn't sign in/);
-    expect(consoleError).toHaveBeenCalled();
-    // No identity means no channel at all -- which is exactly why the user
-    // needs to be told rather than left with a silently dead page.
-    expect(getChannels()).toHaveLength(0);
-  } finally {
-    consoleError.mockRestore();
-  }
+// The failed-anonymous-sign-in banner behavior now lives one level up in
+// SessionRoute/useAuthUser (Task 4's tests already cover it) -- this
+// component no longer calls ensureAnonymousSession() itself, so it has
+// nothing of its own left to assert there.
+
+test('a room with no owner (made anonymously) never shows the privacy toggle, even to a logged-in viewer', async () => {
+  mockConfig.sessionRow = { id: 'abc', html: '', css: '', js: '', is_private: false, owner_id: null, title: '' } as any;
+  renderWorkspace({ userId: 'real-1', isAnonymous: false, privacyHint: null });
+  await waitFor(() => expect(screen.getByLabelText('JS editor')).toBeInTheDocument());
+  // null !== 'real-1' -- a room created anonymously has no owner, so even a
+  // logged-in viewer who happens to be looking at it is never treated as one.
+  expect(screen.queryByRole('button', { name: /private|public/i })).not.toBeInTheDocument();
+});
+
+test('sets the document title from the session title', async () => {
+  mockConfig.sessionRow = {
+    id: 'abc',
+    html: '<title>Hi</title>',
+    css: '',
+    js: '',
+    is_private: false,
+    owner_id: null,
+    title: 'Hi',
+  } as any;
+  renderWorkspace();
+  await waitFor(() => expect(document.title).toBe('Hi'));
 });

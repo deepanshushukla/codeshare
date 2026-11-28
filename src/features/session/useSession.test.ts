@@ -2,7 +2,7 @@ import { describe, expect, test, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useSession } from './useSession';
 import { useSessionChannel } from './useSessionChannel';
-import { maybeSingle, mockConfig, resetSupabaseMock, soleChannel, upsert } from '../../test/supabaseMock';
+import { maybeSingle, mockConfig, resetSupabaseMock, soleChannel, update, upsert } from '../../test/supabaseMock';
 import type { SessionType } from './sessionType';
 
 vi.mock('../../lib/supabase', () => import('../../test/supabaseMock'));
@@ -14,10 +14,16 @@ beforeEach(() => {
 // Renders useSession on top of the real useSessionChannel, the way
 // SessionWorkspace does, against the shared Supabase mock -- so these tests
 // exercise the actual channel wiring instead of a bespoke channel stub.
-function renderSession(sessionId: string, userId: string | null = 'user-1', typeHint: SessionType = 'web') {
+function renderSession(
+  sessionId: string,
+  userId: string | null = 'user-1',
+  typeHint: SessionType = 'web',
+  isAnonymous = false,
+  privacyHint: boolean | null = null,
+) {
   return renderHook(() => {
     const { channel, status } = useSessionChannel(sessionId, userId);
-    return useSession(sessionId, userId, channel, status, typeHint);
+    return useSession(sessionId, userId, isAnonymous, channel, status, typeHint, privacyHint);
   });
 }
 
@@ -32,7 +38,7 @@ describe('useSession', () => {
     const { result, rerender } = renderHook(
       ({ userId }: { userId: string | null }) => {
         const { channel, status } = useSessionChannel('late-auth-room', userId);
-        return useSession('late-auth-room', userId, channel, status, 'web');
+        return useSession('late-auth-room', userId, false, channel, status, 'web', null);
       },
       { initialProps: { userId: null as string | null } },
     );
@@ -123,21 +129,30 @@ describe('useSession', () => {
       expect.objectContaining({
         type: 'broadcast',
         event: 'edit',
-        payload: expect.objectContaining({ field: 'js', value: 'console.log(2)', userId: 'user-1' }),
+        payload: expect.objectContaining({ field: 'js', value: 'console.log(2)', userId: 'user-1', clientId: expect.any(String) }),
       }),
     );
   });
 
-  test('ignores a broadcast edit that echoes back its own userId', async () => {
+  test("ignores only this tab's own echoed edits, not edits from the same user in another tab", async () => {
     mockConfig.sessionRow = { id: 'room4', html: '<p>a</p>', css: '', js: '' };
     const { result } = renderSession('room4');
     await waitFor(() => expect(result.current.loading).toBe(false));
     const channel = soleChannel();
 
-    act(() => channel.emitBroadcast('edit', { field: 'html', value: '<p>own echo</p>', userId: 'user-1' }));
+    // Learn this tab's clientId from an edit it broadcasts.
+    act(() => result.current.updateField('css', 'b{}'));
+    const sent = channel.send.mock.calls.at(-1)![0].payload as { clientId: string };
+    expect(typeof sent.clientId).toBe('string');
+
+    act(() => channel.emitBroadcast('edit', { field: 'html', value: '<p>own echo</p>', userId: 'user-1', clientId: sent.clientId }));
     expect(result.current.html).toBe('<p>a</p>');
 
-    act(() => channel.emitBroadcast('edit', { field: 'html', value: '<p>from-other</p>', userId: 'user-2' }));
+    // Same account, different tab: must apply (this used to be dropped).
+    act(() => channel.emitBroadcast('edit', { field: 'html', value: '<p>my other tab</p>', userId: 'user-1', clientId: 'another-tab' }));
+    expect(result.current.html).toBe('<p>my other tab</p>');
+
+    act(() => channel.emitBroadcast('edit', { field: 'html', value: '<p>from-other</p>', userId: 'user-2', clientId: 'x' }));
     expect(result.current.html).toBe('<p>from-other</p>');
   });
 
@@ -288,5 +303,130 @@ describe('useSession', () => {
     }
 
     expect(result.current.connectionStatus).toBe('write-failed');
+  });
+
+  test('a new room created by a real (non-anonymous) user is public by default too, with owner_id set', async () => {
+    mockConfig.sessionRow = null;
+    renderHook(() => useSession('room1', 'u1', false, null, 'connected', 'web', null));
+    await waitFor(() => expect(upsert).toHaveBeenCalled());
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ is_private: false, owner_id: 'u1' }));
+  });
+
+  test('a new room created by an anonymous user defaults to public but records them as owner, so signing up (same id) lets them make it private', async () => {
+    mockConfig.sessionRow = null;
+    renderHook(() => useSession('room1', 'anon-1', true, null, 'connected', 'web', null));
+    await waitFor(() => expect(upsert).toHaveBeenCalled());
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ is_private: false, owner_id: 'anon-1' }));
+  });
+
+  test('an explicit privacyHint overrides the isAnonymous-derived default', async () => {
+    mockConfig.sessionRow = null;
+    renderHook(() => useSession('room1', 'u1', false, null, 'connected', 'web', false));
+    await waitFor(() => expect(upsert).toHaveBeenCalled());
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ is_private: false, owner_id: 'u1' }));
+  });
+
+  test('a new room is created with a generated title from its starter content', async () => {
+    mockConfig.sessionRow = null;
+    renderHook(() => useSession('room1', 'u1', false, null, 'connected', 'web', null));
+    await waitFor(() => expect(upsert).toHaveBeenCalled());
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ title: expect.any(String) }));
+  });
+
+  test('loading an existing row surfaces isPrivate/ownerId/title from it', async () => {
+    mockConfig.sessionRow = { id: 'room1', html: '<h1>Hi</h1>', css: '', js: '', is_private: true, owner_id: 'u1', title: 'Hi' } as any;
+    const { result } = renderHook(() => useSession('room1', 'u1', false, null, 'connected', 'web', null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.isPrivate).toBe(true);
+    expect(result.current.ownerId).toBe('u1');
+    expect(result.current.title).toBe('Hi');
+  });
+
+  test('updating html recomputes and persists the title alongside the field', async () => {
+    mockConfig.sessionRow = { id: 'room1', html: '', css: '', js: '', is_private: false, owner_id: 'u1', title: '' } as any;
+    const { result } = renderHook(() => useSession('room1', 'u1', false, null, 'connected', 'web', null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    result.current.updateField('html', '<title>New Title</title>');
+    await waitFor(() => expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ html: '<title>New Title</title>', title: 'New Title' })));
+  });
+
+  test('setPrivacy updates (not upserts) is_private', async () => {
+    // An upsert of { id, is_private } is checked by Postgres against the
+    // INSERT policy with owner_id unset, which rejects every private flip.
+    mockConfig.sessionRow = { id: 'room1', html: '', css: '', js: '', is_private: false, owner_id: 'u1', title: '' } as any;
+    const { result } = renderHook(() => useSession('room1', 'u1', false, null, 'connected', 'web', null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      await result.current.setPrivacy(true);
+    });
+    expect(update).toHaveBeenCalledWith({ is_private: true });
+    expect(upsert).not.toHaveBeenCalledWith(expect.objectContaining({ is_private: true }));
+    expect(result.current.isPrivate).toBe(true);
+  });
+
+  test('setPrivacy surfaces an RLS rejection as connectionStatus write-failed, and does not flip isPrivate', async () => {
+    mockConfig.sessionRow = { id: 'room1', html: '', css: '', js: '', is_private: false, owner_id: 'u1', title: '' } as any;
+    mockConfig.updateResult = { data: null, error: { message: 'cannot change ownership or privacy of a session you do not own' } };
+    const { result } = renderHook(() => useSession('room1', 'u1', false, null, 'connected', 'web', null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      await result.current.setPrivacy(true);
+    });
+    expect(result.current.connectionStatus).toBe('write-failed');
+    expect(result.current.isPrivate).toBe(false);
+  });
+
+  test('setPrivacy treats an update that RLS silently filtered to zero rows as a failure', async () => {
+    mockConfig.sessionRow = { id: 'room1', html: '', css: '', js: '', is_private: false, owner_id: 'u1', title: '' } as any;
+    mockConfig.updateResult = { data: [], error: null };
+    const { result } = renderHook(() => useSession('room1', 'u1', false, null, 'connected', 'web', null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      await result.current.setPrivacy(true);
+    });
+    expect(result.current.connectionStatus).toBe('write-failed');
+    expect(result.current.isPrivate).toBe(false);
+  });
+  describe('privacy changes reach everyone already in the room', () => {
+    test('a successful setPrivacy announces it on the channel', async () => {
+      mockConfig.sessionRow = { id: 'room', html: '', css: '', js: '', is_private: false, owner_id: 'user-1', title: '' } as any;
+      const { result } = renderSession('room');
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      await act(async () => {
+        await result.current.setPrivacy(true);
+      });
+      expect(soleChannel().send).toHaveBeenCalledWith(
+        expect.objectContaining({ event: 'privacy', payload: { isPrivate: true } }),
+      );
+    });
+
+    test('a rejected setPrivacy announces nothing', async () => {
+      mockConfig.sessionRow = { id: 'room', html: '', css: '', js: '', is_private: false, owner_id: 'user-1', title: '' } as any;
+      mockConfig.updateResult = { data: null, error: { message: 'denied' } };
+      const { result } = renderSession('room');
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      await act(async () => {
+        await result.current.setPrivacy(true);
+      });
+      expect(soleChannel().send).not.toHaveBeenCalledWith(expect.objectContaining({ event: 'privacy' }));
+    });
+
+    test('a viewer who is not the owner loses access when the room goes private', async () => {
+      mockConfig.sessionRow = { id: 'room', html: '<p>x</p>', css: '', js: '', is_private: false, owner_id: 'owner-9', title: '' } as any;
+      const { result } = renderSession('room', 'user-1');
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(result.current.accessRevoked).toBe(false);
+      act(() => soleChannel().emitBroadcast('privacy', { isPrivate: true }));
+      expect(result.current.accessRevoked).toBe(true);
+    });
+
+    test("the owner's other tabs follow the change instead of losing access", async () => {
+      mockConfig.sessionRow = { id: 'room', html: '', css: '', js: '', is_private: false, owner_id: 'user-1', title: '' } as any;
+      const { result } = renderSession('room', 'user-1');
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      act(() => soleChannel().emitBroadcast('privacy', { isPrivate: true }));
+      expect(result.current.isPrivate).toBe(true);
+      expect(result.current.accessRevoked).toBe(false);
+    });
   });
 });

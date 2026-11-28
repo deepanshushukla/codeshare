@@ -171,23 +171,25 @@ supabase db reset      # (re)apply migrations in supabase/migrations/
 at the hosted project. Never commit either `.env` file — only
 `.env.example` with placeholder values.
 
-## Hosted project setup (NEXT MANUAL STEP — not done yet)
+## Hosted project setup (done 2026-11-28)
 
-Everything else in this plan (schema, RLS, app code, local-stack testing)
-is complete. This section is the one remaining step, and it is
-deliberately **not automated**: it creates live infrastructure
-(a billable hosted Supabase project, a Vercel project, a DNS change on
-codeshare.in) and needs the owner's authenticated sessions present to do
-it. Do this as its own explicitly-confirmed step, not as part of a
-scripted task:
+- **Supabase project** `codeshare` (ref `xbfkwyvgqskjhgwaahty`, ap-southeast-2), linked
+  via `supabase link`; migrations 0001–0006 applied with `supabase db push`.
+- **Auth**: site URL `https://codeshare.in`; redirect allow-list `https://codeshare.in/**`,
+  `https://www.codeshare.in/**`, Vercel preview URLs. Anonymous sign-ins and email
+  confirmations on; 6-digit OTP. Subjects/templates from `supabase/templates/`.
+- **Email**: custom SMTP via Resend (free tier: 3,000/month, 100/day) —
+  host `smtp.resend.com:465`, user `resend`, password = a sending-only Resend API key
+  (set in the dashboard only, never committed). Sender `no-reply@codeshare.in`.
+  Supabase caps auth email at 30/hour once custom SMTP is on (Auth → Rate Limits).
+  The built-in Supabase mailer is not usable in production: it only delivers to
+  project team members and template edits are blocked without custom SMTP.
+- **DNS (GoDaddy)**: Resend records `resend._domainkey` (TXT, DKIM), `send` and
+  `rsend` (CNAME), `_dmarc` (TXT `v=DMARC1; p=none;`). Domain verified in Resend
+  (region ap-northeast-1).
+- **Vercel**: project `codeshare`, Git-connected; `main` auto-deploys to codeshare.in.
+  `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` set for Production.
 
-1. Create the project at supabase.com (or `supabase projects create`).
-2. Apply the same migration (`supabase link` + `supabase db push`).
-3. Enable Anonymous sign-ins (dashboard setting, not in a migration).
-4. Copy the project URL + anon key into Vercel's environment variables.
-5. Create the Vercel project (it will pick up `vercel.json` at the repo
-   root automatically for the SPA rewrite) and point codeshare.in's DNS
-   at it.
-
-This step is part of the deployment phase, not local build-out — see the
-"Deployment note" in the design spec.
+Re-pushing auth config: `supabase config push` sends the whole `config.toml`,
+whose `site_url` is the local one — push from a copy with the production values
+above, and review the diff (it also includes MFA/SMS/storage settings) before `--yes`.

@@ -117,11 +117,17 @@ function mobileTabBar() {
   return within(screen.getByRole('navigation', { name: 'Panes' }));
 }
 
-function renderWorkspace() {
+// userId/isAnonymous/privacyHint default to today's pre-Task-12 behaviour (an
+// anonymous visitor, no privacy hint) -- see SessionWorkspace.test.tsx's
+// identical renderWorkspace() comment for why.
+function renderWorkspace(
+  overrides: Partial<{ userId: string | null; isAnonymous: boolean; privacyHint: boolean | null }> = {},
+) {
+  const { userId = 'user-1', isAnonymous = true, privacyHint = null } = overrides;
   return render(
     <MemoryRouter initialEntries={['/code/abc']}>
       <ThemeProvider>
-        <ReactSessionWorkspace sessionId="abc" />
+        <ReactSessionWorkspace sessionId="abc" userId={userId} isAnonymous={isAnonymous} privacyHint={privacyHint} />
       </ThemeProvider>
     </MemoryRouter>,
   );
@@ -147,7 +153,7 @@ test('subscribes to exactly one realtime channel for the session', async () => {
   const channel = soleChannel();
   expect(channel.topic).toBe('session:abc');
   expect(channel.subscribe).toHaveBeenCalledTimes(1);
-  expect(channel.bindingsOfType('broadcast')).toHaveLength(1);
+  expect(channel.bindingsOfType('broadcast')).toHaveLength(2); // 'edit' + 'privacy'
   expect(channel.bindingsOfType('presence')).toHaveLength(1);
 });
 
@@ -289,17 +295,23 @@ test('resizing from mobile up to desktop restores the untouched multi-pane layou
   expect(screen.queryByRole('navigation', { name: 'Panes' })).not.toBeInTheDocument();
 });
 
-test('surfaces a failed anonymous sign-in instead of silently staying signed out', async () => {
-  mockConfig.signInError = new Error('anonymous sign-in failed: Anonymous sign-ins are disabled');
-  const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-  try {
-    renderWorkspace();
-    expect(await screen.findByRole('status')).toHaveTextContent(/Couldn't sign in/);
-    expect(consoleError).toHaveBeenCalled();
-    expect(getChannels()).toHaveLength(0);
-  } finally {
-    consoleError.mockRestore();
-  }
+// The failed-anonymous-sign-in banner behavior now lives one level up in
+// SessionRoute/useAuthUser (Task 4's tests already cover it) -- see
+// SessionWorkspace.test.tsx's identical comment.
+
+test('a room with no owner (made anonymously) never shows the privacy toggle, even to a logged-in viewer', async () => {
+  mockConfig.sessionRow = { ...BLANK_REACT_ROW, is_private: false, owner_id: null, title: '' } as any;
+  renderWorkspace({ userId: 'real-1', isAnonymous: false, privacyHint: null });
+  await waitFor(() => expect(screen.getByLabelText('App editor')).toBeInTheDocument());
+  // null !== 'real-1' -- a room created anonymously has no owner, so even a
+  // logged-in viewer who happens to be looking at it is never treated as one.
+  expect(screen.queryByRole('button', { name: /private|public/i })).not.toBeInTheDocument();
+});
+
+test('sets the document title from the session title', async () => {
+  mockConfig.sessionRow = { ...BLANK_REACT_ROW, title: 'Hi' } as any;
+  renderWorkspace();
+  await waitFor(() => expect(document.title).toBe('Hi'));
 });
 
 test('Header receives exportContent in React-mode camelCase shape, not the useSession snake_case fields', async () => {

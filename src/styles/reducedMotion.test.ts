@@ -34,14 +34,17 @@ const srcDir = path.resolve(stylesDir, '..');
 // `opacity: 0` with fill-mode `forwards`, so it is a one-shot: under reduced
 // motion it must collapse to that settled, invisible end state, not freeze on
 // its opaque first keyframe.
-const ONE_SHOT_KEYFRAMES = ['rise', 'fade', 'mark', 'paneIn', 'drawerIn', 'toastIn', 'iris', 'irisOut', 'runFlash'];
+const ONE_SHOT_KEYFRAMES = ['rise', 'fade', 'mark', 'paneIn', 'drawerIn', 'toastIn', 'iris', 'irisOut', 'runFlash', 'scaleIn', 'nudgeIn'];
 
 // Continuous/looping decorative keyframes: every frame of the loop is a
 // visually sane resting state, so freezing them mid-cycle via
 // `animation-play-state: var(--play)` is harmless (and is the convention here),
 // but is not *required* -- a future animation may reasonably opt out or use a
 // different mechanism. This test only forbids the one-shot-paused bug.
-const CONTINUOUS_KEYFRAMES = ['spin', 'unspin', 'breathe', 'bar', 'blink', 'ping', 'marquee', 'scanmove'];
+const CONTINUOUS_KEYFRAMES = [
+  'spin', 'unspin', 'breathe', 'bar', 'blink', 'ping', 'marquee', 'scanmove',
+  'nudgeBob', 'iconPulse', 'lockRing', 'lockFloat', 'shimmer',
+];
 
 function collectModuleStylesheets(dir: string): string[] {
   const found: string[] = [];

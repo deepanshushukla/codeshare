@@ -23,19 +23,50 @@ describe('useSessionChannel', () => {
     expect(channel.params.config?.presence?.key).toBe('user-1');
   });
 
+  test('a private room uses the owner-only session-private topic, so viewers who joined the public topic stop receiving', async () => {
+    renderHook(() => useSessionChannel('room', 'user-1', true));
+    await waitFor(() => expect(getChannels()).toHaveLength(1));
+    expect(soleChannel().topic).toBe('session-private:room');
+  });
+
+  test('switching privacy moves to the other topic and removes the old channel', async () => {
+    const { rerender } = renderHook(({ isPrivate }) => useSessionChannel('room', 'user-1', isPrivate), {
+      initialProps: { isPrivate: false },
+    });
+    await waitFor(() => expect(getChannels()).toHaveLength(1));
+    const publicChannel = soleChannel();
+    rerender({ isPrivate: true });
+    await waitFor(() => expect(removeChannel).toHaveBeenCalledWith(publicChannel));
+    expect(getChannels().map((c) => c.topic)).toEqual(['session-private:room']);
+  });
+
+  test('relays privacy broadcasts to onPrivacy listeners, and sendPrivacy broadcasts one', async () => {
+    const { result } = renderHook(() => useSessionChannel('room', 'user-1'));
+    await waitFor(() => expect(result.current.channel).not.toBeNull());
+    const seen: unknown[] = [];
+    result.current.channel!.onPrivacy((payload) => seen.push(payload));
+    act(() => soleChannel().emitBroadcast('privacy', { isPrivate: true }));
+    expect(seen).toEqual([{ isPrivate: true }]);
+    await result.current.channel!.sendPrivacy({ isPrivate: true });
+    expect(soleChannel().send).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'broadcast', event: 'privacy', payload: { isPrivate: true } }),
+    );
+  });
+
   test('registers the broadcast AND presence bindings on that one channel before subscribing', async () => {
     renderHook(() => useSessionChannel('room', 'user-1'));
     await waitFor(() => expect(getChannels()).toHaveLength(1));
     const channel = soleChannel();
 
-    expect(channel.bindingsOfType('broadcast')).toHaveLength(1);
+    // 'edit' and 'privacy' broadcasts, plus presence.
+    expect(channel.bindingsOfType('broadcast')).toHaveLength(2);
     expect(channel.bindingsOfType('presence')).toHaveLength(1);
     expect(channel.subscribe).toHaveBeenCalledTimes(1);
     // Both bindings must predate the single subscribe() -- the mock throws on a
     // late presence binding the same way the real SDK does, so reaching this
     // line at all proves the ordering.
     const order = channel.bindings.map((binding) => binding.type);
-    expect(order).toEqual(['broadcast', 'presence']);
+    expect(order).toEqual(['broadcast', 'broadcast', 'presence']);
   });
 
   test('does not create a channel until a userId is known, then creates exactly one', async () => {
@@ -89,13 +120,20 @@ describe('useSessionChannel', () => {
     await waitFor(() => expect(getChannels()).toHaveLength(1));
     expect(soleChannel()).not.toBe(firstChannel);
   });
+
+  test('creates the channel as a private channel, so Realtime enforces the room-visibility policy on it', async () => {
+    renderHook(() => useSessionChannel('room', 'user-1'));
+    await waitFor(() => expect(getChannels()).toHaveLength(1));
+    const channel = soleChannel();
+    expect(channel.params.config?.private).toBe(true);
+  });
 });
 
 describe('useSession + usePresence on one shared channel', () => {
   function renderWorkspaceHooks(sessionId = 'room', userId: string | null = 'user-1') {
     return renderHook(() => {
       const { channel, status } = useSessionChannel(sessionId, userId);
-      const session = useSession(sessionId, userId, channel, status, 'web');
+      const session = useSession(sessionId, userId, false, channel, status, 'web', null);
       const presence = usePresence(userId, channel);
       return { session, presence };
     });
@@ -113,7 +151,7 @@ describe('useSession + usePresence on one shared channel', () => {
     expect(getChannels()).toHaveLength(1);
     const channel = soleChannel();
     expect(channel.subscribe).toHaveBeenCalledTimes(1);
-    expect(channel.bindingsOfType('broadcast')).toHaveLength(1);
+    expect(channel.bindingsOfType('broadcast')).toHaveLength(2);
     expect(channel.bindingsOfType('presence')).toHaveLength(1);
 
     // Broadcast side: a remote edit lands in session content.
@@ -146,7 +184,7 @@ describe('useSession + usePresence on one shared channel', () => {
       expect.objectContaining({
         type: 'broadcast',
         event: 'edit',
-        payload: { field: 'js', value: 'console.log(1)', userId: 'user-1' },
+        payload: { field: 'js', value: 'console.log(1)', userId: 'user-1', clientId: expect.any(String) },
       }),
     );
   });

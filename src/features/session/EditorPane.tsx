@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { EditorView } from '@codemirror/view';
-import { EditorState } from '@codemirror/state';
+import { EditorView, keymap } from '@codemirror/view';
+import { EditorSelection, EditorState, Prec, type StateCommand } from '@codemirror/state';
+import { indentLess, indentMore } from '@codemirror/commands';
 import { basicSetup } from 'codemirror';
-import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import { HighlightStyle, getIndentUnit, indentUnit, syntaxHighlighting } from '@codemirror/language';
 import { tags as t } from '@lezer/highlight';
 import { html } from '@codemirror/lang-html';
 import { css } from '@codemirror/lang-css';
@@ -94,6 +95,31 @@ type Props = {
   fileName?: string;
 };
 
+// Tab like most code editors: with a bare cursor, insert one indent unit of
+// spaces *at the cursor* (CodeMirror's indentWithTab always indents the whole
+// line, wherever the cursor is); with text selected, indent the selected
+// lines. Shift+Tab always un-indents the lines.
+const insertIndentAtCursor: StateCommand = ({ state, dispatch }) => {
+  if (state.readOnly) return false;
+  if (state.selection.ranges.some((range) => !range.empty)) return indentMore({ state, dispatch });
+  const unit = state.facet(indentUnit);
+  // A tab-based indentUnit inserts a tab character; otherwise pad with spaces
+  // to the next multiple of the indent width (a "tab stop"), like VS Code.
+  const width = getIndentUnit(state);
+  dispatch(
+    state.update(
+      state.changeByRange((range) => {
+        const line = state.doc.lineAt(range.head);
+        const column = range.head - line.from;
+        const insert = unit === '\t' ? '\t' : ' '.repeat(width - (column % width) || width);
+        return { changes: { from: range.head, insert }, range: EditorSelection.cursor(range.head + insert.length) };
+      }),
+      { scrollIntoView: true, userEvent: 'input.indent' },
+    ),
+  );
+  return true;
+};
+
 export default function EditorPane({ title, language, value, onChange, fileName }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -123,6 +149,25 @@ export default function EditorPane({ title, language, value, onChange, fileName 
         doc: value,
         extensions: [
           basicSetup,
+          // basicSetup leaves Tab to the browser (moves focus) for keyboard
+          // accessibility; a code editor should indent instead (see
+          // insertIndentAtCursor). CodeMirror still offers a way out: Esc
+          // then Tab moves focus as usual.
+          keymap.of([
+            { key: 'Tab', run: insertIndentAtCursor },
+            { key: 'Shift-Tab', run: indentLess },
+          ]),
+          // basicSetup binds Mod-Enter (Cmd on Mac, Ctrl elsewhere) to "insert
+          // blank line", so the Run shortcut also edited the code. Claim both
+          // combos here as no-ops: CodeMirror doesn't stop propagation for a
+          // keymap binding, so the keydown still reaches RunControls' window
+          // listener and runs the code -- it just no longer types anything.
+          Prec.highest(
+            keymap.of([
+              { key: 'Mod-Enter', run: () => true },
+              { key: 'Ctrl-Enter', run: () => true },
+            ]),
+          ),
           LANGUAGE_EXTENSIONS[language],
           editorTheme,
           syntaxHighlighting(syntaxTheme),

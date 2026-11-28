@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<title>Welcome to CodeShare</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800&family=IBM+Plex+Mono:wght@600&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0;padding:0;background-color:#010c0c;" bgcolor="#010c0c">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">Your CodeShare signup code is {{ .Token }}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#010c0c" style="background-color:#010c0c;">
+  <tr>
+    <td align="center" style="padding:40px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;">
+        <tr>
+          <td align="left" style="padding:0 4px 20px 4px;font-family:'Unbounded','Segoe UI',Helvetica,Arial,sans-serif;font-size:22px;font-weight:800;letter-spacing:-0.5px;color:#ebf4f3;">
+            <span style="color:#31e1c7;">{</span>CodeShare<span style="color:#31e1c7;">}</span>
+          </td>
+        </tr>
+        <tr>
+          <td bgcolor="#051515" style="background-color:#051515;border:1px solid #163533;border-radius:18px;padding:32px 28px;">
+            <p style="margin:0 0 10px 0;font-family:'IBM Plex Mono','SFMono-Regular',Menlo,Consolas,monospace;font-size:11px;font-weight:600;letter-spacing:2px;color:#31e1c7;">CONFIRM YOUR EMAIL</p>
+            <h1 style="margin:0 0 12px 0;font-family:'Unbounded','Segoe UI',Helvetica,Arial,sans-serif;font-size:24px;line-height:1.25;font-weight:800;letter-spacing:-0.5px;color:#ebf4f3;">Welcome to CodeShare</h1>
+            <p style="margin:0 0 24px 0;font-family:'IBM Plex Sans',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#a3b5b5;">Enter this code in CodeShare to finish creating your account.</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" bgcolor="#0c1e1f" style="background-color:#0c1e1f;border:1px solid #31e1c7;border-radius:14px;padding:22px 12px;">
+                  <p style="margin:0 0 6px 0;font-family:'IBM Plex Mono','SFMono-Regular',Menlo,Consolas,monospace;font-size:11px;letter-spacing:2px;color:#677879;">YOUR CODE</p>
+                  <p style="margin:0;font-family:'IBM Plex Mono','SFMono-Regular',Menlo,Consolas,monospace;font-size:34px;line-height:1.2;font-weight:600;letter-spacing:10px;color:#31e1c7;">{{ .Token }}</p>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:20px 0 0 0;font-family:'IBM Plex Sans',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;color:#677879;">The code expires in 1 hour. Didn&rsquo;t try to sign up? You can safely ignore this email.</p>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:20px 4px 0 4px;font-family:'IBM Plex Mono','SFMono-Regular',Menlo,Consolas,monospace;font-size:11px;line-height:1.6;color:#677879;">
+            CodeShare &middot; real-time collaborative code sharing
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

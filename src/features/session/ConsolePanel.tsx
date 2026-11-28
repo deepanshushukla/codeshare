@@ -1,5 +1,6 @@
 import { useEffect, useState, type KeyboardEvent } from 'react';
 import type { ConsoleEntry, SandboxMessage } from '../../lib/sandbox';
+import { runShortcutLabel } from '../../lib/platform';
 import styles from './ConsolePanel.module.scss';
 
 let nextId = 0;
@@ -107,8 +108,10 @@ export default function ConsolePanel({ onRepl }: { onRepl: (code: string) => voi
 
   // Enter submits (preventDefault before the textarea inserts its own
   // newline); Shift+Enter inserts a newline, like Chrome DevTools' console.
+  // Cmd/Ctrl+Enter is the global Run shortcut (RunControls), so it is left
+  // alone here rather than also submitting whatever is in the input.
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
       e.preventDefault();
       submit();
     }
@@ -129,7 +132,7 @@ export default function ConsolePanel({ onRepl }: { onRepl: (code: string) => voi
       <div className={styles.entries}>
         {entries.length === 0 ? (
           <div className={styles.empty}>
-            <div>// Press Run or Ctrl + Enter.</div>
+            <div>// Press Run or {runShortcutLabel().text}.</div>
             <div>// Logs from your code land here.</div>
           </div>
         ) : (

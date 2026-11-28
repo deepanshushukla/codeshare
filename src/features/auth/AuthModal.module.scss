@@ -1,0 +1,196 @@
+// `fade` is defined globally in `src/styles/motion.scss` (loaded via
+// globals.scss), so it isn't redeclared here. The centered-dialog `scaleIn`
+// keyframe below is local to this component -- ThemeDrawer's `drawerIn` is a
+// side-panel slide, not a fit for a centered modal.
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: oklch(0 0 0 / 0.45);
+  animation: global(fade) 0.2s ease both;
+}
+
+// Centered with inset + auto margins, not top/left 50% + translate(-50%, -50%):
+// the scaleIn animation animates `transform` and holds its end state
+// (`both`), which overwrote the centering translate and pinned the modal's
+// top-left corner to the middle of the screen.
+.content {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  z-index: 41;
+  width: min(380px, calc(100vw - 2rem));
+  height: fit-content;
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  padding: var(--space-4);
+  background: var(--bg);
+  border: 1px solid var(--line2);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-overlay);
+  animation: scaleIn 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+  &:focus-visible {
+    outline: none;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.title {
+  font: 800 18px var(--font-display);
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
+.close {
+  all: unset;
+  box-sizing: border-box;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line2);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--acc);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 1px;
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.label {
+  font: 600 13px var(--font-sans);
+  color: var(--muted);
+}
+
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem 0.75rem;
+  font: 400 14px var(--font-sans);
+  color: var(--text);
+  background: var(--bg2);
+  border: 1px solid var(--line2);
+  border-radius: var(--radius-btn);
+
+  &:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 1px;
+  }
+}
+
+.error {
+  font: 500 13px var(--font-sans);
+  color: var(--err);
+}
+
+.notice {
+  margin: 0;
+  font: 500 13px var(--font-sans);
+  color: var(--acc-t);
+}
+
+.hint {
+  margin: 0;
+  font: 400 12px/1.5 var(--font-sans);
+  color: var(--muted);
+
+  a {
+    color: var(--acc);
+    font-family: var(--font-mono);
+  }
+}
+
+.submit {
+  all: unset;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  padding: 0.65rem 1rem;
+  margin-top: var(--space-1);
+  font: 700 14px var(--font-sans);
+  color: var(--acc-ink);
+  background: var(--acc);
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+  text-align: center;
+
+  &:hover {
+    filter: brightness(1.05);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+.linkRow {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.linkButton {
+  all: unset;
+  font: 600 13px var(--font-sans);
+  color: var(--acc);
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}

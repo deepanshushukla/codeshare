@@ -1,4 +1,5 @@
 import { vi } from 'vitest';
+import { isSessionType } from '../features/session/sessionType';
 
 // A stand-in for `src/lib/supabase.ts` that models the parts of
 // `@supabase/supabase-js` whose *real* behaviour this app depends on. Use it
@@ -27,7 +28,8 @@ import { vi } from 'vitest';
 
 export type MockSessionRow = { id: string; html: string; css: string; js: string };
 export type MockPresenceMeta = { name: string; status: string };
-export type MockChannelParams = { config?: { presence?: { key?: string }; broadcast?: unknown } };
+export type MockChannelParams = { config?: { presence?: { key?: string }; broadcast?: unknown; private?: boolean } };
+export type MockAuthSession = { user: { id: string; email: string | null; is_anonymous: boolean } } | null;
 
 type MockBinding = {
   type: string;
@@ -113,8 +115,16 @@ const DEFAULT_CONFIG = {
   sessionRow: null as MockSessionRow | null,
   selectError: null as { message: string } | null,
   upsertResult: { error: null } as { error: { message: string } | null },
+  // `.update(...).eq(...).select(...)` result. RLS makes a disallowed update
+  // match zero rows *without* an error, hence `data` is part of the contract.
+  updateResult: { data: [{ id: 'room1' }], error: null } as { data: unknown[] | null; error: { message: string } | null },
   signInUserId: 'user-1',
   signInError: null as Error | null,
+  authSession: null as MockAuthSession,
+  rpcData: [{ exists_: false, is_private: false, owner_id: null, session_type: null }] as unknown[] | null,
+  rpcError: null as { message: string } | null,
+  sessionList: [] as unknown[],
+  listError: null as { message: string } | null,
 };
 
 /** Mutate this to steer the mock from a test. */
@@ -127,9 +137,48 @@ export const maybeSingle = vi.fn(async () => ({
 
 export const upsert = vi.fn(async (_row: Record<string, unknown>) => mockConfig.upsertResult);
 
+export const update = vi.fn((_row: Record<string, unknown>) => ({
+  eq: (_column: string, _value: unknown) => ({
+    select: async (_columns?: string) => mockConfig.updateResult,
+  }),
+}));
+
+// Auth state change listeners
+const authListeners: ((event: string, session: MockAuthSession) => void)[] = [];
+
+export function emitAuthStateChange(event: string, session: MockAuthSession): void {
+  mockConfig.authSession = session;
+  for (const listener of authListeners) {
+    listener(event, session);
+  }
+}
+
+// Auth-related vi.fn() exports
+// Typed `Promise<{ error: { message: string } | null }>` (not bare `null`,
+// which `() => ({ error: null })` would otherwise infer) so a consuming
+// test's `mockResolvedValueOnce({ error: { message: '...' } })` -- the
+// AuthModal error-path tests' whole mechanism for simulating a failed
+// auth call -- type-checks under `tsc -b`.
+export const signUpWithEmail = vi.fn(async (): Promise<{ error: { message: string } | null }> => ({ error: null }));
+export const verifySignupOtp = vi.fn(async (): Promise<{ error: { message: string } | null }> => ({ error: null }));
+export const loginWithPassword = vi.fn(async (): Promise<{ error: { message: string } | null }> => ({ error: null }));
+export const requestPasswordReset = vi.fn(async (): Promise<{ error: { message: string } | null }> => ({ error: null }));
+export const verifyPasswordResetOtp = vi.fn(async (): Promise<{ error: { message: string } | null }> => ({ error: null }));
+export const setNewPassword = vi.fn(async (): Promise<{ error: { message: string } | null }> => ({ error: null }));
+export const logout = vi.fn(async () => undefined);
+
 export const from = vi.fn((_table: string) => ({
-  select: (_columns?: string) => ({ eq: (_column: string, _value: unknown) => ({ maybeSingle }) }),
+  select: (_columns?: string) => ({
+    eq: (_column: string, _value: unknown) => ({
+      maybeSingle,
+      order: (_col: string, _opts?: { ascending?: boolean }) => ({
+        data: mockConfig.sessionList,
+        error: mockConfig.listError,
+      }),
+    }),
+  }),
   upsert,
+  update,
 }));
 
 const channels = new Map<string, MockRealtimeChannel>();
@@ -150,7 +199,57 @@ export const removeChannel = vi.fn((target: MockRealtimeChannel) => {
   return target.unsubscribe();
 });
 
-export const supabase = { from, channel, removeChannel };
+export const rpc = vi.fn(async (_fn: string, _args: unknown) => ({
+  data: mockConfig.rpcData,
+  error: mockConfig.rpcError,
+}));
+
+// Mirrors `fetchSessionAccess` in `src/lib/supabase.ts`: a thin parse of the
+// `session_visibility` RPC response, driven by the same `rpc`/`mockConfig`
+// surface above so tests steer it via `mockConfig.rpcData`/`rpcError` exactly
+// like they steer the real function's underlying `supabase.rpc` call.
+export const fetchSessionAccess = vi.fn(async (sessionId: string) => {
+  const { data, error } = await rpc('session_visibility', { p_id: sessionId });
+
+  if (error || !data || !Array.isArray(data) || data.length === 0) {
+    return null;
+  }
+
+  const row = data[0] as Record<string, unknown>;
+  const rawSessionType = row.session_type;
+  const sessionType = typeof rawSessionType === 'string' && isSessionType(rawSessionType) ? rawSessionType : null;
+
+  return {
+    exists: (row.exists_ as boolean | undefined) ?? false,
+    isPrivate: (row.is_private as boolean | undefined) ?? false,
+    ownerId: (row.owner_id as string | null | undefined) ?? null,
+    sessionType,
+  };
+});
+
+export const supabase = {
+  from,
+  channel,
+  removeChannel,
+  rpc,
+  auth: {
+    onAuthStateChange: vi.fn((callback: (event: string, session: MockAuthSession) => void) => {
+      authListeners.push(callback);
+      // Immediately invoke with current session
+      callback('INITIAL_SESSION', mockConfig.authSession);
+      return {
+        data: {
+          subscription: {
+            unsubscribe: vi.fn(() => {
+              const index = authListeners.indexOf(callback);
+              if (index > -1) authListeners.splice(index, 1);
+            }),
+          },
+        },
+      };
+    }),
+  },
+};
 
 export const ensureAnonymousSession = vi.fn(async () => {
   if (mockConfig.signInError) throw mockConfig.signInError;
@@ -175,11 +274,25 @@ export function soleChannel(): MockRealtimeChannel {
 
 export function resetSupabaseMock(): void {
   channels.clear();
-  Object.assign(mockConfig, DEFAULT_CONFIG, { upsertResult: { error: null } });
+  authListeners.length = 0;
+  Object.assign(mockConfig, DEFAULT_CONFIG, {
+    upsertResult: { error: null },
+    updateResult: { data: [{ id: 'room1' }], error: null },
+  });
   maybeSingle.mockClear();
   upsert.mockClear();
+  update.mockClear();
   from.mockClear();
   channel.mockClear();
   removeChannel.mockClear();
   ensureAnonymousSession.mockClear();
+  rpc.mockClear();
+  fetchSessionAccess.mockClear();
+  signUpWithEmail.mockClear();
+  verifySignupOtp.mockClear();
+  loginWithPassword.mockClear();
+  requestPasswordReset.mockClear();
+  verifyPasswordResetOtp.mockClear();
+  setNewPassword.mockClear();
+  logout.mockClear();
 }
