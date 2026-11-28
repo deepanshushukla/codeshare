@@ -30,7 +30,7 @@ const MOBILE_EDITOR_TABS: (keyof ReactTabsState)[] = ['appJsx', 'componentsJsx',
 // OutputFrame mount, mobile/desktop branching, runToken/iframeWindowRef,
 // etc.). The one real difference is the naming seam: useSession returns
 // snake_case (`app_jsx`/`components_jsx`/`react_css`, matching Supabase's
-// column names), while OutputFrame/OutputPane/ExportMenu/ReactTabBar/
+// column names), while OutputFrame/OutputPane/exportActions/ReactTabBar/
 // ReactMobileTabBar all use camelCase (`appJsx`/`componentsJsx`/`reactCss`).
 // The rename happens explicitly at each boundary below -- never implicitly.
 //

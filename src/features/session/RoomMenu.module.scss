@@ -1,0 +1,83 @@
+@use '../../styles/controls' as controls;
+
+.trigger {
+  @include controls.room-control;
+
+  width: 36px;
+  padding: 0;
+  justify-content: center;
+
+  &[data-state='open'] {
+    border-color: var(--acc);
+    background: var(--acc-soft);
+  }
+}
+
+.content {
+  @include controls.room-overlay-surface;
+
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 15rem;
+  max-width: min(20rem, calc(100vw - 24px));
+  padding: 6px;
+  border-radius: 12px;
+}
+
+.item {
+  @include controls.room-overlay-item;
+
+  gap: 10px;
+  min-height: 36px;
+  padding: 0 10px;
+  color: var(--text);
+  text-decoration: none;
+  font: 500 13px var(--font-sans);
+
+  svg {
+    flex: none;
+    color: var(--muted);
+  }
+
+  &[data-highlighted] svg {
+    color: var(--acc-t);
+  }
+}
+
+.hint {
+  margin-left: auto;
+  font: 500 11px var(--font-mono);
+  color: var(--faint);
+}
+
+.swatch {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: conic-gradient(var(--acc) 0 50%, var(--text) 50% 100%);
+}
+
+.separator {
+  height: 1px;
+  margin: 5px 4px;
+  background: var(--line);
+}
+
+.label {
+  padding: 4px 10px 2px;
+  font: 600 10px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.email {
+  padding: 6px 10px 4px;
+  font: 500 12px var(--font-mono);
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

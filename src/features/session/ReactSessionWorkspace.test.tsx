@@ -11,7 +11,7 @@ import { getChannels, mockConfig, resetSupabaseMock, soleChannel } from '../../t
 // are reproduced rather than stubbed away.
 vi.mock('../../lib/supabase', () => import('../../test/supabaseMock'));
 
-// Captures the exact props Header forwards into ExportMenu, so the
+// Captures the exportContent Header forwards into RoomMenu, so the
 // snake_case->camelCase rename at the ReactSessionWorkspace/Header boundary
 // can be asserted directly. Driving this through a real click on Header's
 // Radix dropdown (as Header.test.tsx does in isolation) is not reliable
@@ -23,9 +23,9 @@ vi.mock('../../lib/supabase', () => import('../../test/supabaseMock'));
 // Mocking the leaf component sidesteps that environment limitation entirely
 // while still verifying the real prop contract.
 let capturedExportProps: unknown;
-vi.mock('./ExportMenu', () => ({
-  default: (props: unknown) => {
-    capturedExportProps = props;
+vi.mock('./RoomMenu', () => ({
+  default: (props: { exportContent: unknown }) => {
+    capturedExportProps = props.exportContent;
     return null;
   },
 }));
