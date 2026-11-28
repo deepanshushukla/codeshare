@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Atom, Code2, Globe, Lock, Plus, Search } from 'lucide-react';
+import { Atom, Code2, Globe, Lock, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthUser } from '../features/auth/useAuthUser';
 import AuthModal from '../features/auth/AuthModal';
 import AccountMenu from '../features/auth/AccountMenu';
+import { isGenericTitle } from '../lib/titleFromCode';
+import NewRoomButton from './NewRoomButton';
 import styles from './MyRooms.module.scss';
 
 type RoomRow = {
   id: string;
   title: string | null;
+  name?: string | null;
   is_private: boolean;
   session_type: string | null;
   created_at: string;
@@ -23,9 +26,34 @@ type ListState =
 
 type Filter = 'all' | 'public' | 'private';
 
-function displayTitle(room: RoomRow): string {
-  if (room.title) return room.title;
-  return room.session_type === 'react' ? 'Untitled React Room' : 'Untitled Web Room';
+function typeName(room: RoomRow): string {
+  return room.session_type === 'react' ? 'React' : 'Web';
+}
+
+/**
+ * Display names for the list. A room whose title is still generic (empty,
+ * the starter "Welcome to CodeShare 👋", or "Untitled …") would read the same
+ * as every other one, so those are numbered per type in creation order:
+ * "Web Room 1", "Web Room 2", "React Room 1". Numbering uses the full list,
+ * not the filtered view, so a room keeps its number while filtering.
+ */
+function buildDisplayTitles(rooms: RoomRow[]): Map<string, string> {
+  const titles = new Map<string, string>();
+  const counters: Record<string, number> = {};
+  const oldestFirst = [...rooms].sort((a, b) => a.created_at.localeCompare(b.created_at));
+  for (const room of oldestFirst) {
+    const chosen = room.name?.trim();
+    if (chosen) {
+      titles.set(room.id, chosen);
+    } else if (room.title && !isGenericTitle(room.title)) {
+      titles.set(room.id, room.title);
+    } else {
+      const kind = typeName(room);
+      counters[kind] = (counters[kind] ?? 0) + 1;
+      titles.set(room.id, `${kind} Room ${counters[kind]}`);
+    }
+  }
+  return titles;
 }
 
 const relativeFormat = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
@@ -73,7 +101,7 @@ export default function MyRooms() {
     (async () => {
       const { data, error } = await supabase
         .from('sessions')
-        .select('id, title, is_private, session_type, created_at, updated_at')
+        .select('id, title, name, is_private, session_type, created_at, updated_at')
         .eq('owner_id', userId)
         .order('updated_at', { ascending: false });
       if (!active) return;
@@ -90,6 +118,8 @@ export default function MyRooms() {
   }, [userId, isAnonymous, loading]);
 
   const rooms = list.status === 'ready' ? list.rooms : [];
+  const titles = useMemo(() => buildDisplayTitles(rooms), [rooms]);
+  const displayTitle = (room: RoomRow) => titles.get(room.id) ?? `${typeName(room)} Room`;
   const counts = useMemo(
     () => ({
       all: rooms.length,
@@ -104,9 +134,10 @@ export default function MyRooms() {
       if (filter === 'public' && room.is_private) return false;
       if (filter === 'private' && !room.is_private) return false;
       if (!needle) return true;
-      return displayTitle(room).toLowerCase().includes(needle) || room.id.toLowerCase().includes(needle);
+      const title = titles.get(room.id) ?? '';
+      return title.toLowerCase().includes(needle) || room.id.toLowerCase().includes(needle);
     });
-  }, [rooms, filter, query]);
+  }, [rooms, titles, filter, query]);
 
   function setRoomPrivacy(id: string, next: boolean) {
     setList((prev) =>
@@ -159,10 +190,7 @@ export default function MyRooms() {
               Every room you created while logged in. Switch a room to <strong>Private</strong> and only you can open it.
             </p>
           </div>
-          <Link to="/" className={styles.newRoom}>
-            <Plus size={16} aria-hidden="true" />
-            New room
-          </Link>
+          <NewRoomButton className={styles.newRoom} />
         </div>
 
         {isAnonymous ? (
@@ -189,11 +217,8 @@ export default function MyRooms() {
         ) : rooms.length === 0 ? (
           <div className={styles.emptyCard}>
             <Code2 size={28} aria-hidden="true" className={styles.emptyIcon} />
-            <p className={styles.emptyTitle}>No rooms yet — create one from the home page.</p>
-            <Link to="/" className={styles.newRoom}>
-              <Plus size={16} aria-hidden="true" />
-              New room
-            </Link>
+            <p className={styles.emptyTitle}>No rooms yet — start your first one.</p>
+            <NewRoomButton className={styles.newRoom} />
           </div>
         ) : (
           <>

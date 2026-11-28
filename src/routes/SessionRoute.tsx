@@ -1,4 +1,4 @@
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useParams, useSearchParams } from 'react-router-dom';
 import SessionWorkspace from '../features/session/SessionWorkspace';
 import ReactSessionWorkspace from '../features/session/ReactSessionWorkspace';
 import { useAuthUser } from '../features/auth/useAuthUser';
@@ -22,6 +22,12 @@ export default function SessionRoute() {
   // (including absent) means "no hint," not "public."
   const rawPrivate = searchParams.get('private');
   const privacyHint: boolean | null = rawPrivate === '1' ? true : rawPrivate === '0' ? false : null;
+  // An optional name picked in My Rooms' New room panel, carried in router
+  // state (not the URL, so it never ends up in a shared link). Like the hints
+  // above it only matters if this visit creates the room.
+  const location = useLocation();
+  const rawName: unknown = (location.state as { roomName?: unknown } | null)?.roomName;
+  const nameHint = typeof rawName === 'string' && rawName.trim() ? rawName.trim() : null;
   // Called unconditionally, before the `!sessionId` guard below, so these
   // hook calls can never be skipped on some renders and not others (Rules of
   // Hooks). `sessionId` is always defined once this route actually matches
@@ -43,6 +49,7 @@ export default function SessionRoute() {
       userId={userId}
       isAnonymous={isAnonymous}
       privacyHint={privacyHint}
+      nameHint={nameHint}
       initialIsPrivate={access.isPrivate}
       onAccessRevoked={access.recheck}
     />
@@ -52,6 +59,7 @@ export default function SessionRoute() {
       userId={userId}
       isAnonymous={isAnonymous}
       privacyHint={privacyHint}
+      nameHint={nameHint}
       initialIsPrivate={access.isPrivate}
       onAccessRevoked={access.recheck}
     />
