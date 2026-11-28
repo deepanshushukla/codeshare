@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Atom, Code2, Globe, Lock, Plus, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthUser } from '../features/auth/useAuthUser';
 import AuthModal from '../features/auth/AuthModal';
+import AccountMenu from '../features/auth/AccountMenu';
 import styles from './MyRooms.module.scss';
 
 type RoomRow = {
@@ -18,6 +20,8 @@ type ListState =
   | { status: 'loading' }
   | { status: 'error' }
   | { status: 'ready'; rooms: RoomRow[] };
+
+type Filter = 'all' | 'public' | 'private';
 
 function displayTitle(room: RoomRow): string {
   if (room.title) return room.title;
@@ -44,16 +48,23 @@ function relativeTime(iso: string): string {
 }
 
 /**
- * Lists the rooms the logged-in user owns, most recently updated first.
+ * Lists the rooms the logged-in user owns, most recently updated first, and
+ * lets the owner flip each one between Public and Private.
  * RLS already limits `sessions` reads to public rooms plus the caller's own
- * private ones; the `owner_id` filter narrows that to "mine". Anonymous
- * visitors can't own rooms in a meaningful way (see the private-rooms spec),
- * so they get a login prompt instead of a query.
+ * private ones; the `owner_id` filter narrows that to "mine". The privacy
+ * update is guarded server-side too (RLS + the owner-only trigger in
+ * 0003_private_rooms.sql), so a failed update just rolls the switch back.
+ * Anonymous visitors can't own rooms in a meaningful way (see the
+ * private-rooms spec), so they get a login prompt instead of a query.
  */
 export default function MyRooms() {
   const { userId, isAnonymous, loading } = useAuthUser();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [list, setList] = useState<ListState>({ status: 'loading' });
+  const [filter, setFilter] = useState<Filter>('all');
+  const [query, setQuery] = useState('');
+  const [pending, setPending] = useState<Set<string>>(() => new Set());
+  const [toggleError, setToggleError] = useState<string | null>(null);
 
   useEffect(() => {
     if (loading || isAnonymous || !userId) return;
@@ -78,53 +89,201 @@ export default function MyRooms() {
     };
   }, [userId, isAnonymous, loading]);
 
+  const rooms = list.status === 'ready' ? list.rooms : [];
+  const counts = useMemo(
+    () => ({
+      all: rooms.length,
+      public: rooms.filter((r) => !r.is_private).length,
+      private: rooms.filter((r) => r.is_private).length,
+    }),
+    [rooms],
+  );
+  const visibleRooms = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return rooms.filter((room) => {
+      if (filter === 'public' && room.is_private) return false;
+      if (filter === 'private' && !room.is_private) return false;
+      if (!needle) return true;
+      return displayTitle(room).toLowerCase().includes(needle) || room.id.toLowerCase().includes(needle);
+    });
+  }, [rooms, filter, query]);
+
+  function setRoomPrivacy(id: string, next: boolean) {
+    setList((prev) =>
+      prev.status === 'ready'
+        ? { ...prev, rooms: prev.rooms.map((r) => (r.id === id ? { ...r, is_private: next } : r)) }
+        : prev,
+    );
+  }
+
+  async function togglePrivacy(room: RoomRow) {
+    const next = !room.is_private;
+    setToggleError(null);
+    setPending((prev) => new Set(prev).add(room.id));
+    setRoomPrivacy(room.id, next);
+    const { data, error } = await supabase.from('sessions').update({ is_private: next }).eq('id', room.id).select('id');
+    const failed = Boolean(error) || !data || data.length === 0;
+    if (failed) {
+      if (error) console.error('codeshare: changing room privacy failed', error);
+      setRoomPrivacy(room.id, room.is_private);
+      setToggleError(`Couldn’t make “${displayTitle(room)}” ${next ? 'private' : 'public'}. Try again.`);
+    }
+    setPending((prev) => {
+      const copy = new Set(prev);
+      copy.delete(room.id);
+      return copy;
+    });
+  }
+
   if (loading) return null;
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <h1 className={styles.heading}>My Rooms</h1>
-        <Link to="/" className={styles.homeLink}>
-          New room
-        </Link>
+      <header className={styles.topbar}>
+        <div className={styles.topbarInner}>
+          <Link to="/" className={styles.brand}>
+            <span className={styles.brandBracket}>{'{'}</span>
+            CodeShare
+            <span className={styles.brandBracket}>{'}'}</span>
+          </Link>
+          <AccountMenu />
+        </div>
       </header>
 
-      {isAnonymous ? (
-        <div className={styles.notice}>
-          <p>Log in to see your rooms.</p>
-          <button type="button" className={styles.loginButton} onClick={() => setAuthModalOpen(true)}>
-            Log in
-          </button>
-          <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} initialMode="login" />
+      <main className={styles.main}>
+        <div className={styles.hero}>
+          <div>
+            <p className={styles.eyebrow}>Dashboard</p>
+            <h1 className={styles.heading}>My Rooms</h1>
+            <p className={styles.subtitle}>
+              Every room you created while logged in. Switch a room to <strong>Private</strong> and only you can open it.
+            </p>
+          </div>
+          <Link to="/" className={styles.newRoom}>
+            <Plus size={16} aria-hidden="true" />
+            New room
+          </Link>
         </div>
-      ) : list.status === 'loading' ? (
-        <p className={styles.notice}>Loading…</p>
-      ) : list.status === 'error' ? (
-        <p className={styles.notice} role="alert">
-          Couldn&rsquo;t load your rooms. Try refreshing the page.
-        </p>
-      ) : list.rooms.length === 0 ? (
-        <p className={styles.notice}>No rooms yet — create one from the home page.</p>
-      ) : (
-        <ul className={styles.list}>
-          {list.rooms.map((room) => (
-            <li key={room.id}>
-              <Link to={`/code/${room.id}`} className={styles.row}>
-                <span className={styles.title}>{displayTitle(room)}</span>
-                <span className={styles.meta}>
-                  <span className={styles.badge}>{room.session_type === 'react' ? 'React' : 'Web'}</span>
-                  <span className={room.is_private ? styles.badgePrivate : styles.badge}>
-                    {room.is_private ? 'Private' : 'Public'}
-                  </span>
-                  <time className={styles.time} dateTime={room.updated_at}>
-                    {relativeTime(room.updated_at)}
-                  </time>
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+
+        {isAnonymous ? (
+          <div className={styles.emptyCard}>
+            <Lock size={28} aria-hidden="true" className={styles.emptyIcon} />
+            <p className={styles.emptyTitle}>Log in to see your rooms.</p>
+            <p className={styles.emptyText}>Rooms you create while logged in are saved here, and you can make them private.</p>
+            <button type="button" className={styles.newRoom} onClick={() => setAuthModalOpen(true)}>
+              Log in
+            </button>
+            <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} initialMode="login" />
+          </div>
+        ) : list.status === 'loading' ? (
+          <div className={styles.grid} aria-busy="true" aria-label="Loading rooms">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className={styles.skeleton} />
+            ))}
+          </div>
+        ) : list.status === 'error' ? (
+          <div className={styles.emptyCard} role="alert">
+            <p className={styles.emptyTitle}>Couldn&rsquo;t load your rooms.</p>
+            <p className={styles.emptyText}>Try refreshing the page.</p>
+          </div>
+        ) : rooms.length === 0 ? (
+          <div className={styles.emptyCard}>
+            <Code2 size={28} aria-hidden="true" className={styles.emptyIcon} />
+            <p className={styles.emptyTitle}>No rooms yet — create one from the home page.</p>
+            <Link to="/" className={styles.newRoom}>
+              <Plus size={16} aria-hidden="true" />
+              New room
+            </Link>
+          </div>
+        ) : (
+          <>
+            <div className={styles.toolbar}>
+              <div className={styles.filters} role="group" aria-label="Filter rooms">
+                {(['all', 'public', 'private'] as const).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className={styles.filter}
+                    aria-pressed={filter === key}
+                    onClick={() => setFilter(key)}
+                  >
+                    {key === 'all' ? 'All' : key === 'public' ? 'Public' : 'Private'}
+                    <span className={styles.filterCount}>{counts[key]}</span>
+                  </button>
+                ))}
+              </div>
+              <label className={styles.search}>
+                <Search size={15} aria-hidden="true" />
+                <input
+                  type="search"
+                  placeholder="Search rooms"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  aria-label="Search rooms"
+                />
+              </label>
+            </div>
+
+            {toggleError && (
+              <p className={styles.toggleError} role="alert">
+                {toggleError}
+              </p>
+            )}
+
+            {visibleRooms.length === 0 ? (
+              <div className={styles.emptyCard}>
+                <p className={styles.emptyTitle}>No rooms match.</p>
+              </div>
+            ) : (
+              <ul className={styles.grid}>
+                {visibleRooms.map((room) => {
+                  const isReact = room.session_type === 'react';
+                  const busy = pending.has(room.id);
+                  return (
+                    <li key={room.id} className={styles.card} data-private={room.is_private || undefined}>
+                      <div className={styles.cardTop}>
+                        <span className={styles.typeIcon} aria-hidden="true">
+                          {isReact ? <Atom size={18} /> : <Code2 size={18} />}
+                        </span>
+                        <span className={styles.typeLabel}>{isReact ? 'React' : 'Web'}</span>
+                        <span className={room.is_private ? styles.badgePrivate : styles.badge}>
+                          {room.is_private ? <Lock size={11} aria-hidden="true" /> : <Globe size={11} aria-hidden="true" />}
+                          {room.is_private ? 'Private' : 'Public'}
+                        </span>
+                      </div>
+
+                      <Link to={`/code/${room.id}`} className={styles.title}>
+                        {displayTitle(room)}
+                      </Link>
+                      <p className={styles.roomId}>/code/{room.id}</p>
+
+                      <div className={styles.cardFooter}>
+                        <time className={styles.time} dateTime={room.updated_at}>
+                          Edited {relativeTime(room.updated_at)}
+                        </time>
+                        <label className={styles.switchLabel}>
+                          <span>Private</span>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={room.is_private}
+                            aria-label={`Private: ${displayTitle(room)}`}
+                            className={styles.switch}
+                            disabled={busy}
+                            onClick={() => togglePrivacy(room)}
+                          >
+                            <span className={styles.switchThumb} />
+                          </button>
+                        </label>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </>
+        )}
+      </main>
     </div>
   );
 }

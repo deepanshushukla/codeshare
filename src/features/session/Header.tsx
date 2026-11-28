@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Copy, Lock, MoreVertical, Sparkles } from 'lucide-react';
+import { Copy, Globe, Lock, MoreVertical, Sparkles } from 'lucide-react';
 import type { SessionType } from './sessionType';
 import type { PresenceUser } from './usePresence';
 import UsersMenu from './UsersMenu';
@@ -328,6 +328,7 @@ export default function Header({
             aria-pressed={isPrivate}
             title={isPrivate ? 'Private room — click to make public' : 'Public room — click to make private'}
           >
+            {isPrivate ? <Lock size={12} aria-hidden="true" /> : <Globe size={12} aria-hidden="true" />}
             {isPrivate ? 'Private' : 'Public'}
           </button>
           {nudge('left')}
