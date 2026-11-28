@@ -7,7 +7,6 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Header from './Header';
 import TabBar from './TabBar';
-import styles from './Header.module.scss';
 import { ThemeProvider } from '../theme/ThemeProvider';
 import { DEFAULT_TABS } from './useTabsQueryParam';
 import type { PresenceUser } from './usePresence';
@@ -80,6 +79,16 @@ function renderHeader(overrides: Partial<HeaderProps> = {}) {
   return render(buildTree(overrides));
 }
 
+async function openMenu() {
+  await userEvent.click(screen.getByRole('button', { name: /^menu$/i }));
+  return screen.findByRole('menu');
+}
+
+async function pick(item: RegExp) {
+  await openMenu();
+  await userEvent.click(await screen.findByRole('menuitem', { name: item }));
+}
+
 const USERS: PresenceUser[] = [
   { userId: 'me', name: 'Ava', status: 'online' },
   { userId: 'them', name: 'Kenji', status: 'online' },
@@ -105,7 +114,7 @@ test('copies the room link and shows a toast', async () => {
   Object.assign(navigator, { clipboard: { writeText } });
   renderHeader({ roomId: 'abcd-1234' });
 
-  fireEvent.click(screen.getByTitle(/copy room link/i));
+  await pick(/copy room link/i);
 
   expect(writeText).toHaveBeenCalledWith(expect.stringContaining('abcd-1234'));
   // A real, working route into this app -- not the handoff's cosmetic "/r/".
@@ -121,7 +130,7 @@ test('tells the user when copying the room link failed instead of claiming succe
   });
   renderHeader();
 
-  fireEvent.click(screen.getByTitle(/copy room link/i));
+  await pick(/copy room link/i);
 
   expect(await screen.findByText(/couldn't copy/i)).toBeInTheDocument();
   expect(screen.queryByText(/room link copied/i)).not.toBeInTheDocument();
@@ -138,7 +147,7 @@ test.each([
   Object.assign(navigator, { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } });
   renderHeader();
 
-  fireEvent.click(screen.getByTitle(/copy room link/i));
+  await pick(/copy room link/i);
 
   // Toast positions itself with an inline `bottom`, so the rendered style is
   // the honest assertion -- Header picking the right offset is the behavior.
@@ -233,7 +242,7 @@ describe('new session control', () => {
     const pathBefore = window.location.pathname;
     renderHeader({ exportContent: { html: '', css: '', js: '' } });
 
-    await userEvent.click(screen.getByRole('button', { name: /start react app/i }));
+    await pick(/start react app/i);
 
     expect(openSpy).toHaveBeenCalledWith(expect.stringContaining('?type=react'), '_blank');
     expect(openSpy).toHaveBeenCalledWith(expect.stringContaining(`${window.location.origin}/code/`), '_blank');
@@ -245,7 +254,7 @@ describe('new session control', () => {
     const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
     renderHeader({ exportContent: { sessionType: 'react', appJsx: '', componentsJsx: '', reactCss: '' } });
 
-    await userEvent.click(screen.getByRole('button', { name: /start a new js app/i }));
+    await pick(/start a new js app/i);
 
     expect(openSpy).toHaveBeenCalledTimes(1);
     const [url, target] = openSpy.mock.calls[0];
@@ -257,8 +266,7 @@ describe('new session control', () => {
 test('shows a toast naming the exported file', async () => {
   renderHeader({ exportContent: { html: '<p>hi</p>', css: '', js: '' } });
 
-  await userEvent.click(screen.getByRole('button', { name: /export/i }));
-  await userEvent.click(await screen.findByText('HTML file'));
+  await pick(/html file/i);
 
   await waitFor(() => expect(saveAs).toHaveBeenCalled());
   const toast = await screen.findByText(/^Exported CodeShare_.*\.html$/);
@@ -342,162 +350,93 @@ describe('pane tabs in the header', () => {
 
 });
 
-// Below 760px, Theme/Users/Export/New-session collapse into a single "More"
-// button (MoreMenu in Header.tsx) -- the header has no overflow/wrap
-// handling, so logo + room-link chip + five ~36px controls genuinely don't
-// fit a common ~375-390px phone width in one horizontal row. Unlike the
-// `.center` tab-row test above, `isMobile` is a real `useBreakpoint()`
-// value this file already mocks via `matchMedia` (not pure CSS), so this
-// IS reproducible here -- a genuine conditional-render test, not a
-// source-text pin.
-describe('mobile "More" menu (<760px)', () => {
+describe('room menu', () => {
   function setMobile(isMobile: boolean) {
     mockMatchMedia((query) => (query.includes('max-width: 759px') ? isMobile : false));
   }
 
-  test('at desktop width, Theme/Users/Export/New-session render directly and there is no More button', () => {
+  test.each([
+    ['desktop', false],
+    ['mobile', true],
+  ])('on %s, secondary actions live only in the menu; Run and presence stay in the bar', async (_label, isMobile) => {
+    setMobile(isMobile);
     renderHeader();
-    expect(screen.queryByRole('button', { name: /^more$/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^theme:/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^export$/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /start react app/i })).toBeInTheDocument();
-  });
-
-  test('at mobile width, Theme/Users/Export/New-session are not directly in the header -- only the More button is', () => {
-    setMobile(true);
-    renderHeader();
-    expect(screen.getByRole('button', { name: /^more$/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^theme:/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^export$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^theme/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /start react app/i })).not.toBeInTheDocument();
-    // Run stays a direct, always-reachable primary action, not folded in.
+    expect(screen.queryByTitle(/copy room link/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^run/i })).toBeInTheDocument();
-  });
+    expect(screen.getByRole('button', { name: /users in this session/i })).toBeInTheDocument();
 
-  test('opening More reveals Theme/Users/Export/New-session; selecting Theme opens the drawer and closes the panel', async () => {
-    setMobile(true);
-    renderHeader();
-
-    await userEvent.click(screen.getByRole('button', { name: /^more$/i }));
-    expect(screen.getByRole('menuitem', { name: /theme/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^export$/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /start react app/i })).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('menuitem', { name: /theme/i }));
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
-    // The panel closed along with picking Theme, not left open underneath the drawer.
-    expect(screen.queryByRole('menuitem', { name: /theme/i })).not.toBeInTheDocument();
-  });
-
-  test('every row in the open panel has both an icon and a visible label, not a mix of bare icons and bare text', async () => {
-    setMobile(true);
-    renderHeader();
-
-    await userEvent.click(screen.getByRole('button', { name: /^more$/i }));
-    const panel = screen.getByRole('menu');
-
-    // Theme's "icon" is the same conic-gradient color swatch ThemeButton
-    // itself renders (a <span>, not an svg) -- everything else here is a
-    // lucide svg icon. Theme is also `role="menuitem"` (a plain action, not
-    // a nested dropdown of its own); the other three keep their native
-    // `button` role (Users/Export are each a DropdownMenu.Trigger,
-    // New-session a plain <button>).
-    const themeRow = within(panel).getByRole('menuitem', { name: /theme/i });
-    expect(themeRow.querySelector(`.${styles.moreThemeSwatch}`)).toBeInTheDocument();
-    expect(themeRow.textContent?.trim()).not.toBe('');
-
-    const svgIconRows = [
-      within(panel).getByRole('button', { name: /users/i }),
-      within(panel).getByRole('button', { name: /^export$/i }),
-      within(panel).getByRole('button', { name: /start react app/i }),
-    ];
-    for (const row of svgIconRows) {
-      expect(row.querySelector('svg')).toBeInTheDocument();
-      expect(row.textContent?.trim()).not.toBe('');
+    const menu = await openMenu();
+    for (const name of [/copy room link/i, /theme/i, /html file/i, /zip file/i, /start react app/i]) {
+      expect(within(menu).getByRole('menuitem', { name })).toBeInTheDocument();
     }
   });
 
-  test('clicking outside the open panel closes it', async () => {
+  test('on mobile the header carries no pane tabs (the bottom bar has them)', () => {
     setMobile(true);
+    renderHeader({ tabBar: <div data-testid="custom-tab-bar" /> });
+    expect(screen.queryByTestId('custom-tab-bar')).not.toBeInTheDocument();
+  });
+
+  test('Theme opens the theme drawer and closes the menu', async () => {
     renderHeader();
-
-    await userEvent.click(screen.getByRole('button', { name: /^more$/i }));
-    expect(screen.getByRole('menuitem', { name: /theme/i })).toBeInTheDocument();
-
-    await userEvent.click(document.body);
+    await pick(/theme/i);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: /theme/i })).not.toBeInTheDocument();
   });
 
-  test('pressing Escape closes the open panel', async () => {
-    setMobile(true);
+  test('Escape closes the menu', async () => {
     renderHeader();
-
-    await userEvent.click(screen.getByRole('button', { name: /^more$/i }));
-    expect(screen.getByRole('menuitem', { name: /theme/i })).toBeInTheDocument();
-
+    await openMenu();
     await userEvent.keyboard('{Escape}');
-    expect(screen.queryByRole('menuitem', { name: /theme/i })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
+  });
+
+  test('hides the account section until auth has resolved, so nobody sees a flash of "Log in"', async () => {
+    renderHeader();
+    const menu = await openMenu();
+    expect(within(menu).queryByRole('menuitem', { name: /log in/i })).not.toBeInTheDocument();
   });
 });
 
-test('opens the theme drawer from the header theme button', async () => {
-  renderHeader();
+describe('owner-only privacy switch', () => {
+  test('only the owner gets the switch', () => {
+    const { rerender } = renderHeader({ isPrivate: true, isOwner: false });
+    expect(screen.queryByRole('switch', { name: /private room/i })).not.toBeInTheDocument();
 
-  await userEvent.click(screen.getByRole('button', { name: /^theme:/i }));
-
-  expect(await screen.findByRole('dialog')).toBeInTheDocument();
-});
-
-describe('owner-only privacy toggle', () => {
-  test('shows the privacy toggle pill only when isOwner is true', () => {
-    const { rerender } = renderHeader({ isPrivate: true, isOwner: false, onTogglePrivacy: vi.fn() });
-    expect(screen.queryByRole('button', { name: /private/i })).not.toBeInTheDocument();
-
-    rerender(buildTree({ isPrivate: true, isOwner: true, onTogglePrivacy: vi.fn() }));
-    expect(screen.getByRole('button', { name: /private/i })).toBeInTheDocument();
+    rerender(buildTree({ isPrivate: true, isOwner: true }));
+    expect(screen.getByRole('switch', { name: /private room/i })).toBeChecked();
   });
 
-  test('clicking the privacy toggle calls onTogglePrivacy', async () => {
+  test('shows the current state as text, not just as a colour', () => {
+    const { rerender } = renderHeader({ isOwner: true, isPrivate: false });
+    expect(screen.getByRole('switch', { name: /private room/i })).toHaveTextContent('Public');
+    rerender(buildTree({ isOwner: true, isPrivate: true }));
+    expect(screen.getByRole('switch', { name: /private room/i })).toHaveTextContent('Private');
+  });
+
+  test('clicking it calls onTogglePrivacy', async () => {
     const onTogglePrivacy = vi.fn();
     renderHeader({ isPrivate: true, isOwner: true, onTogglePrivacy });
-
-    await userEvent.click(screen.getByRole('button', { name: /private/i }));
-
+    await userEvent.click(screen.getByRole('switch', { name: /private room/i }));
     expect(onTogglePrivacy).toHaveBeenCalledOnce();
   });
 });
 
 describe('anonymous visitors', () => {
-  test('the anonymous creator of a room gets "Make private" in place of the account menu, and no toggle pill', () => {
-    renderHeader({ isOwner: true, isAnonymous: true });
-    expect(screen.getByRole('button', { name: /make private/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^public$/i })).not.toBeInTheDocument();
-    expect(screen.queryByTestId('account-menu-slot')).not.toBeInTheDocument();
-  });
-
-  test('an anonymous visitor who did not create the room gets the normal account menu, not "Make private"', () => {
-    renderHeader({ isOwner: false, isAnonymous: true });
-    expect(screen.queryByRole('button', { name: /make private/i })).not.toBeInTheDocument();
-    expect(screen.getByTestId('account-menu-slot')).toBeInTheDocument();
-  });
-
-  test('a logged-in owner gets the toggle pill, not "Make private"', () => {
-    renderHeader({ isOwner: true, isAnonymous: false });
-    expect(screen.getByRole('button', { name: /^public$/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /make private/i })).not.toBeInTheDocument();
-  });
-
-  test('"Make private" opens the signup form', async () => {
-    renderHeader({ isOwner: true, isAnonymous: true });
-    await userEvent.click(screen.getByRole('button', { name: /make private/i }));
+  test('the anonymous creator of a room gets the switch, and it opens signup instead of toggling', async () => {
+    const onTogglePrivacy = vi.fn();
+    renderHeader({ isOwner: true, isAnonymous: true, onTogglePrivacy });
+    await userEvent.click(screen.getByRole('switch', { name: /private room/i }));
     expect(await screen.findByRole('heading', { name: /sign up/i })).toBeInTheDocument();
+    expect(onTogglePrivacy).not.toHaveBeenCalled();
   });
 
-  test('"Make private" is also reachable from the mobile More panel', async () => {
-    mockMatchMedia((query) => query.includes('max-width'));
-    renderHeader({ isOwner: true, isAnonymous: true });
-    await userEvent.click(screen.getByRole('button', { name: /more/i }));
-    expect(screen.getByRole('button', { name: /make private/i })).toBeInTheDocument();
+  test('an anonymous visitor who did not create the room gets no switch', () => {
+    renderHeader({ isOwner: false, isAnonymous: true });
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
   });
 });
 
@@ -523,10 +462,10 @@ describe('private-mode nudge', () => {
     expect(screen.queryByRole('dialog', { name: /private mode/i })).not.toBeInTheDocument();
   });
 
-  test('using the privacy control also counts as seen', async () => {
+  test('using the privacy switch also counts as seen', async () => {
     renderHeader({ isOwner: true, isAnonymous: false, onTogglePrivacy: vi.fn() });
     await screen.findByRole('dialog', { name: /private mode/i }, { timeout: 3000 });
-    await userEvent.click(screen.getByRole('button', { name: /^public$/i }));
+    await userEvent.click(screen.getByRole('switch', { name: /private room/i }));
     expect(screen.queryByRole('dialog', { name: /private mode/i })).not.toBeInTheDocument();
     expect(window.localStorage.getItem('codeshare.privateModeNudgeSeen')).toBe('1');
   });
@@ -539,14 +478,4 @@ describe('private-mode nudge', () => {
     await new Promise((r) => setTimeout(r, 1600));
     expect(screen.queryByRole('dialog', { name: /private mode/i })).not.toBeInTheDocument();
   });
-});
-
-test('renders AccountMenu', () => {
-  renderHeader({ isPrivate: false, isOwner: false, onTogglePrivacy: vi.fn() });
-  // AccountMenu is self-contained and calls useAuthUser() itself, which stays
-  // `loading` forever in this file's unmocked real-supabase setup (no network
-  // in jsdom actually resolves) -- so AccountMenu renders null here, same as
-  // its own tests document. The mount point itself, not AccountMenu's
-  // internal content, is what Header is responsible for.
-  expect(screen.getByTestId('account-menu-slot')).toBeInTheDocument();
 });

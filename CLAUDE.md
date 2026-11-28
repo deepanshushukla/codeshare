@@ -65,7 +65,7 @@ npx supabase db reset   # Re-apply migrations from supabase/migrations/
   - `OutputFrame` — sandboxed iframe runner
   - `ConsolePanel` — rendered console logs (via postMessage bridge)
   - `UsersMenu` — presence list with per-user editable names
-  - `ExportMenu` — export current output as HTML or ZIP
+  - `RoomMenu` — the header hamburger: copy link, theme, export (HTML/ZIP via `exportActions`), new room, account
   - `RunControls` — Run button + keyboard shortcuts
   - `useSessionChannel` — owns the session's **single** Realtime channel (both the broadcast and the presence binding, registered before one `subscribe()`); `supabase.channel()` dedupes by topic, so creating it in more than one hook is broken by construction — see `docs/supabase-setup.md`
   - `useSession` — React hook for session data sync (takes the channel from `useSessionChannel`)

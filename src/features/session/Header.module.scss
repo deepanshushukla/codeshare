@@ -1,9 +1,7 @@
-@use '../../styles/controls' as controls;
-
-// Room header, ported from the design handoff (`CodeShare v2.dc.html`,
-// ~lines 163-204): a fixed 56px bar holding the logo, the copy-room-link
-// chip, the centered pane-tab row, and the presence/theme/export/run
-// controls.
+// Room header: a fixed 56px bar holding the logo, the owner's privacy switch,
+// the centered pane-tab row (desktop only), and presence / Run / the menu.
+// Everything secondary (copy link, theme, export, new room, account) lives in
+// RoomMenu so the bar stays uncluttered.
 .header {
   flex: none;
   display: flex;
@@ -45,101 +43,30 @@
   }
 }
 
-// Dashed to read as "a link you can take with you" rather than a control that
-// changes the room; it solidifies on hover.
-.roomChip {
-  box-sizing: border-box;
-  height: 32px;
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: 0 11px;
-  border: 1px dashed var(--line2);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--muted);
-  font: 500 12px var(--font-mono);
-  cursor: pointer;
-  transition: border-color 0.2s ease, border-style 0.2s ease, color 0.2s ease;
-
-  &:hover {
-    border-style: solid;
-    border-color: var(--acc);
-    color: var(--text);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--acc);
-    outline-offset: 1px;
-  }
-}
-
-.roomPath {
-  // Shown only at >=1100px; the copy icon is the whole chip below that.
-  display: none;
-
-  @media (min-width: 1100px) {
-    display: inline;
-  }
-}
-
-.roomPrefix {
-  color: var(--faint);
-}
-
-// Owner-only visibility toggle, next to the room-link chip. Solid border (vs
-// roomChip's dashed "take it with you" styling) since this is a state
-// control, not a copyable link.
 .nudgeAnchor {
   position: relative;
   display: inline-flex;
   flex: none;
 }
 
-.makePrivate {
+// Owner-only Public/Private switch. Labelled, with a real switch track, so it
+// reads as a control (the old bare "Public" pill read as a status label).
+.privacySwitch {
   box-sizing: border-box;
   height: 36px;
   flex: none;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 12px;
-  border: 1px solid var(--acc);
-  border-radius: var(--radius-btn);
-  background: var(--acc-soft);
-  color: var(--acc-t);
+  gap: 8px;
+  padding: 0 8px 0 11px;
+  border: 1px solid var(--line2);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--muted);
   font: 600 13px var(--font-sans);
   white-space: nowrap;
   cursor: pointer;
-  transition: background 0.2s ease;
-
-  &:hover {
-    background: var(--acc);
-    color: var(--acc-ink);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--acc);
-    outline-offset: 1px;
-  }
-}
-
-.privacyPill {
-  box-sizing: border-box;
-  height: 32px;
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 11px;
-  border: 1px solid var(--line2);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--muted);
-  font: 600 12px var(--font-sans);
-  cursor: pointer;
-  transition: border-color 0.2s ease, color 0.2s ease;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
 
   &:hover {
     border-color: var(--acc);
@@ -148,13 +75,60 @@
 
   &:focus-visible {
     outline: 2px solid var(--acc);
-    outline-offset: 1px;
+    outline-offset: 2px;
   }
 
-  &[aria-pressed='true'] {
-    border-color: transparent;
+  &[aria-checked='true'] {
+    border-color: color-mix(in oklch, var(--acc) 45%, transparent);
     background: var(--acc-soft);
     color: var(--acc-t);
+  }
+}
+
+// Phones keep icon + track; the track alone still says "switch".
+.privacyLabel {
+  @media (max-width: 379px) {
+    display: none;
+  }
+}
+
+.track {
+  position: relative;
+  flex: none;
+  width: 30px;
+  height: 18px;
+  border-radius: var(--radius-pill);
+  background: var(--bg3);
+  border: 1px solid var(--line2);
+  transition: background 0.2s ease, border-color 0.2s ease;
+
+  .privacySwitch[aria-checked='true'] & {
+    background: var(--acc);
+    border-color: var(--acc);
+  }
+}
+
+.thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform 0.2s ease, background 0.2s ease;
+
+  .privacySwitch[aria-checked='true'] & {
+    transform: translateX(12px);
+    background: var(--acc-ink);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .privacySwitch,
+  .track,
+  .thumb {
+    transition: none;
   }
 }
 
@@ -204,7 +178,7 @@
     // crossing back over the breakpoint restores the pane set unchanged.
     //
     // Only the CONTENTS are hidden, never `.center` itself: it is the header's
-    // ONLY `flex: 1` child (`.logo`, `.roomChip` and `.actions` are all
+    // ONLY `flex: 1` child (`.logo`, the privacy switch and `.actions` are all
     // `flex: none`), so `display: none` on the element removed the sole
     // flexible spacer and bunched every control against the left edge with
     // dead space to the right of Run. Keeping the empty box at `flex: 1`
@@ -220,104 +194,4 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-}
-
-// The "new session" control: a single contextual button (not a menu --
-// Header.tsx computes the one label/target that makes sense for the
-// CURRENT room's type) that opens a fresh session of the other type in a
-// new tab, never the current one.
-//
-// No icon-only/narrow-width collapsing here (there used to be some, plus a
-// below-480px `display: none` -- both removed): this component now only
-// ever renders in two places -- the desktop `.actions` row (>=760px, where
-// neither rule could ever fire) or inside MoreMenu's vertical panel
-// (<760px, see Header.tsx), which has room for the full label and no
-// overflow constraint to hide from. Collapsing it was a workaround for the
-// ORIGINAL problem (five ~36px controls not fitting a ~375-390px phone
-// width in one horizontal row) that MoreMenu now solves a different way --
-// by moving controls into a vertical list instead of shrinking them.
-.newSessionTrigger {
-  @include controls.room-control;
-
-  gap: 7px;
-}
-
-// No @media hide on the label itself either, for the same reason as
-// .newSessionTrigger above.
-.newSessionLabel {
-  display: inline;
-}
-
-// --- Mobile "More" panel (<760px) -------------------------------------------
-//
-// Theme/Users/Export/New-session collapse into this single button below
-// 760px -- see MoreMenu's own comment in Header.tsx for why it's a plain
-// toggled panel rather than a nested Radix DropdownMenu.
-
-.moreWrap {
-  position: relative;
-}
-
-.moreTrigger {
-  @include controls.room-control;
-
-  width: 36px;
-  padding: 0;
-  justify-content: center;
-}
-
-.morePanel {
-  @include controls.room-overlay-surface;
-
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 11rem;
-}
-
-// Wraps each nested widget (UsersMenu/ExportMenu, each rendered with
-// `variant="menuRow"` -- see MoreMenu's comment) at full width, stacked
-// vertically instead of squeezed horizontally. Those two components' own
-// `.menuRowTrigger` classes (in their own module.scss files) give them the
-// same `room-overlay-item` row chrome this file's `.morePlainAction` gives
-// Theme/New-session, so all four rows read as one consistent list instead
-// of two different "a bordered ghost-button" and "a borderless list item"
-// visual languages mixed in the same panel.
-.morePanelItem {
-  display: flex;
-  width: 100%;
-}
-
-// Shared chrome for the panel's two genuinely plain actions -- Theme (just
-// Header's own setThemeDrawerOpen) and New-session's `variant="menuRow"`
-// (just a window.open call) -- neither opens a nested dropdown of its own,
-// unlike Users/Export, so a real `<button>` element with its own reset is
-// enough; it doesn't need a DropdownMenu.Trigger's class the way those two
-// do.
-.morePlainAction {
-  @include controls.room-overlay-item;
-
-  width: 100%;
-  gap: 7px;
-  background: none;
-  border: 0;
-  font: inherit;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-// The same conic-gradient formula as ThemeButton.module.scss's `.swatch`
-// (duplicated rather than imported across the feature-folder boundary --
-// see Header.tsx's comment on the Theme row). Theme-reactive via the
-// --acc/--text custom properties alone; no JS color lookup needed.
-.moreThemeSwatch {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: conic-gradient(var(--acc) 0 50%, var(--text) 50% 100%);
-  flex-shrink: 0;
 }
