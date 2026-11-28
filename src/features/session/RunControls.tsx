@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Play } from 'lucide-react';
+import { runShortcutLabel } from '../../lib/platform';
 import styles from './RunControls.module.scss';
 
 // The Run button and its Ctrl/Cmd+Enter shortcut. Both paths just call
@@ -36,9 +37,27 @@ export default function RunControls({ onRun }: { onRun: () => void }) {
         handleRun();
       }
     }
+    // Keys pressed while focus is inside the output <iframe> (after clicking
+    // around in the preview) are delivered to the iframe's own document and
+    // never reach this window, so the sandbox bridge forwards the shortcut as
+    // a 'run-shortcut' message. Only frames embedded in this page count; a
+    // message is all it can do, and the worst it can trigger is a Run.
+    function handleMessage(e: MessageEvent) {
+      if (!e.data || e.data.type !== 'run-shortcut') return;
+      const fromOwnFrame = Array.from(document.querySelectorAll('iframe')).some(
+        (frame) => frame.contentWindow !== null && frame.contentWindow === e.source,
+      );
+      if (fromOwnFrame) handleRun();
+    }
     window.addEventListener('keydown', handleKeydown);
-    return () => window.removeEventListener('keydown', handleKeydown);
+    window.addEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('keydown', handleKeydown);
+      window.removeEventListener('message', handleMessage);
+    };
   }, [handleRun]);
+
+  const shortcut = runShortcutLabel();
 
   return (
     <button
@@ -46,7 +65,7 @@ export default function RunControls({ onRun }: { onRun: () => void }) {
       className={styles.button}
       onClick={handleRun}
       aria-label="Run"
-      title="Run (Ctrl+Enter)"
+      title={`Run (${shortcut.text})`}
     >
       {flashing && (
         <span
@@ -59,8 +78,8 @@ export default function RunControls({ onRun }: { onRun: () => void }) {
       )}
       <Play size={12} className={styles.icon} />
       <span className={styles.label}>Run</span>
-      {/* CSS-hidden below 760px; `⌃↵` is noise on a touch device anyway. */}
-      <span className={styles.hint}>&#8963;&crarr;</span>
+      {/* CSS-hidden below 760px; the shortcut is noise on a touch device anyway. */}
+      <span className={styles.hint}>{shortcut.symbol}</span>
     </button>
   );
 }

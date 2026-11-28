@@ -115,6 +115,9 @@ const DEFAULT_CONFIG = {
   sessionRow: null as MockSessionRow | null,
   selectError: null as { message: string } | null,
   upsertResult: { error: null } as { error: { message: string } | null },
+  // `.update(...).eq(...).select(...)` result. RLS makes a disallowed update
+  // match zero rows *without* an error, hence `data` is part of the contract.
+  updateResult: { data: [{ id: 'room1' }], error: null } as { data: unknown[] | null; error: { message: string } | null },
   signInUserId: 'user-1',
   signInError: null as Error | null,
   authSession: null as MockAuthSession,
@@ -133,6 +136,12 @@ export const maybeSingle = vi.fn(async () => ({
 }));
 
 export const upsert = vi.fn(async (_row: Record<string, unknown>) => mockConfig.upsertResult);
+
+export const update = vi.fn((_row: Record<string, unknown>) => ({
+  eq: (_column: string, _value: unknown) => ({
+    select: async (_columns?: string) => mockConfig.updateResult,
+  }),
+}));
 
 // Auth state change listeners
 const authListeners: ((event: string, session: MockAuthSession) => void)[] = [];
@@ -169,6 +178,7 @@ export const from = vi.fn((_table: string) => ({
     }),
   }),
   upsert,
+  update,
 }));
 
 const channels = new Map<string, MockRealtimeChannel>();
@@ -265,9 +275,13 @@ export function soleChannel(): MockRealtimeChannel {
 export function resetSupabaseMock(): void {
   channels.clear();
   authListeners.length = 0;
-  Object.assign(mockConfig, DEFAULT_CONFIG, { upsertResult: { error: null } });
+  Object.assign(mockConfig, DEFAULT_CONFIG, {
+    upsertResult: { error: null },
+    updateResult: { data: [{ id: 'room1' }], error: null },
+  });
   maybeSingle.mockClear();
   upsert.mockClear();
+  update.mockClear();
   from.mockClear();
   channel.mockClear();
   removeChannel.mockClear();

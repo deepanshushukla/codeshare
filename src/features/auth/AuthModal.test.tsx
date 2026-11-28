@@ -75,4 +75,58 @@ describe('AuthModal', () => {
     expect(setNewPassword).toHaveBeenCalledWith('newsecret123');
     expect(onSuccess).toHaveBeenCalled();
   });
+  test('login: links to signup for visitors without an account, and signup links back', async () => {
+    render(<AuthModal open onOpenChange={() => {}} initialMode="login" />);
+    await userEvent.click(screen.getByRole('button', { name: /create an account/i }));
+    expect(screen.getByRole('heading', { name: /sign up/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^sign up$/i })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /already have an account/i }));
+    expect(screen.getByRole('heading', { name: /log in/i })).toBeInTheDocument();
+  });
+  test('onSuccess reports which flow finished, so callers can tell a signup from a login', async () => {
+    const onSuccess = vi.fn();
+    const { unmount } = render(<AuthModal open onOpenChange={() => {}} initialMode="signup" onSuccess={onSuccess} />);
+    await userEvent.type(screen.getByLabelText(/email/i), 'new@b.com');
+    await userEvent.type(screen.getByLabelText(/password/i), 'secret123');
+    await userEvent.click(screen.getByRole('button', { name: /^sign up$/i }));
+    await userEvent.type(await screen.findByLabelText(/code/i), '123456');
+    await userEvent.click(screen.getByRole('button', { name: /verify/i }));
+    expect(onSuccess).toHaveBeenLastCalledWith('signup');
+    unmount();
+
+    render(<AuthModal open onOpenChange={() => {}} initialMode="login" onSuccess={onSuccess} />);
+    await userEvent.type(screen.getByLabelText(/email/i), 'a@b.com');
+    await userEvent.type(screen.getByLabelText(/password/i), 'secret123');
+    await userEvent.click(screen.getByRole('button', { name: /^log in$/i }));
+    expect(onSuccess).toHaveBeenLastCalledWith('login');
+  });
+  test('signup code step: "Resend code" sends a fresh code and says so', async () => {
+    render(<AuthModal open onOpenChange={() => {}} initialMode="signup" />);
+    await userEvent.type(screen.getByLabelText(/email/i), 'new@b.com');
+    await userEvent.type(screen.getByLabelText(/password/i), 'secret123');
+    await userEvent.click(screen.getByRole('button', { name: /^sign up$/i }));
+    await screen.findByLabelText(/code/i);
+    await userEvent.click(screen.getByRole('button', { name: /resend code/i }));
+    expect(signUpWithEmail).toHaveBeenCalledTimes(2);
+    expect(await screen.findByText(/new code sent to new@b\.com/i)).toBeInTheDocument();
+  });
+
+  test('reset code step: "Resend code" requests another reset code', async () => {
+    render(<AuthModal open onOpenChange={() => {}} initialMode="login" />);
+    await userEvent.click(screen.getByRole('button', { name: /forgot password/i }));
+    await userEvent.type(screen.getByLabelText(/email/i), 'a@b.com');
+    await userEvent.click(screen.getByRole('button', { name: /send code/i }));
+    await screen.findByLabelText(/new password/i);
+    await userEvent.click(screen.getByRole('button', { name: /resend code/i }));
+    expect(requestPasswordReset).toHaveBeenCalledTimes(2);
+  });
+
+  test('in local development, the code step says where the email actually went', async () => {
+    render(<AuthModal open onOpenChange={() => {}} initialMode="signup" />);
+    await userEvent.type(screen.getByLabelText(/email/i), 'new@b.com');
+    await userEvent.type(screen.getByLabelText(/password/i), 'secret123');
+    await userEvent.click(screen.getByRole('button', { name: /^sign up$/i }));
+    await screen.findByLabelText(/code/i);
+    expect(screen.getByText(/127\.0\.0\.1:54324/)).toBeInTheDocument();
+  });
 });

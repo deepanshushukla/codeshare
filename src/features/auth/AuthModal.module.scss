@@ -22,12 +22,17 @@
   animation: global(fade) 0.2s ease both;
 }
 
+// Centered with inset + auto margins, not top/left 50% + translate(-50%, -50%):
+// the scaleIn animation animates `transform` and holds its end state
+// (`both`), which overwrote the centering translate and pinned the modal's
+// top-left corner to the middle of the screen.
 .content {
   position: fixed;
-  top: 50%;
-  left: 50%;
+  inset: 0;
+  margin: auto;
   z-index: 41;
   width: min(380px, calc(100vw - 2rem));
+  height: fit-content;
   max-height: calc(100vh - 2rem);
   overflow: auto;
   padding: var(--space-4);
@@ -35,7 +40,6 @@
   border: 1px solid var(--line2);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-overlay);
-  transform: translate(-50%, -50%);
   animation: scaleIn 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 
   &:focus-visible {
@@ -117,6 +121,23 @@
   color: var(--err);
 }
 
+.notice {
+  margin: 0;
+  font: 500 13px var(--font-sans);
+  color: var(--acc-t);
+}
+
+.hint {
+  margin: 0;
+  font: 400 12px/1.5 var(--font-sans);
+  color: var(--muted);
+
+  a {
+    color: var(--acc);
+    font-family: var(--font-mono);
+  }
+}
+
 .submit {
   all: unset;
   box-sizing: border-box;
@@ -166,5 +187,10 @@
   &:focus-visible {
     outline: 2px solid var(--acc);
     outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
   }
 }

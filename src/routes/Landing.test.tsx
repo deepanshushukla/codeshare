@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { render, screen, fireEvent, createEvent } from '@testing-library/react';
+import { render, screen, fireEvent, createEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { vi, beforeEach } from 'vitest';
@@ -286,13 +286,18 @@ test('the Web/React toggle reflects the active selection via aria-pressed', () =
 // query below follows the rest of this file's convention of
 // `getAllByRole(...)[0]` to target the hero CTA specifically.
 
-test('logged-in: Public/Private toggle defaults to Private, and the create link includes ?private=1', async () => {
+test('logged-in: Public/Private toggle defaults to Public, and choosing Private puts ?private=1 on the link', async () => {
   emitAuthStateChange('SIGNED_IN', { user: { id: 'real-1', email: 'a@b.com', is_anonymous: false } });
   renderLanding();
-  const privateOption = await screen.findByRole('button', { name: /^private$/i });
-  expect(privateOption).toHaveAttribute('aria-pressed', 'true');
-  const link = screen.getAllByRole('link', { name: /^create new room$/i })[0];
-  expect(link.getAttribute('href')).toEqual(expect.stringContaining('private=1'));
+  const publicOption = await screen.findByRole('button', { name: /^public$/i });
+  expect(publicOption).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getAllByRole('link', { name: /^create new room$/i })[0].getAttribute('href')).toEqual(
+    expect.stringContaining('private=0'),
+  );
+  await userEvent.click(screen.getByRole('button', { name: /^private$/i }));
+  expect(screen.getAllByRole('link', { name: /^create new room$/i })[0].getAttribute('href')).toEqual(
+    expect.stringContaining('private=1'),
+  );
 });
 
 test('logged-out: selecting Private opens AuthModal instead of changing the link', async () => {
@@ -317,7 +322,9 @@ test('logged-out: a successful login in the opened modal switches the toggle to 
   await userEvent.type(screen.getByLabelText(/email/i), 'new@b.com');
   await userEvent.type(screen.getByLabelText(/password/i), 'secret123');
   await userEvent.click(screen.getByRole('button', { name: /sign up/i }));
-  await userEvent.type(await screen.findByLabelText(/code/i), '123456');
+  // /^code$/ not /code/: the Private mode section's heading ("...Your code,
+  // your eyes only.") labels that section, so a loose match finds two.
+  await userEvent.type(await screen.findByLabelText(/^code$/i), '123456');
   await userEvent.click(screen.getByRole('button', { name: /verify/i }));
 
   expect(await screen.findByRole('button', { name: /^private$/i })).toHaveAttribute('aria-pressed', 'true');
@@ -325,13 +332,32 @@ test('logged-out: a successful login in the opened modal switches the toggle to 
   expect(link.getAttribute('href')).toEqual(expect.stringContaining('private=1'));
 });
 
-test('mentions private rooms somewhere prominent on the page', () => {
-  renderLanding();
-  // Tightened to the two-word phrase "private rooms" rather than a bare
-  // /private/i: the Public/Private toggle's own accessible name is exactly
-  // the one word "Private" (required by the tests above), so a bare
-  // /private/i would also match that button and throw on multiple matches.
-  // The two-word phrase only matches the dedicated highlight sentence below,
-  // which is the thing this test actually wants to verify exists.
-  expect(screen.getByText(/private rooms/i)).toBeInTheDocument();
+describe('private mode highlight', () => {
+  test('has its own section explaining what private means', () => {
+    renderLanding();
+    const section = screen.getByRole('region', { name: /private mode/i });
+    expect(section).toHaveTextContent(/only you can open/i);
+    expect(section).toHaveTextContent(/lose access/i);
+    expect(section).toHaveTextContent(/back to public/i);
+  });
+
+  test('the hero hint explains rooms start public and what private does', () => {
+    renderLanding();
+    expect(screen.getByText(/rooms start public/i)).toBeInTheDocument();
+  });
+
+  test('logged out: "Create a private room" opens signup, since private rooms need an account', async () => {
+    renderLanding();
+    const section = screen.getByRole('region', { name: /private mode/i });
+    await userEvent.click(within(section).getByRole('button', { name: /create a private room/i }));
+    expect(await screen.findByRole('heading', { name: /sign up/i })).toBeInTheDocument();
+  });
+
+  test('logged in: "Create a private room" links straight to a private room', async () => {
+    emitAuthStateChange('SIGNED_IN', { user: { id: 'real-1', email: 'a@b.com', is_anonymous: false } });
+    renderLanding();
+    const section = screen.getByRole('region', { name: /private mode/i });
+    const link = await within(section).findByRole('link', { name: /create a private room/i });
+    expect(link.getAttribute('href')).toMatch(/^\/code\/[a-z0-9]{10}\?private=1$/);
+  });
 });

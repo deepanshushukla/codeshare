@@ -1,18 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { fetchSessionAccess } from '../../lib/supabase';
 import type { SessionType } from './sessionType';
 
 export type SessionAccessState =
   | { status: 'loading' }
   | { status: 'denied' }
-  | { status: 'ready'; sessionType: SessionType; isOwner: boolean };
+  | { status: 'ready'; sessionType: SessionType; isOwner: boolean; isPrivate: boolean };
 
 export function useSessionAccess(
   sessionId: string,
   typeHint: SessionType,
   currentUserId: string | null,
-): SessionAccessState {
+): SessionAccessState & { recheck: () => void } {
   const [state, setState] = useState<SessionAccessState>({ status: 'loading' });
+  // Bumped by recheck() to re-run the lookup -- e.g. when the owner makes the
+  // room private while this visitor has it open.
+  const [checkCount, setCheckCount] = useState(0);
+  const recheck = useCallback(() => setCheckCount((n) => n + 1), []);
 
   useEffect(() => {
     // A changed sessionId/typeHint/currentUserId means the access decision we
@@ -48,7 +52,7 @@ export function useSessionAccess(
       if (!access.exists) {
         // Confirmed no row and no error -- positive information, so the hint
         // decides, exactly like useSessionType's create-branch.
-        setState({ status: 'ready', sessionType: typeHint, isOwner: false });
+        setState({ status: 'ready', sessionType: typeHint, isOwner: false, isPrivate: false });
         return;
       }
 
@@ -59,7 +63,7 @@ export function useSessionAccess(
         return;
       }
 
-      setState({ status: 'ready', sessionType: access.sessionType ?? typeHint, isOwner });
+      setState({ status: 'ready', sessionType: access.sessionType ?? typeHint, isOwner, isPrivate: access.isPrivate });
     }
 
     loadAccess();
@@ -67,7 +71,7 @@ export function useSessionAccess(
     return () => {
       active = false;
     };
-  }, [sessionId, typeHint, currentUserId]);
+  }, [sessionId, typeHint, currentUserId, checkCount]);
 
-  return state;
+  return { ...state, recheck };
 }

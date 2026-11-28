@@ -4,7 +4,11 @@ import { supabase } from '../../lib/supabase';
 export type EditField = 'html' | 'css' | 'js' | 'app_jsx' | 'components_jsx' | 'react_css';
 export type ChannelStatus = 'connecting' | 'connected' | 'reconnecting';
 
-export type BroadcastEditPayload = { field: EditField; value: string; userId: string | null };
+// `clientId` identifies the sending *tab* (one per useSession instance), so a
+// tab can ignore its own echoes while still applying edits from the same
+// account in another tab -- `userId` alone can't tell those apart.
+export type BroadcastEditPayload = { field: EditField; value: string; userId: string | null; clientId?: string };
+export type BroadcastPrivacyPayload = { isPrivate: boolean };
 export type PresenceMeta = { name: string; status: 'online' | 'away' };
 export type PresenceState = Record<string, PresenceMeta[]>;
 
@@ -29,6 +33,14 @@ export type SessionChannel = {
   onPresenceSync: (listener: (state: PresenceState) => void) => () => void;
   /** Broadcast a local edit to the other clients in this session. */
   sendEdit: (payload: BroadcastEditPayload) => void;
+  /** Register a listener for remote `privacy` broadcasts (the owner flipped the room). */
+  onPrivacy: (listener: (payload: BroadcastPrivacyPayload) => void) => () => void;
+  /**
+   * Announce a privacy change to everyone currently in the room. Resolves once
+   * sent, so the caller can wait before moving this client to the other topic
+   * (which tears this channel down).
+   */
+  sendPrivacy: (payload: BroadcastPrivacyPayload) => Promise<void>;
   /**
    * Publish this client's presence meta. Safe to call before the channel has
    * finished joining -- the latest meta is remembered and (re)sent on every
@@ -57,6 +69,12 @@ function mapChannelStatus(status: string): ChannelStatus {
 export function useSessionChannel(
   sessionId: string,
   userId: string | null,
+  // Private rooms live on `session-private:<id>`, which only the owner may
+  // join (migration 0006). Realtime checks read access only when a client
+  // joins, so moving the owner to a different topic is what actually cuts
+  // off viewers who joined while the room was public -- they stay subscribed
+  // to `session:<id>`, where nothing is sent any more.
+  isPrivate = false,
 ): { channel: SessionChannel | null; status: ChannelStatus } {
   const [channel, setChannel] = useState<SessionChannel | null>(null);
   const [status, setStatus] = useState<ChannelStatus>('connecting');
@@ -71,10 +89,12 @@ export function useSessionChannel(
     let disposed = false;
     const editListeners = new Set<(payload: BroadcastEditPayload) => void>();
     const presenceListeners = new Set<(state: PresenceState) => void>();
+    const privacyListeners = new Set<(payload: BroadcastPrivacyPayload) => void>();
     let joined = false;
     let lastTrackedMeta: PresenceMeta | null = null;
 
-    const realtime = supabase.channel(`session:${sessionId}`, {
+    const topic = isPrivate ? `session-private:${sessionId}` : `session:${sessionId}`;
+    const realtime = supabase.channel(topic, {
       config: { presence: { key: userId }, private: true },
     });
 
@@ -82,6 +102,9 @@ export function useSessionChannel(
     realtime
       .on('broadcast', { event: 'edit' }, (message: { payload: BroadcastEditPayload }) => {
         for (const listener of editListeners) listener(message.payload);
+      })
+      .on('broadcast', { event: 'privacy' }, (message: { payload: BroadcastPrivacyPayload }) => {
+        for (const listener of privacyListeners) listener(message.payload);
       })
       .on('presence', { event: 'sync' }, () => {
         const state = realtime.presenceState<PresenceMeta>() as PresenceState;
@@ -103,6 +126,15 @@ export function useSessionChannel(
       },
       sendEdit(payload) {
         realtime.send({ type: 'broadcast', event: 'edit', payload });
+      },
+      onPrivacy(listener) {
+        privacyListeners.add(listener);
+        return () => {
+          privacyListeners.delete(listener);
+        };
+      },
+      async sendPrivacy(payload) {
+        await realtime.send({ type: 'broadcast', event: 'privacy', payload });
       },
       track(meta) {
         lastTrackedMeta = meta;
@@ -131,13 +163,14 @@ export function useSessionChannel(
       joined = false;
       editListeners.clear();
       presenceListeners.clear();
+      privacyListeners.clear();
       setChannel(null);
       // removeChannel() both unsubscribes and drops the channel from the
       // client's registry, so a remount creates a genuinely fresh channel
       // instead of getting the torn-down one back from the topic dedupe.
       void supabase.removeChannel(realtime);
     };
-  }, [sessionId, userId]);
+  }, [sessionId, userId, isPrivate]);
 
   return { channel, status };
 }

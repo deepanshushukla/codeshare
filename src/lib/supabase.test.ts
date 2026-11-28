@@ -51,6 +51,21 @@ describe('auth wrappers', () => {
     expect(verifyOtp).toHaveBeenCalledWith({ email: 'a@b.com', token: '123456', type: 'signup' });
   });
 
+  test('signUpWithEmail converts an anonymous session in place (same user id) instead of creating a new user', async () => {
+    getSession.mockResolvedValueOnce({ data: { session: { user: { id: 'anon-1', is_anonymous: true } } } });
+    const { signUpWithEmail } = await import('./supabase');
+    await signUpWithEmail('a@b.com', 'secret123');
+    expect(updateUser).toHaveBeenCalledWith({ email: 'a@b.com', password: 'secret123' });
+    expect(signUp).not.toHaveBeenCalled();
+  });
+
+  test('verifySignupOtp verifies an anonymous conversion as an email change', async () => {
+    getSession.mockResolvedValueOnce({ data: { session: { user: { id: 'anon-1', is_anonymous: true } } } });
+    const { verifySignupOtp } = await import('./supabase');
+    await verifySignupOtp('a@b.com', '123456');
+    expect(verifyOtp).toHaveBeenCalledWith({ email: 'a@b.com', token: '123456', type: 'email_change' });
+  });
+
   test('loginWithPassword calls signInWithPassword', async () => {
     const { loginWithPassword } = await import('./supabase');
     await loginWithPassword('a@b.com', 'secret123');

@@ -19,13 +19,31 @@ export async function ensureAnonymousSession(): Promise<string> {
   return data.session.user.id;
 }
 
+async function isAnonymousSession(): Promise<boolean> {
+  const { data } = await supabase.auth.getSession();
+  return Boolean(data.session?.user.is_anonymous);
+}
+
+// Every visitor already has an anonymous session (ensureAnonymousSession), and
+// rooms they create are owned by that anonymous user id. Signing up therefore
+// *converts* the anonymous user in place -- updateUser keeps the same id, so
+// they keep owning those rooms and can make them private -- rather than
+// signUp(), which would mint a brand-new user and orphan them. Supabase sends
+// that verification as an email change (template: email_change), so the code
+// is verified with type 'email_change'. The session stays anonymous until the
+// code is verified, so both calls agree on which path is in use.
 export async function signUpWithEmail(email: string, password: string): Promise<{ error: Error | null }> {
+  if (await isAnonymousSession()) {
+    const { error } = await supabase.auth.updateUser({ email, password });
+    return { error };
+  }
   const { error } = await supabase.auth.signUp({ email, password });
   return { error };
 }
 
 export async function verifySignupOtp(email: string, token: string): Promise<{ error: Error | null }> {
-  const { error } = await supabase.auth.verifyOtp({ email, token, type: 'signup' });
+  const type = (await isAnonymousSession()) ? 'email_change' : 'signup';
+  const { error } = await supabase.auth.verifyOtp({ email, token, type });
   return { error };
 }
 

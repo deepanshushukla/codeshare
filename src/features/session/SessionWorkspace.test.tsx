@@ -149,7 +149,7 @@ test('subscribes to exactly one realtime channel for the session', async () => {
   // Both concerns live on the one channel; reaching this line also proves the
   // presence binding was registered before subscribe() (the mock throws
   // otherwise, exactly like the real SDK).
-  expect(channel.bindingsOfType('broadcast')).toHaveLength(1);
+  expect(channel.bindingsOfType('broadcast')).toHaveLength(2); // 'edit' + 'privacy'
   expect(channel.bindingsOfType('presence')).toHaveLength(1);
 });
 

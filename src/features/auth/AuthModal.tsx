@@ -11,13 +11,24 @@ import {
 import styles from './AuthModal.module.scss';
 
 type Mode = 'login' | 'signup' | 'forgot';
+
+// Against the local Supabase CLI stack no email ever leaves the machine:
+// every auth email (signup and reset codes) is caught by Mailpit. Without
+// saying so, "I never got the code" is the first thing anyone hits locally.
+const LOCAL_MAILBOX_URL =
+  import.meta.env.DEV && /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?/.test(import.meta.env.VITE_SUPABASE_URL ?? '')
+    ? 'http://127.0.0.1:54324'
+    : null;
 type Step = 'form' | 'otp' | 'reset';
 
 export type AuthModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialMode?: 'login' | 'signup';
-  onSuccess?: () => void;
+  // Which flow finished. A caller acting on behalf of the *current* identity
+  // (Header's "Make private") must only do so after 'signup': signup converts
+  // the anonymous user in place, while 'login' switches to another account.
+  onSuccess?: (how: 'login' | 'signup' | 'reset') => void;
 };
 
 /**
@@ -44,6 +55,7 @@ export default function AuthModal({ open, onOpenChange, initialMode = 'login', o
   const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const fieldId = useId();
@@ -62,18 +74,28 @@ export default function AuthModal({ open, onOpenChange, initialMode = 'login', o
       setCode('');
       setNewPassword('');
       setErrorMessage(null);
+    setNotice(null);
     }
     wasOpen.current = open;
   }, [open, initialMode]);
 
   function goToForgotPassword(): void {
     setErrorMessage(null);
+    setNotice(null);
     setMode('forgot');
+    setStep('form');
+  }
+
+  function goToSignup(): void {
+    setErrorMessage(null);
+    setNotice(null);
+    setMode('signup');
     setStep('form');
   }
 
   function backToLogin(): void {
     setErrorMessage(null);
+    setNotice(null);
     setMode('login');
     setStep('form');
   }
@@ -81,6 +103,7 @@ export default function AuthModal({ open, onOpenChange, initialMode = 'login', o
   async function handleLoginSubmit(event: FormEvent): Promise<void> {
     event.preventDefault();
     setErrorMessage(null);
+    setNotice(null);
     setSubmitting(true);
     const { error } = await loginWithPassword(email, password);
     setSubmitting(false);
@@ -88,13 +111,14 @@ export default function AuthModal({ open, onOpenChange, initialMode = 'login', o
       setErrorMessage(error.message);
       return;
     }
-    onSuccess?.();
+    onSuccess?.('login');
     onOpenChange(false);
   }
 
   async function handleSignupSubmit(event: FormEvent): Promise<void> {
     event.preventDefault();
     setErrorMessage(null);
+    setNotice(null);
     setSubmitting(true);
     const { error } = await signUpWithEmail(email, password);
     setSubmitting(false);
@@ -105,9 +129,49 @@ export default function AuthModal({ open, onOpenChange, initialMode = 'login', o
     setStep('otp');
   }
 
+  // Codes expire (otp_expiry) and emails get lost; re-running the request
+  // that sent the code is all a resend needs -- for signup that is the same
+  // signUpWithEmail call (anonymous conversion re-sends the email-change
+  // code), for a reset the same resetPasswordForEmail.
+  async function handleResendCode(): Promise<void> {
+    setErrorMessage(null);
+    setNotice(null);
+    setSubmitting(true);
+    const { error } = mode === 'signup' ? await signUpWithEmail(email, password) : await requestPasswordReset(email);
+    setSubmitting(false);
+    if (error) {
+      setErrorMessage(error.message);
+      return;
+    }
+    setCode('');
+    setNotice(`New code sent to ${email}.`);
+  }
+
+  const codeHelp = (
+    <>
+      {notice && <p className={styles.notice}>{notice}</p>}
+      {LOCAL_MAILBOX_URL && (
+        <p className={styles.hint}>
+          Running locally: emails don&rsquo;t go to a real inbox. Find the code in Mailpit at{' '}
+          <a href={LOCAL_MAILBOX_URL} target="_blank" rel="noreferrer">
+            {LOCAL_MAILBOX_URL.replace(/^https?:\/\//, '')}
+          </a>
+          .
+        </p>
+      )}
+    </>
+  );
+
+  const resendLink = (
+    <button type="button" className={styles.linkButton} onClick={handleResendCode} disabled={submitting}>
+      Resend code
+    </button>
+  );
+
   async function handleVerifySignupOtp(event: FormEvent): Promise<void> {
     event.preventDefault();
     setErrorMessage(null);
+    setNotice(null);
     setSubmitting(true);
     const { error } = await verifySignupOtp(email, code);
     setSubmitting(false);
@@ -115,13 +179,14 @@ export default function AuthModal({ open, onOpenChange, initialMode = 'login', o
       setErrorMessage(error.message);
       return;
     }
-    onSuccess?.();
+    onSuccess?.('signup');
     onOpenChange(false);
   }
 
   async function handleRequestPasswordReset(event: FormEvent): Promise<void> {
     event.preventDefault();
     setErrorMessage(null);
+    setNotice(null);
     setSubmitting(true);
     const { error } = await requestPasswordReset(email);
     setSubmitting(false);
@@ -135,6 +200,7 @@ export default function AuthModal({ open, onOpenChange, initialMode = 'login', o
   async function handleResetPassword(event: FormEvent): Promise<void> {
     event.preventDefault();
     setErrorMessage(null);
+    setNotice(null);
     setSubmitting(true);
     const { error: otpError } = await verifyPasswordResetOtp(email, code);
     if (otpError) {
@@ -148,7 +214,7 @@ export default function AuthModal({ open, onOpenChange, initialMode = 'login', o
       setErrorMessage(passwordError.message);
       return;
     }
-    onSuccess?.();
+    onSuccess?.('reset');
     onOpenChange(false);
   }
 
@@ -199,6 +265,7 @@ export default function AuthModal({ open, onOpenChange, initialMode = 'login', o
               {errorMessage && <p className={styles.error}>{errorMessage}</p>}
               <button type="submit" className={styles.submit} disabled={submitting}>Log in</button>
               <div className={styles.linkRow}>
+                <button type="button" className={styles.linkButton} onClick={goToSignup}>Create an account</button>
                 <button type="button" className={styles.linkButton} onClick={goToForgotPassword}>Forgot password?</button>
               </div>
             </form>
@@ -230,6 +297,9 @@ export default function AuthModal({ open, onOpenChange, initialMode = 'login', o
               </div>
               {errorMessage && <p className={styles.error}>{errorMessage}</p>}
               <button type="submit" className={styles.submit} disabled={submitting}>Sign up</button>
+              <div className={styles.linkRow}>
+                <button type="button" className={styles.linkButton} onClick={backToLogin}>Already have an account? Log in</button>
+              </div>
             </form>
           )}
 
@@ -252,7 +322,9 @@ export default function AuthModal({ open, onOpenChange, initialMode = 'login', o
                 />
               </div>
               {errorMessage && <p className={styles.error}>{errorMessage}</p>}
+              {codeHelp}
               <button type="submit" className={styles.submit} disabled={submitting}>Verify</button>
+              <div className={styles.linkRow}>{resendLink}</div>
             </form>
           )}
 
@@ -303,8 +375,10 @@ export default function AuthModal({ open, onOpenChange, initialMode = 'login', o
                 />
               </div>
               {errorMessage && <p className={styles.error}>{errorMessage}</p>}
+              {codeHelp}
               <button type="submit" className={styles.submit} disabled={submitting}>Reset password</button>
               <div className={styles.linkRow}>
+                {resendLink}
                 <button type="button" className={styles.linkButton} onClick={backToLogin}>Back to log in</button>
               </div>
             </form>

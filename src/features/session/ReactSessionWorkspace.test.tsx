@@ -153,7 +153,7 @@ test('subscribes to exactly one realtime channel for the session', async () => {
   const channel = soleChannel();
   expect(channel.topic).toBe('session:abc');
   expect(channel.subscribe).toHaveBeenCalledTimes(1);
-  expect(channel.bindingsOfType('broadcast')).toHaveLength(1);
+  expect(channel.bindingsOfType('broadcast')).toHaveLength(2); // 'edit' + 'privacy'
   expect(channel.bindingsOfType('presence')).toHaveLength(1);
 });
 

@@ -41,6 +41,12 @@ describe('buildSandboxDocument', () => {
     expect(doc).not.toMatch(/eval\(event\.data\.html\)/);
   });
 
+  test('bridge forwards Cmd/Ctrl+Enter to the parent, since keys pressed inside the iframe never reach the parent window', () => {
+    const doc = buildSandboxDocument('', '', '');
+    expect(doc).toContain("type: 'run-shortcut'");
+    expect(doc).toMatch(/e\.ctrlKey \|\| e\.metaKey/);
+  });
+
   test('bridge sanitizes console args through serializeForBridge before posting them', () => {
     const doc = buildSandboxDocument('', '', '');
     expect(doc).toContain('serializeForBridge');
@@ -145,6 +151,43 @@ describe('stripReactModuleSyntax', () => {
     expect(stripReactModuleSyntax('export const Shared = 1;')).toBe('const Shared = 1;');
   });
 
+  test('rewrites a namespace React import (import * as React) without shadowing the global', () => {
+    expect(stripReactModuleSyntax("import * as React from 'react';\nx")).toBe('\nx');
+    expect(stripReactModuleSyntax("import * as R from 'react';")).toBe('const R = React;');
+  });
+
+  test('turns aliased named imports into destructuring renames', () => {
+    expect(stripReactModuleSyntax("import { useState as useS, useEffect } from 'react';")).toBe(
+      'const { useState: useS, useEffect } = React;',
+    );
+  });
+
+  test('handles multi-line named imports', () => {
+    expect(stripReactModuleSyntax("import {\n  useState,\n  useMemo,\n} from 'react';")).toBe(
+      'const {\n  useState,\n  useMemo,\n} = React;',
+    );
+  });
+
+  test('maps named and namespace react-dom imports onto the ReactDOM global', () => {
+    expect(stripReactModuleSyntax("import { createRoot } from 'react-dom/client';")).toBe('const { createRoot } = ReactDOM;');
+    expect(stripReactModuleSyntax("import * as ReactDOM from 'react-dom/client';")).toBe('');
+  });
+
+  test('drops CSS side-effect imports (the CSS tab already applies styles)', () => {
+    expect(stripReactModuleSyntax("import './styles.css';\nx")).toBe('\nx');
+  });
+
+  test('replaces an import from an unavailable package with a clear error instead of a bare SyntaxError', () => {
+    const out = stripReactModuleSyntax("import _ from 'lodash';");
+    expect(out).not.toMatch(/^import/);
+    expect(out).toContain('throw new Error(');
+    expect(out).toContain("Can't import \\\"lodash\\\"");
+  });
+
+  test('strips export lists', () => {
+    expect(stripReactModuleSyntax('function App(){}\nexport { App };')).toBe('function App(){}\n');
+  });
+
   test('leaves ordinary code with no import/export untouched', () => {
     const code = 'function App() { return React.createElement("div"); }';
     expect(stripReactModuleSyntax(code)).toBe(code);
@@ -158,9 +201,37 @@ describe('buildReactSandboxDocument', () => {
 
   test('includes pinned CDN script tags for React, ReactDOM, and Babel Standalone', () => {
     const doc = buildReactSandboxDocument('function App(){return null;}', '', '');
-    expect(doc).toContain('https://unpkg.com/react@18.3.1/umd/react.production.min.js');
-    expect(doc).toContain('https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js');
+    expect(doc).toContain('https://unpkg.com/react@18.3.1/umd/react.development.js');
+    expect(doc).toContain('https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js');
     expect(doc).toContain('https://unpkg.com/@babel/standalone@7.26.4/babel.min.js');
+  });
+
+  test('loads every CDN script with crossorigin so errors thrown through them are not masked as "Script error."', () => {
+    const doc = buildReactSandboxDocument('function App(){return null;}', '', '');
+    const cdnTags = doc.match(/<script src="https:\/\/unpkg\.com[^>]*>/g) ?? [];
+    expect(cdnTags).toHaveLength(3);
+    for (const tag of cdnTags) expect(tag).toContain('crossorigin="anonymous"');
+  });
+
+  test('wraps App in an error boundary that reports the error name, message, and component', () => {
+    const script = mountScript(buildReactSandboxDocument('function App(){return null;}', '', ''));
+    expect(script).toContain('getDerivedStateFromError');
+    expect(script).toContain('componentDidCatch');
+    expect(script).toContain('React.createElement(ErrorBoundary');
+  });
+
+  test('every inline script in the generated document is syntactically valid JavaScript', () => {
+    // String-matching tests cannot catch an escape that the template literal
+    // silently turned into a raw newline or dropped backslash; parsing can.
+    const doc = buildReactSandboxDocument("import * as React from 'react';\nfunction App(){return null;}", '', '');
+    const scripts = [...doc.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+    expect(scripts.length).toBeGreaterThanOrEqual(2);
+    for (const script of scripts) expect(() => new Function(script)).not.toThrow();
+  });
+
+  test('explains a missing App component instead of throwing "App is not defined"', () => {
+    const script = mountScript(buildReactSandboxDocument('function Main(){return null;}', '', ''));
+    expect(script).toContain("typeof App === 'undefined'");
   });
 
   test('inlines css into the id="__cs_style" tag', () => {

@@ -60,7 +60,9 @@ const baseProps: HeaderProps = {
   exportContent: { html: '', css: '', js: '' },
   isPrivate: false,
   isOwner: false,
+  isAnonymous: false,
   onTogglePrivacy: () => {},
+  onMakePrivate: () => {},
 };
 
 function buildTree(overrides: Partial<HeaderProps> = {}) {
@@ -462,6 +464,80 @@ describe('owner-only privacy toggle', () => {
     await userEvent.click(screen.getByRole('button', { name: /private/i }));
 
     expect(onTogglePrivacy).toHaveBeenCalledOnce();
+  });
+});
+
+describe('anonymous visitors', () => {
+  test('the anonymous creator of a room gets "Make private" in place of the account menu, and no toggle pill', () => {
+    renderHeader({ isOwner: true, isAnonymous: true });
+    expect(screen.getByRole('button', { name: /make private/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^public$/i })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('account-menu-slot')).not.toBeInTheDocument();
+  });
+
+  test('an anonymous visitor who did not create the room gets the normal account menu, not "Make private"', () => {
+    renderHeader({ isOwner: false, isAnonymous: true });
+    expect(screen.queryByRole('button', { name: /make private/i })).not.toBeInTheDocument();
+    expect(screen.getByTestId('account-menu-slot')).toBeInTheDocument();
+  });
+
+  test('a logged-in owner gets the toggle pill, not "Make private"', () => {
+    renderHeader({ isOwner: true, isAnonymous: false });
+    expect(screen.getByRole('button', { name: /^public$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /make private/i })).not.toBeInTheDocument();
+  });
+
+  test('"Make private" opens the signup form', async () => {
+    renderHeader({ isOwner: true, isAnonymous: true });
+    await userEvent.click(screen.getByRole('button', { name: /make private/i }));
+    expect(await screen.findByRole('heading', { name: /sign up/i })).toBeInTheDocument();
+  });
+
+  test('"Make private" is also reachable from the mobile More panel', async () => {
+    mockMatchMedia((query) => query.includes('max-width'));
+    renderHeader({ isOwner: true, isAnonymous: true });
+    await userEvent.click(screen.getByRole('button', { name: /more/i }));
+    expect(screen.getByRole('button', { name: /make private/i })).toBeInTheDocument();
+  });
+});
+
+describe('private-mode nudge', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  test('slides in for the owner of a public room, pointing at the privacy control', async () => {
+    renderHeader({ isOwner: true, isAnonymous: true });
+    const nudge = await screen.findByRole('dialog', { name: /private mode/i }, { timeout: 3000 });
+    expect(nudge).toHaveTextContent(/only you can open it/i);
+  });
+
+  test('"Got it" dismisses it for good (remembered in this browser)', async () => {
+    const { unmount } = renderHeader({ isOwner: true, isAnonymous: false });
+    await screen.findByRole('dialog', { name: /private mode/i }, { timeout: 3000 });
+    await userEvent.click(screen.getByRole('button', { name: /got it/i }));
+    expect(screen.queryByRole('dialog', { name: /private mode/i })).not.toBeInTheDocument();
+    unmount();
+    renderHeader({ isOwner: true, isAnonymous: false });
+    await new Promise((r) => setTimeout(r, 1600));
+    expect(screen.queryByRole('dialog', { name: /private mode/i })).not.toBeInTheDocument();
+  });
+
+  test('using the privacy control also counts as seen', async () => {
+    renderHeader({ isOwner: true, isAnonymous: false, onTogglePrivacy: vi.fn() });
+    await screen.findByRole('dialog', { name: /private mode/i }, { timeout: 3000 });
+    await userEvent.click(screen.getByRole('button', { name: /^public$/i }));
+    expect(screen.queryByRole('dialog', { name: /private mode/i })).not.toBeInTheDocument();
+    expect(window.localStorage.getItem('codeshare.privateModeNudgeSeen')).toBe('1');
+  });
+
+  test('is not shown to someone who does not own the room, or when the room is already private', async () => {
+    const { rerender } = renderHeader({ isOwner: false, isAnonymous: true });
+    await new Promise((r) => setTimeout(r, 1600));
+    expect(screen.queryByRole('dialog', { name: /private mode/i })).not.toBeInTheDocument();
+    rerender(buildTree({ isOwner: true, isAnonymous: false, isPrivate: true }));
+    await new Promise((r) => setTimeout(r, 1600));
+    expect(screen.queryByRole('dialog', { name: /private mode/i })).not.toBeInTheDocument();
   });
 });
 

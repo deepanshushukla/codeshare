@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 import { useSession, type ConnectionStatus } from './useSession';
 import { useSessionChannel } from './useSessionChannel';
@@ -42,18 +42,32 @@ export default function ReactSessionWorkspace({
   userId,
   isAnonymous,
   privacyHint,
+  initialIsPrivate = false,
+  onAccessRevoked = () => {},
 }: {
   sessionId: string;
   userId: string | null;
   isAnonymous: boolean;
   privacyHint: boolean | null;
+  // Whether the room is private as of SessionRoute's access check, so a
+  // private room's owner joins the owner-only Realtime topic straight away
+  // instead of passing through the public one first.
+  initialIsPrivate?: boolean;
+  // Called when the owner makes the room private while this (non-owner)
+  // visitor has it open; SessionRoute re-checks access and shows AccessDenied.
+  onAccessRevoked?: () => void;
 }) {
   const { tabs, toggleTab } = useReactTabsQueryParam();
   const { isMobile } = useBreakpoint();
   const [mobileTab, setMobileTab] = useState<keyof ReactTabsState>('appJsx');
   // Exactly one Realtime channel per session, shared by useSession (broadcast
   // edits) and usePresence (presence tracking) -- see useSessionChannel.ts.
-  const { channel, status: channelStatus } = useSessionChannel(sessionId, userId);
+  // Which Realtime topic to sit on: the public one, or the owner-only private
+  // one (see useSessionChannel). Seeded from the access check, then follows
+  // the row's is_private once it has loaded -- so making the room private
+  // moves this client off the topic other viewers are still subscribed to.
+  const [channelPrivate, setChannelPrivate] = useState(initialIsPrivate);
+  const { channel, status: channelStatus } = useSessionChannel(sessionId, userId, channelPrivate);
   const {
     app_jsx,
     components_jsx,
@@ -64,8 +78,16 @@ export default function ReactSessionWorkspace({
     ownerId,
     title,
     setPrivacy,
+    loading,
+    accessRevoked,
   } = useSession(sessionId, userId, isAnonymous, channel, channelStatus, 'react', privacyHint);
   const { users, name, setName } = usePresence(userId, channel);
+  useEffect(() => {
+    if (!loading) setChannelPrivate(isPrivate);
+  }, [loading, isPrivate]);
+  useEffect(() => {
+    if (accessRevoked) onAccessRevoked();
+  }, [accessRevoked, onAccessRevoked]);
 
   // See SessionWorkspace.tsx's identical comment: `runToken` only changes on
   // an explicit Run, so typing (which updates app_jsx/components_jsx/
@@ -137,7 +159,9 @@ export default function ReactSessionWorkspace({
         exportContent={{ sessionType: 'react', appJsx: app_jsx, componentsJsx: components_jsx, reactCss: react_css }}
         isPrivate={isPrivate}
         isOwner={ownerId !== null && ownerId === userId}
+        isAnonymous={isAnonymous}
         onTogglePrivacy={() => setPrivacy(!isPrivate)}
+        onMakePrivate={() => setPrivacy(true)}
       />
       <ConnectionBanner status={bannerStatus} />
       {isMobile ? (

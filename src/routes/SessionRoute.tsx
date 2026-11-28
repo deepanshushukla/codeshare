@@ -32,6 +32,9 @@ export default function SessionRoute() {
   const access = useSessionAccess(sessionId ?? '', typeHint, userId);
   if (!sessionId) return <NotFound />;
   if (authLoading || access.status === 'loading') return null;
+  // Also reached mid-visit: when the owner makes an open room private, the
+  // workspace calls access.recheck(), the lookup goes back to 'loading' (which
+  // unmounts the workspace and everything it showed) and then lands here.
   if (access.status === 'denied') return <AccessDenied />;
   const sessionType = access.sessionType;
   return sessionType === 'react' ? (
@@ -40,6 +43,8 @@ export default function SessionRoute() {
       userId={userId}
       isAnonymous={isAnonymous}
       privacyHint={privacyHint}
+      initialIsPrivate={access.isPrivate}
+      onAccessRevoked={access.recheck}
     />
   ) : (
     <SessionWorkspace
@@ -47,6 +52,8 @@ export default function SessionRoute() {
       userId={userId}
       isAnonymous={isAnonymous}
       privacyHint={privacyHint}
+      initialIsPrivate={access.isPrivate}
+      onAccessRevoked={access.recheck}
     />
   );
 }

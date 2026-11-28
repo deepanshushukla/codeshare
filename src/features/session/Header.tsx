@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Copy, MoreVertical, Sparkles } from 'lucide-react';
+import { Copy, Lock, MoreVertical, Sparkles } from 'lucide-react';
 import type { SessionType } from './sessionType';
 import type { PresenceUser } from './usePresence';
 import UsersMenu from './UsersMenu';
@@ -10,6 +10,8 @@ import ThemeButton from '../theme/ThemeButton';
 import ThemeDrawer from '../theme/ThemeDrawer';
 import { useTheme } from '../theme/ThemeProvider';
 import AccountMenu from '../auth/AccountMenu';
+import AuthModal from '../auth/AuthModal';
+import PrivacyNudge, { markPrivacyNudgeSeen } from './PrivacyNudge';
 import { Toast } from './Toast';
 import { useToast } from './useToast';
 import { useBreakpoint } from './useBreakpoint';
@@ -40,7 +42,14 @@ type Props = {
   // here just because it also renders false-y against some other id.
   isPrivate: boolean;
   isOwner: boolean;
+  // An anonymous owner created this room before signing up. They can't flip
+  // privacy yet (RLS refuses is_private for an anonymous JWT), so instead of
+  // the pill they get "Make private", which signs them up -- converting the
+  // anonymous user in place, same id, so they still own the room -- and then
+  // calls onMakePrivate.
+  isAnonymous: boolean;
   onTogglePrivacy: () => void;
+  onMakePrivate: () => void;
 };
 
 // Opens a brand-new session of the OTHER type in a new tab, never touching
@@ -92,6 +101,7 @@ type MoreMenuProps = {
   exportContent: Props['exportContent'];
   onExported: (filename: string) => void;
   currentType: SessionType;
+  accountSlot: ReactNode;
 };
 
 // Below 760px, Theme/Users/Export/New-session collapse into this one "More"
@@ -117,6 +127,7 @@ function MoreMenu({
   exportContent,
   onExported,
   currentType,
+  accountSlot,
 }: MoreMenuProps) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -189,9 +200,7 @@ function MoreMenu({
           <div className={styles.morePanelItem}>
             <NewSessionButton variant="menuRow" currentType={currentType} />
           </div>
-          <div className={styles.morePanelItem} data-testid="account-menu-slot">
-            <AccountMenu />
-          </div>
+          <div className={styles.morePanelItem}>{accountSlot}</div>
         </div>
       )}
     </div>
@@ -209,7 +218,9 @@ export default function Header({
   exportContent,
   isPrivate,
   isOwner,
+  isAnonymous,
   onTogglePrivacy,
+  onMakePrivate,
 }: Props) {
   // Header owns the one useToast() instance for this screen: both the
   // copy-link chip (below) and ExportMenu's onExported report through it.
@@ -225,6 +236,45 @@ export default function Header({
   // ThemeButton's own `aria-label="Theme: ${themeName}"` pattern -- the
   // swatch's color comes from CSS custom properties, not this value.
   const { themeName } = useTheme();
+  // Held here, not inside the button: on mobile the button lives in MoreMenu's
+  // panel, which unmounts on any outside pointerdown -- including clicks inside
+  // the modal's portal -- and would take a nested modal down with it.
+  const [signupOpen, setSignupOpen] = useState(false);
+  const canMakePrivate = isOwner && isAnonymous;
+  // One-time "private mode exists" callout for the owner of a public room,
+  // anchored to whichever control makes it private on this layout. Using the
+  // control counts as having seen it.
+  const [nudgeDismissed, setNudgeDismissed] = useState(false);
+  const nudgeEnabled = isOwner && !isPrivate && !nudgeDismissed;
+  const dismissNudge = useCallback(() => {
+    markPrivacyNudgeSeen();
+    setNudgeDismissed(true);
+  }, []);
+  const nudge = (align: 'left' | 'right') => (
+    <PrivacyNudge enabled={nudgeEnabled} onDismiss={() => setNudgeDismissed(true)} align={align} />
+  );
+
+  const accountSlot = canMakePrivate ? (
+    <span className={styles.nudgeAnchor}>
+      <button
+        type="button"
+        className={styles.makePrivate}
+        onClick={() => {
+          dismissNudge();
+          setSignupOpen(true);
+        }}
+        title="Sign up to make this room private"
+      >
+        <Lock size={14} aria-hidden="true" />
+        <span>Make private</span>
+      </button>
+      {!isMobile && nudge('right')}
+    </span>
+  ) : (
+    <div data-testid="account-menu-slot">
+      <AccountMenu />
+    </div>
+  );
 
   const copyRoomLink = useCallback(async () => {
     // The chip shows the room's real route (`/code/:sessionId`) and copies the
@@ -266,33 +316,44 @@ export default function Header({
           the owner ever sees it; a room with no owner (owner_id null, made
           anonymously) has isOwner permanently false for everyone, including
           whoever happens to be viewing it while logged in. */}
-      {isOwner && (
-        <button
-          type="button"
-          className={styles.privacyPill}
-          onClick={onTogglePrivacy}
-          aria-pressed={isPrivate}
-          title={isPrivate ? 'Private room — click to make public' : 'Public room — click to make private'}
-        >
-          {isPrivate ? 'Private' : 'Public'}
-        </button>
+      {isOwner && !isAnonymous && (
+        <span className={styles.nudgeAnchor}>
+          <button
+            type="button"
+            className={styles.privacyPill}
+            onClick={() => {
+              dismissNudge();
+              onTogglePrivacy();
+            }}
+            aria-pressed={isPrivate}
+            title={isPrivate ? 'Private room — click to make public' : 'Public room — click to make private'}
+          >
+            {isPrivate ? 'Private' : 'Public'}
+          </button>
+          {nudge('left')}
+        </span>
       )}
 
       <div className={styles.center}>{tabBar}</div>
 
       <div className={styles.actions}>
         {isMobile ? (
-          <MoreMenu
-            users={users}
-            currentUserId={currentUserId}
-            name={name}
-            onNameChange={onNameChange}
-            onOpenTheme={() => setThemeDrawerOpen(true)}
-            themeName={themeName}
-            exportContent={exportContent}
-            onExported={(filename) => showToast(`Exported ${filename}`)}
-            currentType={exportContent.sessionType ?? 'web'}
-          />
+          <span className={styles.nudgeAnchor}>
+            <MoreMenu
+              users={users}
+              currentUserId={currentUserId}
+              name={name}
+              onNameChange={onNameChange}
+              onOpenTheme={() => setThemeDrawerOpen(true)}
+              themeName={themeName}
+              exportContent={exportContent}
+              onExported={(filename) => showToast(`Exported ${filename}`)}
+              currentType={exportContent.sessionType ?? 'web'}
+              accountSlot={accountSlot}
+            />
+            {/* On phones "Make private" lives inside More, so point at More. */}
+            {canMakePrivate && nudge('right')}
+          </span>
         ) : (
           <>
             <UsersMenu
@@ -305,15 +366,28 @@ export default function Header({
             <ThemeButton variant="square" onOpenDrawer={() => setThemeDrawerOpen(true)} />
             <ExportMenu {...exportContent} onExported={(filename) => showToast(`Exported ${filename}`)} />
             <NewSessionButton currentType={exportContent.sessionType ?? 'web'} />
-            <div data-testid="account-menu-slot">
-              <AccountMenu />
-            </div>
+            {accountSlot}
           </>
         )}
         <RunControls onRun={onRun} />
       </div>
 
       <ThemeDrawer open={themeDrawerOpen} onClose={() => setThemeDrawerOpen(false)} />
+      <AuthModal
+        open={signupOpen}
+        onOpenChange={setSignupOpen}
+        initialMode="signup"
+        onSuccess={(how) => {
+          if (how === 'signup') {
+            onMakePrivate();
+            showToast('Account created — this room is now private');
+          } else {
+            // Logging in to a different, existing account: that account didn't
+            // create this room, so it can't make it private.
+            showToast('Logged in. Only the account that created a room can make it private');
+          }
+        }}
+      />
       <Toast message={toast} bottomOffset={isMobile ? TOAST_BOTTOM_OFFSET_MOBILE : TOAST_BOTTOM_OFFSET} />
     </header>
   );

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 import { useSession, type ConnectionStatus } from './useSession';
 import { useSessionChannel } from './useSessionChannel';
@@ -42,11 +42,20 @@ export default function SessionWorkspace({
   userId,
   isAnonymous,
   privacyHint,
+  initialIsPrivate = false,
+  onAccessRevoked = () => {},
 }: {
   sessionId: string;
   userId: string | null;
   isAnonymous: boolean;
   privacyHint: boolean | null;
+  // Whether the room is private as of SessionRoute's access check, so a
+  // private room's owner joins the owner-only Realtime topic straight away
+  // instead of passing through the public one first.
+  initialIsPrivate?: boolean;
+  // Called when the owner makes the room private while this (non-owner)
+  // visitor has it open; SessionRoute re-checks access and shows AccessDenied.
+  onAccessRevoked?: () => void;
 }) {
   const { tabs, toggleTab } = useTabsQueryParam();
   // Below 760px the multi-pane layout has no room to be multi-pane, so the
@@ -60,8 +69,13 @@ export default function SessionWorkspace({
   // Exactly one Realtime channel per session, created here and shared by both
   // useSession (broadcast edits) and usePresence (presence tracking). See
   // useSessionChannel.ts for why creating it in each hook is broken.
-  const { channel, status: channelStatus } = useSessionChannel(sessionId, userId);
-  const { html, css, js, connectionStatus, updateField, isPrivate, ownerId, title, setPrivacy } = useSession(
+  // Which Realtime topic to sit on: the public one, or the owner-only private
+  // one (see useSessionChannel). Seeded from the access check, then follows
+  // the row's is_private once it has loaded -- so making the room private
+  // moves this client off the topic other viewers are still subscribed to.
+  const [channelPrivate, setChannelPrivate] = useState(initialIsPrivate);
+  const { channel, status: channelStatus } = useSessionChannel(sessionId, userId, channelPrivate);
+  const { html, css, js, connectionStatus, updateField, isPrivate, ownerId, title, setPrivacy, loading, accessRevoked } = useSession(
     sessionId,
     userId,
     isAnonymous,
@@ -71,6 +85,12 @@ export default function SessionWorkspace({
     privacyHint,
   );
   const { users, name, setName } = usePresence(userId, channel);
+  useEffect(() => {
+    if (!loading) setChannelPrivate(isPrivate);
+  }, [loading, isPrivate]);
+  useEffect(() => {
+    if (accessRevoked) onAccessRevoked();
+  }, [accessRevoked, onAccessRevoked]);
 
   // `runToken` only changes when the user explicitly hits Run (button or
   // Ctrl/Cmd+Enter) -- it is what OutputFrame keys its <iframe> on, so
@@ -174,7 +194,9 @@ export default function SessionWorkspace({
         exportContent={{ html, css, js }}
         isPrivate={isPrivate}
         isOwner={ownerId !== null && ownerId === userId}
+        isAnonymous={isAnonymous}
         onTogglePrivacy={() => setPrivacy(!isPrivate)}
+        onMakePrivate={() => setPrivacy(true)}
       />
       <ConnectionBanner status={bannerStatus} />
       {/* flex: 1 + min-height: 0 (see the stylesheet) rather than height:
