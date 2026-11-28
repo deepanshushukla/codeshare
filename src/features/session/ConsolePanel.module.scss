@@ -39,22 +39,22 @@
   gap: 5px;
   height: 24px;
   padding: 0 9px;
-  border: 1px solid var(--line2);
+  // Red (the theme's --err) marks it as the destructive action in the bar.
+  border: 1px solid color-mix(in oklch, var(--err) 55%, transparent);
   border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--muted);
+  background: color-mix(in oklch, var(--err) 8%, transparent);
+  color: var(--err);
   font: 600 11px var(--font-sans);
   cursor: pointer;
   transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
 
   &:hover:not(:disabled) {
-    border-color: var(--acc);
-    background: var(--acc-soft);
-    color: var(--text);
+    border-color: var(--err);
+    background: color-mix(in oklch, var(--err) 18%, transparent);
   }
 
   &:focus-visible {
-    outline: 2px solid var(--acc);
+    outline: 2px solid var(--err);
     outline-offset: 1px;
   }
 
