@@ -1,8 +1,8 @@
 import { describe, expect, test, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import MyRooms from './MyRooms';
-import { emitAuthStateChange, from, mockConfig, resetSupabaseMock } from '../test/supabaseMock';
+import { emitAuthStateChange, from, mockConfig, resetSupabaseMock, update } from '../test/supabaseMock';
 
 vi.mock('../lib/supabase', () => import('../test/supabaseMock'));
 
@@ -44,5 +44,31 @@ describe('MyRooms', () => {
     render(<MemoryRouter><MyRooms /></MemoryRouter>);
     expect(await screen.findByText(/couldn.t load your rooms/i)).toBeInTheDocument();
     expect(screen.queryByText(/no rooms yet/i)).not.toBeInTheDocument();
+  });
+
+  test('logged in: the Private switch makes a public room private', async () => {
+    emitAuthStateChange('SIGNED_IN', { user: { id: 'real-1', email: 'a@b.com', is_anonymous: false } });
+    mockConfig.sessionList = [
+      { id: 'room1', title: 'Demo', is_private: false, session_type: 'web', created_at: '2026-11-01T00:00:00Z', updated_at: '2026-11-20T00:00:00Z' },
+    ];
+    render(<MemoryRouter><MyRooms /></MemoryRouter>);
+    const toggle = await screen.findByRole('switch', { name: /private: demo/i });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(toggle);
+    expect(update).toHaveBeenCalledWith({ is_private: true });
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', 'true'));
+  });
+
+  test('logged in: a refused privacy update rolls the switch back', async () => {
+    emitAuthStateChange('SIGNED_IN', { user: { id: 'real-1', email: 'a@b.com', is_anonymous: false } });
+    mockConfig.sessionList = [
+      { id: 'room1', title: 'Demo', is_private: false, session_type: 'web', created_at: '2026-11-01T00:00:00Z', updated_at: '2026-11-20T00:00:00Z' },
+    ];
+    mockConfig.updateResult = { data: [], error: null };
+    render(<MemoryRouter><MyRooms /></MemoryRouter>);
+    const toggle = await screen.findByRole('switch', { name: /private: demo/i });
+    fireEvent.click(toggle);
+    expect(await screen.findByText(/couldn.t make .demo. private/i)).toBeInTheDocument();
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
   });
 });
